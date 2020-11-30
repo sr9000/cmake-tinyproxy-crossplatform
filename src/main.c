@@ -325,6 +325,7 @@ done:
 int
 main (int argc, char **argv)
 {
+        printf("debug 1\n");
 #ifdef HAVE_WSOCK32
         WSADATA wsa;
         log_message (LOG_INFO, "Initialising Winsock...");
@@ -339,6 +340,7 @@ main (int argc, char **argv)
          * of glibc so that mkstemp() doesn't make us vulnerable.
          */
         umask (0177);
+        printf("debug 2\n");
 
         log_message (LOG_INFO, "Initializing " PACKAGE " ...");
 
@@ -346,14 +348,24 @@ main (int argc, char **argv)
                 exit (EX_SOFTWARE);
         }
 
+        printf("debug 3\n");
+
         initialize_config_defaults (&config_defaults);
+
+        printf("debug 3-1\n");
+
         process_cmdline (argc, argv, &config_defaults);
+
+        printf("debug 3-2\n");
 
         if (reload_config_file (config_defaults.config_file,
                                 &config,
                                 &config_defaults)) {
+                printf("debug 3-3\n");
                 exit (EX_SOFTWARE);
         }
+
+        printf("debug 4\n");
 
         init_stats ();
 
@@ -366,6 +378,8 @@ main (int argc, char **argv)
                 anonymous_insert ("Content-Type");
         }
 
+        printf("debug 5\n");
+
 #ifdef FILTER_ENABLE
         if (config.filter)
                 filter_init ();
@@ -377,6 +391,8 @@ main (int argc, char **argv)
                          argv[0]);
                 exit (EX_OSERR);
         }
+
+        printf("debug 6\n");
 
         /* Create pid file before we drop privileges */
         if (config.pidpath) {
@@ -401,12 +417,16 @@ main (int argc, char **argv)
                 exit (EX_SOFTWARE);
         }
 
+        printf("debug 7\n");
+
         if (child_pool_create () < 0) {
                 fprintf (stderr,
                          "%s: Could not create the pool of children.\n",
                          argv[0]);
                 exit (EX_SOFTWARE);
         }
+
+        printf("debug 8\n");
 
         /* These signals are only for the parent process. */
         log_message (LOG_INFO, "Setting the various signals.");
@@ -440,12 +460,21 @@ main (int argc, char **argv)
         /* Start the main loop */
         log_message (LOG_INFO, "Starting main loop. Accepting connections.");
 
+        printf("debug 9\n");
+
         child_main_loop ();
+
+        printf("debug 10\n");
 
         log_message (LOG_INFO, "Shutting down.");
 
         child_kill_children (SIGTERM);
+
+        printf("debug 11\n");
+
         child_close_sock ();
+
+        printf("debug 12\n");
 
         /* Remove the PID file */
         if (config.pidpath != NULL && unlink (config.pidpath) < 0) {

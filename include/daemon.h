@@ -26,6 +26,10 @@ typedef void signal_func (int);
 /*
  * Pass a singal integer and a function to handle the signal.
  */
+#ifdef MINGW
+#define set_signal_handler signal
+#else /* MINGW */
 extern signal_func *set_signal_handler (int signo, signal_func * func);
+#endif /* MINGW */
 
 #endif

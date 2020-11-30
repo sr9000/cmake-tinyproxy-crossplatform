@@ -61,6 +61,12 @@ send_http_message (struct conn_s *connptr, int http_code,
 /*
  * Safely creates filename and returns the low-level file descriptor.
  */
+#ifdef MINGW
+int create_file_safely (const char *filename, unsigned int truncate_file)
+{
+
+}
+#else /* MINGW */
 int create_file_safely (const char *filename, unsigned int truncate_file)
 {
         struct stat lstatinfo;
@@ -71,7 +77,7 @@ int create_file_safely (const char *filename, unsigned int truncate_file)
          * If it does exist, open it for writing and perform the fstat()
          * check.
          */
-        if (lstat (filename, &lstatinfo) < 0) {
+        if (stat (filename, &lstatinfo) < 0) {
                 /*
                  * If lstat() failed for any reason other than "file not
                  * existing", exit.
@@ -176,6 +182,7 @@ int create_file_safely (const char *filename, unsigned int truncate_file)
 
         return fildes;
 }
+#endif /* MINGW */
 
 /**
  * pidfile_create:

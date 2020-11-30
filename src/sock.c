@@ -151,8 +151,13 @@ int socket_nonblocking (int sock)
 
         assert (sock >= 0);
 
+#ifdef HAVE_WSOCK32
+        long unsigned int mode = 1;
+        return ioctlsocket(sock, FIONBIO, &mode);
+#else /* HAVE_WSOCK32 */
         flags = fcntl (sock, F_GETFL, 0);
         return fcntl (sock, F_SETFL, flags | O_NONBLOCK);
+#endif /* HAVE_WSOCK32 */
 }
 
 /*
@@ -164,10 +169,20 @@ int socket_blocking (int sock)
 
         assert (sock >= 0);
 
+#ifdef HAVE_WSOCK32
+        long unsigned int mode = 0;
+        return ioctlsocket(sock, FIONBIO, &mode);
+#else /* HAVE_WSOCK32 */
         flags = fcntl (sock, F_GETFL, 0);
         return fcntl (sock, F_SETFL, flags & ~O_NONBLOCK);
+#endif /* HAVE_WSOCK32 */
 }
 
+#ifdef HAVE_WSOCK32
+typedef const char* setsockopt_on_t;
+#else /* HAVE_WSOCK32 */
+typedef const int* setsockopt_on_t;
+#endif /* HAVE_WSOCK32 */
 
 /**
  * Try to listen on one socket based on the addrinfo
@@ -201,7 +216,7 @@ static int listen_on_one_socket(struct addrinfo *ad)
                 return -1;
         }
 
-        ret = setsockopt(listenfd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on));
+        ret = setsockopt(listenfd, SOL_SOCKET, SO_REUSEADDR, (setsockopt_on_t)&on, sizeof(on));
         if (ret != 0) {
                 log_message(LOG_ERR,
                             "setsockopt failed to set SO_REUSEADDR: %s",
@@ -211,7 +226,7 @@ static int listen_on_one_socket(struct addrinfo *ad)
         }
 
         if (ad->ai_family == AF_INET6) {
-                ret = setsockopt(listenfd, IPPROTO_IPV6, IPV6_V6ONLY, &on,
+                ret = setsockopt(listenfd, IPPROTO_IPV6, IPV6_V6ONLY, (setsockopt_on_t) &on,
                                  sizeof(on));
                 if (ret != 0) {
                         log_message(LOG_ERR,

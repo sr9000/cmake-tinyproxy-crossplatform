@@ -52,6 +52,7 @@
 #  include      <time.h>      // mingw +
 #  include      <inttypes.h>  // mingw +
 #  include      <assert.h>    // mingw +
+#  include      <fcntl.h>     // mingw +
 
 #  include      <regex.h>  // mingw +libsystre
 #  include      <signal.h> // mingw +ifdefs +winapi
@@ -76,12 +77,16 @@
 #endif /* MINGW */
 
 #ifdef HAVE_WSOCK32
+        #ifdef _WIN32_WINNT
+                #undef _WIN32_WINNT
+        #endif
         #define _WIN32_WINNT 0x0601 // Windows 7+
         #include <winsock2.h>
         #include <Ws2ipdef.h>
         #include <ws2tcpip.h>
         #include <windows.h>
         //#define close closesocket
+        typedef unsigned long in_addr_t;
 #else
         #include <sys/types.h>
         #include <sys/socket.h>
@@ -89,7 +94,6 @@
         #include <netinet/in.h>
         #include <arpa/inet.h>
         #include <netdb.h>
-        #include <fcntl.h>
         #define closesocket close
 #endif
 
@@ -145,4 +149,175 @@
 #  define max(a,b)	((a) > (b) ? (a) : (b))
 #endif
 
+#ifdef MINGW
+// Author: Paul Vixie, 1996.
+// https://stackoverflow.com/questions/15370033/how-to-use-inet-pton-with-the-mingw-compiler
+#define MINGW_NS_INADDRSZ  4
+#define MINGW_NS_IN6ADDRSZ 16
+#define MINGW_NS_INT16SZ   2
+static int mingw_inet_pton4(const char *src, struct in_addr *dst)
+{
+    uint8_t tmp[MINGW_NS_INADDRSZ], *tp;
+
+    int saw_digit = 0;
+    int octets = 0;
+    *(tp = tmp) = 0;
+
+    int ch;
+    while ((ch = *src++) != '\0')
+    {
+        if (ch >= '0' && ch <= '9')
+        {
+            uint32_t n = *tp * 10 + (ch - '0');
+
+            if (saw_digit && *tp == 0)
+                return 0;
+
+            if (n > 255)
+                return 0;
+
+            *tp = n;
+            if (!saw_digit)
+            {
+                if (++octets > 4)
+                    return 0;
+                saw_digit = 1;
+            }
+        }
+        else if (ch == '.' && saw_digit)
+        {
+            if (octets == 4)
+                return 0;
+            *++tp = 0;
+            saw_digit = 0;
+        }
+        else
+            return 0;
+    }
+    if (octets < 4)
+        return 0;
+
+    memcpy(dst, tmp, MINGW_NS_INADDRSZ);
+
+    return 1;
+}
+static int mingw_inet_pton6(const char *src, struct in_addr *dst)
+{
+    static const char xdigits[] = "0123456789abcdef";
+    uint8_t tmp[MINGW_NS_IN6ADDRSZ];
+
+    uint8_t *tp = (uint8_t*) memset(tmp, '\0', MINGW_NS_IN6ADDRSZ);
+    uint8_t *endp = tp + MINGW_NS_IN6ADDRSZ;
+    uint8_t *colonp = NULL;
+
+    /* Leading :: requires some special handling. */
+    if (*src == ':')
+    {
+        if (*++src != ':')
+            return 0;
+    }
+
+    const char *curtok = src;
+    int saw_xdigit = 0;
+    uint32_t val = 0;
+    int ch;
+    while ((ch = tolower(*src++)) != '\0')
+    {
+        const char *pch = strchr(xdigits, ch);
+        if (pch != NULL)
+        {
+            val <<= 4;
+            val |= (pch - xdigits);
+            if (val > 0xffff)
+                return 0;
+            saw_xdigit = 1;
+            continue;
+        }
+        if (ch == ':')
+        {
+            curtok = src;
+            if (!saw_xdigit)
+            {
+                if (colonp)
+                    return 0;
+                colonp = tp;
+                continue;
+            }
+            else if (*src == '\0')
+            {
+                return 0;
+            }
+            if (tp + MINGW_NS_INT16SZ > endp)
+                return 0;
+            *tp++ = (uint8_t) (val >> 8) & 0xff;
+            *tp++ = (uint8_t) val & 0xff;
+            saw_xdigit = 0;
+            val = 0;
+            continue;
+        }
+        if (ch == '.' && ((tp + MINGW_NS_INADDRSZ) <= endp) &&
+                mingw_inet_pton4(curtok, (struct in_addr *) tp) > 0)
+        {
+            tp += MINGW_NS_INADDRSZ;
+            saw_xdigit = 0;
+            break; /* '\0' was seen by inet_pton4(). */
+        }
+        return 0;
+    }
+    if (saw_xdigit)
+    {
+        if (tp + MINGW_NS_INT16SZ > endp)
+            return 0;
+        *tp++ = (uint8_t) (val >> 8) & 0xff;
+        *tp++ = (uint8_t) val & 0xff;
+    }
+    if (colonp != NULL)
+    {
+        /*
+         * Since some memmove()'s erroneously fail to handle
+         * overlapping regions, we'll do the shift by hand.
+         */
+        const int n = tp - colonp;
+
+        if (tp == endp)
+            return 0;
+
+        for (int i = 1; i <= n; i++)
+        {
+            endp[-i] = colonp[n - i];
+            colonp[n - i] = 0;
+        }
+        tp = endp;
+    }
+    if (tp != endp)
+        return 0;
+
+    memcpy(dst, tmp, MINGW_NS_IN6ADDRSZ);
+
+    return 1;
+}
+static int mingw_inet_pton(int af, const char *src, struct in_addr *dst)
+{
+    switch (af)
+    {
+    case AF_INET:
+        return mingw_inet_pton4(src, dst);
+    case AF_INET6:
+        return mingw_inet_pton6(src, dst);
+    default:
+        return -1;
+    }
+}
+#define proxy_inet_aton mingw_inet_pton4
+#define proxy_inet_pton mingw_inet_pton
+
+#else /* MINGW */
+
+#define proxy_inet_aton inet_aton
+#define proxy_inet_pton inet_pton
+
+#endif /* MINGW */
+
 #endif
+
+

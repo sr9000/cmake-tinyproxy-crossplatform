@@ -54,28 +54,43 @@
 #define ALNUM "([-a-z0-9._]+)"
 #define IP "((([0-9]{1,3})\\.){3}[0-9]{1,3})"
 #define IPMASK "(" IP "(/[[:digit:]]+)?)"
-#define IPV6 "(" \
+#define IPV6p1 "(" \
         "(([0-9a-f]{1,4}:){1,1}(:[0-9a-f]{1,4}){1,6})|" \
         "(([0-9a-f]{1,4}:){1,2}(:[0-9a-f]{1,4}){1,5})|" \
         "(([0-9a-f]{1,4}:){1,3}(:[0-9a-f]{1,4}){1,4})|" \
+        ")"
+#define IPV6p2 "(" \
         "(([0-9a-f]{1,4}:){1,4}(:[0-9a-f]{1,4}){1,3})|" \
         "(([0-9a-f]{1,4}:){1,5}(:[0-9a-f]{1,4}){1,2})|" \
         "(([0-9a-f]{1,4}:){1,6}(:[0-9a-f]{1,4}){1,1})|" \
+        ")"
+#define IPV6p3 "(" \
         "((([0-9a-f]{1,4}:){1,7}|:):)|" \
         "(:(:[0-9a-f]{1,4}){1,7})|" \
         "([0-9a-f]{1,4}(:[0-9a-f]{1,4}){1,7})|" \
+        ")"
+#define IPV6p4 "(" \
         "(((([0-9a-f]{1,4}:){6})(25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)(\\.(25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)){3}))|" \
         "((([0-9a-f]{1,4}:){5}[0-9a-f]{1,4}:(25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)(\\.(25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)){3}))|" \
         "(([0-9a-f]{1,4}:){5}:[0-9a-f]{1,4}:(25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)(\\.(25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)){3})|" \
+        ")"
+#define IPV6p5 "(" \
         "(([0-9a-f]{1,4}:){1,1}(:[0-9a-f]{1,4}){1,4}:(25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)(\\.(25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)){3})|" \
         "(([0-9a-f]{1,4}:){1,2}(:[0-9a-f]{1,4}){1,3}:(25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)(\\.(25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)){3})|" \
         "(([0-9a-f]{1,4}:){1,3}(:[0-9a-f]{1,4}){1,2}:(25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)(\\.(25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)){3})|" \
+        ")"
+#define IPV6p6 "(" \
         "(([0-9a-f]{1,4}:){1,4}(:[0-9a-f]{1,4}){1,1}:(25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)(\\.(25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)){3})|" \
         "((([0-9a-f]{1,4}:){1,5}|:):(25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)(\\.(25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)){3})|" \
         "(:(:[0-9a-f]{1,4}){1,5}:(25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)(\\.(25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)){3})" \
         ")"
 
-#define IPV6MASK "(" IPV6 "(/[[:digit:]]+)?)"
+#define IPV6MASKp1 "(" IPV6p1 "(/[[:digit:]]+)?)"
+#define IPV6MASKp2 "(" IPV6p2 "(/[[:digit:]]+)?)"
+#define IPV6MASKp3 "(" IPV6p3 "(/[[:digit:]]+)?)"
+#define IPV6MASKp4 "(" IPV6p4 "(/[[:digit:]]+)?)"
+#define IPV6MASKp5 "(" IPV6p5 "(/[[:digit:]]+)?)"
+#define IPV6MASKp6 "(" IPV6p6 "(/[[:digit:]]+)?)"
 #define BEGIN "^[[:space:]]*"
 #define END "[[:space:]]*$"
 
@@ -223,12 +238,36 @@ struct {
         STDCONF ("user", ALNUM, handle_user),
         STDCONF ("group", ALNUM, handle_group),
         /* ip arguments */
-        STDCONF ("listen", "(" IP "|" IPV6 ")", handle_listen),
-        STDCONF ("allow", "(" "(" IPMASK "|" IPV6MASK ")" "|" ALNUM ")",
+        STDCONF ("listen", IP, handle_listen),
+        STDCONF ("listen", IPV6p1, handle_listen),
+        STDCONF ("listen", IPV6p2, handle_listen),
+        STDCONF ("listen", IPV6p3, handle_listen),
+        STDCONF ("listen", IPV6p4, handle_listen),
+        STDCONF ("listen", IPV6p5, handle_listen),
+        STDCONF ("listen", IPV6p6, handle_listen),
+        STDCONF ("allow", "(" "(" IPMASK ")" "|" ALNUM ")",
                  handle_allow),
-        STDCONF ("deny", "(" "(" IPMASK "|" IPV6MASK ")" "|" ALNUM ")",
+        STDCONF ("allow", IPV6MASKp1, handle_allow),
+        STDCONF ("allow", IPV6MASKp2, handle_allow),
+        STDCONF ("allow", IPV6MASKp3, handle_allow),
+        STDCONF ("allow", IPV6MASKp4, handle_allow),
+        STDCONF ("allow", IPV6MASKp5, handle_allow),
+        STDCONF ("allow", IPV6MASKp6, handle_allow),
+        STDCONF ("deny", "(" "(" IPMASK ")" "|" ALNUM ")",
                  handle_deny),
-        STDCONF ("bind", "(" IP "|" IPV6 ")", handle_bind),
+        STDCONF ("deny", IPV6MASKp1, handle_deny),
+        STDCONF ("deny", IPV6MASKp2, handle_deny),
+        STDCONF ("deny", IPV6MASKp3, handle_deny),
+        STDCONF ("deny", IPV6MASKp4, handle_deny),
+        STDCONF ("deny", IPV6MASKp5, handle_deny),
+        STDCONF ("deny", IPV6MASKp6, handle_deny),
+        STDCONF ("bind", IP, handle_bind),
+        STDCONF ("bind", IPV6p1, handle_bind),
+        STDCONF ("bind", IPV6p2, handle_bind),
+        STDCONF ("bind", IPV6p3, handle_bind),
+        STDCONF ("bind", IPV6p4, handle_bind),
+        STDCONF ("bind", IPV6p5, handle_bind),
+        STDCONF ("bind", IPV6p6, handle_bind),
         /* other */
         STDCONF ("basicauth", ALNUM WS ALNUM, handle_basicauth),
         STDCONF ("errorfile", INT WS STR, handle_errorfile),
@@ -376,6 +415,8 @@ config_free_regex (void)
  */
 static int check_match (struct config_s *conf, const char *line)
 {
+        printf("debug 3-2 4 3 3 1\n");
+        printf("line: %s\n", line);
         regmatch_t match[RE_MAX_MATCHES];
         unsigned int i;
 
@@ -384,9 +425,14 @@ static int check_match (struct config_s *conf, const char *line)
         for (i = 0; i != ndirectives; ++i) {
                 assert (directives[i].cre);
                 if (!regexec
-                    (directives[i].cre, line, RE_MAX_MATCHES, match, 0))
+                    (directives[i].cre, line, RE_MAX_MATCHES, match, 0)) {
+                        printf("debug 3-2 4 3 3 2\n");
+                        printf("directive no: %d\n", i);
                         return (*directives[i].handler) (conf, line, match);
+                }
+                printf("skip directive no: %d\n", i);
         }
+        printf("debug 3-2 4 3 3 3\n");
 
         return -1;
 }
@@ -396,16 +442,23 @@ static int check_match (struct config_s *conf, const char *line)
  */
 static int config_parse (struct config_s *conf, FILE * f)
 {
+        printf("debug 3-2 4 3 1\n");
         char buffer[1024];      /* 1KB lines should be plenty */
         unsigned long lineno = 1;
 
+        printf("debug 3-2 4 3 2\n");
+
         while (fgets (buffer, sizeof (buffer), f)) {
+                printf("debug 3-2 4 3 3\n");
                 if (check_match (conf, buffer)) {
+                        printf("debug 3-2 4 3 4\n");
                         printf ("Syntax error on line %ld\n", lineno);
                         return 1;
                 }
+                printf("debug 3-2 4 3 5\n");
                 ++lineno;
         }
+        printf("debug 3-2 4 3 6\n");
         return 0;
 }
 
@@ -414,8 +467,12 @@ static int config_parse (struct config_s *conf, FILE * f)
  */
 static int load_config_file (const char *config_fname, struct config_s *conf)
 {
+        printf("config_fname: %s\n", config_fname);
+        printf("debug 3-2 4 1\n");
         FILE *config_file;
         int ret = -1;
+
+        printf("debug 3-2 4 2\n");
 
         config_file = fopen (config_fname, "r");
         if (!config_file) {
@@ -425,15 +482,20 @@ static int load_config_file (const char *config_fname, struct config_s *conf)
                 goto done;
         }
 
+        printf("debug 3-2 4 3\n");
+
         if (config_parse (conf, config_file)) {
                 fprintf (stderr, "Unable to parse config file. "
                          "Not starting.\n");
                 goto done;
         }
 
+        printf("debug 3-2 4 4\n");
+
         ret = 0;
 
 done:
+        printf("debug 3-2 4 5\n");
         if (config_file)
                 fclose (config_file);
 
@@ -548,16 +610,26 @@ int reload_config_file (const char *config_fname, struct config_s *conf,
 {
         int ret;
 
+        printf("debug 3-2 1\n");
+
         log_message (LOG_INFO, "Reloading config file");
+        
+        printf("debug 3-2 2\n");
 
         free_config (conf);
 
+        printf("debug 3-2 3\n");
+
         initialize_with_defaults (conf, defaults);
 
+        printf("debug 3-2 4\n");
+
         ret = load_config_file (config_fname, conf);
+        printf("debug 3-2 4-1\n");
         if (ret != 0) {
                 goto done;
         }
+        printf("debug 3-2 5\n");
 
         /* Set the default values if they were not set in the config file. */
         if (conf->port == 0) {
@@ -571,10 +643,14 @@ int reload_config_file (const char *config_fname, struct config_s *conf,
                 goto done;
         }
 
+        printf("debug 3-2 6\n");
+
         if (!conf->user) {
                 log_message (LOG_WARNING, "You SHOULD set a UserName in the "
                              "config file. Using current user instead.");
         }
+
+        printf("debug 3-2 7\n");
 
         if (conf->idletimeout == 0) {
                 log_message (LOG_WARNING, "Invalid idle time setting. "
@@ -583,6 +659,7 @@ int reload_config_file (const char *config_fname, struct config_s *conf,
                              MAX_IDLE_TIME);
                 conf->idletimeout = MAX_IDLE_TIME;
         }
+        printf("debug 3-2 8\n");
 
 done:
         return ret;

@@ -412,6 +412,10 @@ child_main (struct child_s *ptr)
  * child_main() function.
  */
 #ifdef MINGW
+static DWORD WINAPI mingw_child_main(void *pvoid) {
+        return child_main((struct child_s*)pvoid);
+}
+
 static DWORD child_make(struct child_s *ptr)
 {
         HANDLE  hThread;
@@ -419,7 +423,7 @@ static DWORD child_make(struct child_s *ptr)
         hThread = CreateThread(
                 NULL,               // default security attributes
                 0,                  // use default stack size
-                child_main,         // thread function name
+                mingw_child_main,   // thread function name
                 ptr,                // argument to thread function
                 0,                  // use default creation flags
                 &dwThreadId);       // returns the thread identifier
@@ -459,6 +463,7 @@ static pid_t child_make (struct child_s *ptr)
 short int child_pool_create (void)
 {
         unsigned int i;
+        printf("debug 7 1\n");
 
         /*
          * Make sure the number of MaxClients is not zero, since this
@@ -471,36 +476,43 @@ short int child_pool_create (void)
                              "greater than zero.");
                 return -1;
         }
+        printf("debug 7 2\n");
         if (child_config.startservers == 0) {
                 log_message (LOG_ERR,
                              "child_pool_create: \"StartServers\" must be "
                              "greater than zero.");
                 return -1;
         }
+        printf("debug 7 3\n");
 
         child_ptr =
             (struct child_s *) calloc_shared_memory (child_config.maxclients,
                                                      sizeof (struct child_s));
+        printf("debug 7 4\n");
         if (!child_ptr) {
                 log_message (LOG_ERR,
                              "Could not allocate memory for children.");
                 return -1;
         }
-
+        printf("debug 7 5\n");
         servers_waiting =
             (unsigned int *) malloc_shared_memory (sizeof (unsigned int));
+        printf("debug 7 6\n");
         if (servers_waiting == MAP_FAILED) {
                 log_message (LOG_ERR,
                              "Could not allocate memory for child counting.");
                 return -1;
         }
+        printf("debug 7 7\n");
         *servers_waiting = 0;
 
         /*
          * Create a "locking" file for use around the servers_waiting
          * variable.
          */
+        printf("debug 7 8\n");
         _child_lock_init ();
+        printf("debug 7 9\n");
 
         if (child_config.startservers > child_config.maxclients) {
                 log_message (LOG_WARNING,
@@ -509,11 +521,13 @@ short int child_pool_create (void)
                              child_config.maxclients);
                 child_config.startservers = child_config.maxclients;
         }
+        printf("debug 7 10\n");
 
         for (i = 0; i != child_config.maxclients; i++) {
                 child_ptr[i].status = T_EMPTY;
                 child_ptr[i].connects = 0;
         }
+        printf("debug 7 11\n");
 
         for (i = 0; i != child_config.startservers; i++) {
                 DEBUG2 ("Trying to create child %d of %d", i + 1,
@@ -534,6 +548,7 @@ short int child_pool_create (void)
                         SERVER_INC ();
                 }
         }
+        printf("debug 7 12\n");
 
         log_message (LOG_INFO, "Finished creating all children.");
 
@@ -633,7 +648,7 @@ void child_kill_children (int sig)
                                         NULL,
                                         GetLastError(),
                                         MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-                                        (LPCSTR) &lpMsgBuf,
+                                        (LPSTR) &lpMsgBuf,
                                         0, NULL );
                                 log_message(LOG_ERR, "Failed to close child thread: %d", lpMsgBuf);
                                 exit(EX_SOFTWARE);
@@ -646,7 +661,7 @@ void child_kill_children (int sig)
                                         NULL,
                                         GetLastError(),
                                         MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-                                        (LPCSTR) &lpMsgBuf,
+                                        (LPSTR) &lpMsgBuf,
                                         0, NULL );
                                 log_message(LOG_ERR, "Failed to close child thread: %d", lpMsgBuf);
                                 exit(EX_SOFTWARE);

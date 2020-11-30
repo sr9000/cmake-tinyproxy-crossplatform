@@ -31,9 +31,7 @@
  * Pass a signal number and a signal handling function into this function
  * to handle signals sent to the process.
  */
-#ifdef MINGW
-#define set_signal_handler signal
-#else /* MINGW */
+#ifndef MINGW
 signal_func *set_signal_handler (int signo, signal_func * func)
 {
         struct sigaction act, oact;

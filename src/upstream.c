@@ -104,12 +104,12 @@ static struct upstream *upstream_build (const char *host, int port, const char *
                         struct in_addr addrstruct;
 
                         *ptr = '\0';
-                        if (inet_aton (domain, &addrstruct) != 0) {
+                        if (proxy_inet_aton (domain, &addrstruct) != 0) {
                                 up->ip = ntohl (addrstruct.s_addr);
                                 *ptr++ = '/';
 
                                 if (strchr (ptr, '.')) {
-                                        if (inet_aton (ptr, &addrstruct) != 0)
+                                        if (proxy_inet_aton (ptr, &addrstruct) != 0)
                                                 up->mask =
                                                     ntohl (addrstruct.s_addr);
                                 } else {
