@@ -1535,6 +1535,7 @@ get_request_entity(struct conn_s *connptr)
  */
 void handle_connection (int fd)
 {
+        // todo: put libwebsocket here
         ssize_t i;
         struct conn_s *connptr;
         struct request_s *request = NULL;

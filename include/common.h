@@ -34,54 +34,62 @@
  */
 
 /* standard C headers - we can safely assume they exist. */
-#include	<stddef.h>
-#include	<stdint.h>
-#include	<ctype.h>
-#include	<stdio.h>
-#include	<stdlib.h>
-#include	<string.h>
-#include	<unistd.h>
+#include        <stddef.h>
+#include        <stdint.h>
+#include        <ctype.h>
+#include        <stdio.h>
+#include        <stdlib.h>
+#include        <string.h>
+#include        <unistd.h>
+
 /* standard POSIX headers - they need to be there as well. */
-#  include	<errno.h>
-#  include	<fcntl.h>
-#  include	<netdb.h>
-#  include      <signal.h>
-#  include      <stdarg.h>
-#  include	<strings.h>
-#  include      <syslog.h>
-#  include	<wchar.h>
-#  include	<wctype.h>
-#  include      <sys/mman.h>
-#  include	<sys/select.h>
-#  include	<sys/socket.h>
-#  include	<sys/stat.h>
-#  include      <sys/types.h>
-#  include	<sys/wait.h>
-#  include	<sys/uio.h>
-#  include	<sys/un.h>
-#  include	<sys/time.h>
-#  include	<time.h>
-#  include	<inttypes.h>
-#  include      <sys/resource.h>
-#  include	<netinet/in.h>
-#  include      <assert.h>
-#  include	<arpa/inet.h>
-#  include	<grp.h>
-#  include	<pwd.h>
-#  include      <regex.h>
+#  include      <sys/stat.h>  // mingw +
+#  include      <errno.h>     // mingw +
+#  include      <stdarg.h>    // mingw +
+#  include      <strings.h>   // mingw +
+#  include      <wchar.h>     // mingw +
+#  include      <wctype.h>    // mingw +
+#  include      <time.h>      // mingw +
+#  include      <inttypes.h>  // mingw +
+#  include      <assert.h>    // mingw +
+
+#  include      <regex.h>  // mingw +libsystre
+#  include      <signal.h> // mingw +ifdefs +winapi
+
+#ifdef MINGW
+#define LOG_EMERG   0
+#define LOG_ALERT   1
+#define LOG_CRIT    2
+#define LOG_ERR     3
+#define LOG_WARNING 4
+#define LOG_NOTICE  5
+#define LOG_INFO    6
+#define LOG_DEBUG   7
+#else
+#  include      <syslog.h>    // only uses defines LOG_${LEVEL}
+#  include      <sys/mman.h>  // windows threads use common address space
+#  include      <sys/wait.h>  // do not use waitpid on windows
+#  include      <grp.h>       // skip group and user check on windows
+#  include      <pwd.h>       // skip group and user check on windows
+#endif /* MINGW */
+
+#ifdef HAVE_WSOCK32
+        #include <windows.h>
+        #include <winsock2.h>
+        #define close closesocket
+#else
+        #include <sys/types.h>
+        #include <sys/socket.h>
+        #  include      <sys/select.h>
+        #include <netinet/in.h>
+        #include <arpa/inet.h>
+        #include <netdb.h>
+        #include <fcntl.h>
+
+#endif
+
 
 /* rest - some oddball headers */
-#ifdef HAVE_VALUES_H
-#  include      <values.h>
-#endif
-
-#ifdef HAVE_SYS_IOCTL_H
-#  include	<sys/ioctl.h>
-#endif
-
-#ifdef HAVE_ALLOCA_H
-#  include	<alloca.h>
-#endif
 
 #ifdef HAVE_MEMORY_H
 #  include	<memory.h>
@@ -91,9 +99,11 @@
 #  include	<malloc.h>
 #endif
 
-#ifdef HAVE_SYSEXITS_H
-#  include	<sysexits.h>
-#endif
+#include "custom_sysexits.h"
+
+//#ifdef HAVE_SYSEXITS_H
+//#  include	<sysexits.h>
+//#endif
 
 /*
  * If MSG_NOSIGNAL is not defined, define it to be zero so that it doesn't

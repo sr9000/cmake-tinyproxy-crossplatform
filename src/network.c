@@ -36,7 +36,7 @@ ssize_t safe_write (int fd, const void *buf, size_t count)
 {
         ssize_t len;
         size_t bytestosend;
-	const char *buffer = buf;
+        const char *buffer = buf;
 
         assert (fd >= 0);
         assert (buffer != NULL);

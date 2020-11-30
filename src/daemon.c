@@ -26,43 +26,14 @@
 #include "daemon.h"
 #include "log.h"
 
-/*
- * Fork a child process and then kill the parent so make the calling
- * program a daemon process.
- */
-void makedaemon (void)
-{
-        if (fork () != 0)
-                exit (0);
-
-        setsid ();
-        set_signal_handler (SIGHUP, SIG_IGN);
-
-        if (fork () != 0)
-                exit (0);
-
-	if (chdir ("/") != 0) {
-                log_message (LOG_WARNING,
-                             "Could not change directory to /");
-	}
-
-        umask (0177);
-
-#ifdef NDEBUG
-        /*
-         * When not in debugging mode, close the standard file
-         * descriptors.
-         */
-        close (0);
-        close (1);
-        close (2);
-#endif
-}
 
 /*
  * Pass a signal number and a signal handling function into this function
  * to handle signals sent to the process.
  */
+#ifdef MINGW
+#define set_signal_handler signal
+#else /* MINGW */
 signal_func *set_signal_handler (int signo, signal_func * func)
 {
         struct sigaction act, oact;
@@ -85,3 +56,4 @@ signal_func *set_signal_handler (int signo, signal_func * func)
 
         return oact.sa_handler;
 }
+#endif /* MINGW */

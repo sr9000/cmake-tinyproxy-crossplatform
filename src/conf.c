@@ -152,7 +152,6 @@ static HANDLE_FUNC (handle_reversepath);
 static HANDLE_FUNC (handle_startservers);
 static HANDLE_FUNC (handle_statfile);
 static HANDLE_FUNC (handle_stathost);
-static HANDLE_FUNC (handle_syslog);
 static HANDLE_FUNC (handle_timeout);
 
 static HANDLE_FUNC (handle_user);
@@ -209,7 +208,6 @@ struct {
         STDCONF ("stathost", STR, handle_stathost),
         STDCONF ("xtinyproxy",  BOOL, handle_xtinyproxy),
         /* boolean arguments */
-        STDCONF ("syslog", BOOL, handle_syslog),
         STDCONF ("bindsame", BOOL, handle_bindsame),
         STDCONF ("disableviaheader", BOOL, handle_disableviaheader),
         /* integer arguments */
@@ -453,14 +451,12 @@ static void initialize_with_defaults (struct config_s *conf,
                 conf->config_file = safestrdup (defaults->config_file);
         }
 
-        conf->syslog = defaults->syslog;
         conf->port = defaults->port;
 
         if (defaults->stathost) {
                 conf->stathost = safestrdup (defaults->stathost);
         }
 
-        conf->godaemon = defaults->godaemon;
         conf->quit = defaults->quit;
 
         if (defaults->user) {
@@ -771,11 +767,6 @@ static HANDLE_FUNC (handle_xtinyproxy)
                  "XTinyproxy NOT Enabled! Recompile with --enable-xtinyproxy\n");
         return 1;
 #endif
-}
-
-static HANDLE_FUNC (handle_syslog)
-{
-        return set_bool_arg (&conf->syslog, line, &match[2]);
 }
 
 static HANDLE_FUNC (handle_bindsame)

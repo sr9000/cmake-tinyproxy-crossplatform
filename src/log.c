@@ -71,10 +71,7 @@ static unsigned int logging_initialized = FALSE;     /* boolean */
 int open_log_file (const char *log_file_name)
 {
         if (log_file_name == NULL) {
-                if(config.godaemon == FALSE)
-                        log_file_fd = fileno(stdout);
-                else
-                        log_file_fd = -1;
+                log_file_fd = fileno(stdout);
         } else {
                 log_file_fd = create_file_safely (log_file_name, FALSE);
         }
@@ -129,9 +126,6 @@ void log_message (int level, const char *fmt, ...)
                 return;
 #endif
 
-        if (config.syslog && level == LOG_CONN)
-                level = LOG_INFO;
-
         va_start (args, fmt);
 
         /*
@@ -161,17 +155,11 @@ void log_message (int level, const char *fmt, ...)
                 goto out;
         }
 
-        if(!config.syslog && log_file_fd == -1)
+        if(log_file_fd == -1)
                 goto out;
 
-        if (config.syslog) {
-#ifdef HAVE_VSYSLOG_H
-                vsyslog (level, fmt, args);
-#else
-                vsnprintf (str, STRING_LENGTH, fmt, args);
-                syslog (level, "%s", str);
-#endif
-        } else {
+
+        {
                 char *p;
 
                 nowtime = time (NULL);
@@ -198,13 +186,10 @@ void log_message (int level, const char *fmt, ...)
 
                 ret = write (log_file_fd, str, strlen (str));
                 if (ret == -1) {
-                        config.syslog = TRUE;
-
-                        log_message(LOG_CRIT, "ERROR: Could not write to log "
-                                    "file %s: %s.",
-                                    config.logf_name, strerror(errno));
-                        log_message(LOG_CRIT,
-                                    "Falling back to syslog logging");
+                        fprintf(stderr, "ERROR: Could not write to log "
+                                "file %s: %s.",
+                                config.logf_name, strerror(errno));
+                        exit(EX_SOFTWARE);
                 }
 
                 fsync (log_file_fd);
@@ -264,27 +249,17 @@ static void send_stored_logs (void)
  */
 int setup_logging (void)
 {
-        if (!config.syslog) {
+        {
                 if (open_log_file (config.logf_name) < 0) {
                         /*
                          * If opening the log file fails, we try
                          * to fall back to syslog logging...
                          */
-                        config.syslog = TRUE;
-
-                        log_message (LOG_CRIT, "ERROR: Could not create log "
-                                     "file %s: %s.",
-                                     config.logf_name, strerror (errno));
-                        log_message (LOG_CRIT,
-                                     "Falling back to syslog logging.");
+                        fprintf(stderr, "ERROR: Could not create log "
+                                "file %s: %s.",
+                                config.logf_name, strerror (errno));
+                        exit(EX_SOFTWARE);
                 }
-        }
-
-        if (config.syslog) {
-                if (config.godaemon == TRUE)
-                        openlog ("tinyproxy", LOG_PID, LOG_DAEMON);
-                else
-                        openlog ("tinyproxy", LOG_PID, LOG_USER);
         }
 
         logging_initialized = TRUE;
@@ -302,9 +277,7 @@ void shutdown_logging (void)
                 return;
         }
 
-        if (config.syslog) {
-                closelog ();
-        } else {
+        {
                 close_log_file ();
         }
 

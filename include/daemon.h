@@ -28,9 +28,4 @@ typedef void signal_func (int);
  */
 extern signal_func *set_signal_handler (int signo, signal_func * func);
 
-/*
- * Make a program a daemon process
- */
-extern void makedaemon (void);
-
 #endif

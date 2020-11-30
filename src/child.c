@@ -163,6 +163,7 @@ short int child_configure (child_config_t type, unsigned int val)
 /**
  * child signal handler for sighup
  */
+#ifndef MINGW
 static void child_sighup_handler (int sig)
 {
         if (sig == SIGHUP) {
@@ -177,11 +178,18 @@ static void child_sighup_handler (int sig)
 #endif /* FILTER_ENABLE */
         }
 }
+#endif /* MINGW */
 
 /*
  * This is the main (per child) loop.
  */
-static void child_main (struct child_s *ptr)
+static
+#ifdef MINGW
+DWORD WINAPI
+#else
+void
+#endif
+child_main (struct child_s *ptr)
 {
         int connfd;
         struct sockaddr *cliaddr;
@@ -354,6 +362,28 @@ static void child_main (struct child_s *ptr)
  * Fork a child "child" (or in our case a process) and then start up the
  * child_main() function.
  */
+#ifdef MINGW
+static DWORD child_make(struct child_s *ptr)
+{
+        HANDLE  hThread;
+        DWORD   dwThreadId;
+        hThread = CreateThread(
+                NULL,               // default security attributes
+                0,                  // use default stack size
+                child_main,         // thread function name
+                ptr,                // argument to thread function
+                0,                  // use default creation flags
+                &dwThreadId);       // returns the thread identifier
+
+        if (hThread == NULL)
+        {
+                fprintf (stderr, "Could not create child process.\n");
+                exit (EX_SOFTWARE);
+        }
+
+        return dwThreadId;
+}
+#else
 static pid_t child_make (struct child_s *ptr)
 {
         pid_t pid;
@@ -371,6 +401,7 @@ static pid_t child_make (struct child_s *ptr)
         child_main (ptr);       /* never returns */
         return -1;
 }
+#endif /* MINGW */
 
 /*
  * Create a pool of children to handle incoming connections

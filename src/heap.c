@@ -105,6 +105,11 @@ char *debugging_strdup (const char *s, const char *file, unsigned long line)
  * want to look into something like MM (Shared Memory Library) for a better
  * solution.
  */
+#ifdef MINGW
+// On windows threads use commond address space so we dont need shared memory mechanism
+#define malloc_shared_memory malloc
+#define calloc_shared_memory calloc
+#else
 void *malloc_shared_memory (size_t size)
 {
         int fd;
@@ -155,3 +160,4 @@ void *calloc_shared_memory (size_t nmemb, size_t size)
 
         return ptr;
 }
+#endif /* MINGW */

@@ -57,24 +57,22 @@ unsigned int received_sighup = FALSE;   /* boolean */
 static void
 takesig (int sig)
 {
-        pid_t pid;
         int status;
 
         switch (sig) {
+        case SIGTERM:
+                config.quit = TRUE;
+                break;
+#ifndef MINGW
         case SIGHUP:
                 received_sighup = TRUE;
                 break;
 
-        case SIGTERM:
-                config.quit = TRUE;
-                break;
-
         case SIGCHLD:
-                while ((pid = waitpid (-1, &status, WNOHANG)) > 0) ;
+                while (waitpid (-1, &status, WNOHANG) > 0) ;
                 break;
+#endif
         }
-
-        return;
 }
 
 /*
@@ -179,10 +177,6 @@ process_cmdline (int argc, char **argv, struct config_s *conf)
                         display_version ();
                         exit (EX_OK);
 
-                case 'd':
-                        conf->godaemon = FALSE;
-                        break;
-
                 case 'c':
                         if (conf->config_file != NULL) {
                                 safefree (conf->config_file);
@@ -215,6 +209,7 @@ process_cmdline (int argc, char **argv, struct config_s *conf)
  * the config file. This function is typically called during
  * initialization when the effective user is root.
  **/
+#ifndef MINGW
 static void
 change_user (const char *program)
 {
@@ -282,6 +277,7 @@ change_user (const char *program)
                              config.user);
         }
 }
+#endif /* MINGW */
 
 static void initialize_config_defaults (struct config_s *conf)
 {
@@ -292,7 +288,7 @@ static void initialize_config_defaults (struct config_s *conf)
                 fprintf (stderr, PACKAGE ": Could not allocate memory.\n");
                 exit (EX_SOFTWARE);
         }
-        conf->godaemon = TRUE;
+
         /*
          * Make sure the HTML error pages array is NULL to begin with.
          * (FIXME: Should have a better API for all this)
@@ -329,6 +325,16 @@ done:
 int
 main (int argc, char **argv)
 {
+#ifdef HAVE_WSOCK32
+        WSADATA wsa;
+        log_message (LOG_INFO, "Initialising Winsock...");
+        if (WSAStartup(MAKEWORD(2,2),&wsa) != 0)
+        {
+            log_message (LOG_ERR, "Initialising Winsock Failed. Error Code : %d", WSAGetLastError());
+            exit (EX_SOFTWARE);
+        }
+        log_message (LOG_INFO, "Winsock was successfully initialised.");
+#endif
         /* Only allow u+rw bits. This may be required for some versions
          * of glibc so that mkstemp() doesn't make us vulnerable.
          */
@@ -360,20 +366,6 @@ main (int argc, char **argv)
                 anonymous_insert ("Content-Type");
         }
 
-        if (config.godaemon == TRUE) {
-                if (!config.syslog && config.logf_name == NULL)
-                        fprintf(stderr, "WARNING: logging deactivated "
-                                "(can't log to stdout when daemonized)\n");
-
-                makedaemon ();
-        }
-
-        if (set_signal_handler (SIGPIPE, SIG_IGN) == SIG_ERR) {
-                fprintf (stderr, "%s: Could not set the \"SIGPIPE\" signal.\n",
-                         argv[0]);
-                exit (EX_OSERR);
-        }
-
 #ifdef FILTER_ENABLE
         if (config.filter)
                 filter_init ();
@@ -396,11 +388,13 @@ main (int argc, char **argv)
         }
 
         /* Switch to a different user if we're running as root */
+#ifndef MINGW
         if (geteuid () == 0)
                 change_user (argv[0]);
         else
                 log_message (LOG_WARNING,
                              "Not running as root, so not changing UID/GID.");
+#endif /* MINGW */
 
         /* Create log file after we drop privileges */
         if (setup_logging ()) {
@@ -417,14 +411,15 @@ main (int argc, char **argv)
         /* These signals are only for the parent process. */
         log_message (LOG_INFO, "Setting the various signals.");
 
-        if (set_signal_handler (SIGCHLD, takesig) == SIG_ERR) {
-                fprintf (stderr, "%s: Could not set the \"SIGCHLD\" signal.\n",
+        if (set_signal_handler (SIGTERM, takesig) == SIG_ERR) {
+                fprintf (stderr, "%s: Could not set the \"SIGTERM\" signal.\n",
                          argv[0]);
                 exit (EX_OSERR);
         }
 
-        if (set_signal_handler (SIGTERM, takesig) == SIG_ERR) {
-                fprintf (stderr, "%s: Could not set the \"SIGTERM\" signal.\n",
+#ifndef MINGW
+        if (set_signal_handler (SIGCHLD, takesig) == SIG_ERR) {
+                fprintf (stderr, "%s: Could not set the \"SIGCHLD\" signal.\n",
                          argv[0]);
                 exit (EX_OSERR);
         }
@@ -434,6 +429,13 @@ main (int argc, char **argv)
                          argv[0]);
                 exit (EX_OSERR);
         }
+
+        if (set_signal_handler (SIGPIPE, SIG_IGN) == SIG_ERR) {
+                fprintf (stderr, "%s: Could not set the \"SIGPIPE\" signal.\n",
+                         argv[0]);
+                exit (EX_OSERR);
+        }
+#endif /* MINGW */
 
         /* Start the main loop */
         log_message (LOG_INFO, "Starting main loop. Accepting connections.");
