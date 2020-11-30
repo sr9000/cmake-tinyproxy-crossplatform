@@ -114,13 +114,13 @@ int opensock (const char *host, int port, const char *bind_to)
                 if (bind_to) {
                         if (bind_socket (sockfd, bind_to,
                                          res->ai_family) < 0) {
-                                close (sockfd);
+                                closesocket (sockfd);
                                 continue;       /* can't bind, so try again */
                         }
                 } else if (config.bind_address) {
                         if (bind_socket (sockfd, config.bind_address,
                                          res->ai_family) < 0) {
-                                close (sockfd);
+                                closesocket (sockfd);
                                 continue;       /* can't bind, so try again */
                         }
                 }
@@ -128,7 +128,7 @@ int opensock (const char *host, int port, const char *bind_to)
                 if (connect (sockfd, res->ai_addr, res->ai_addrlen) == 0)
                         break;  /* success */
 
-                close (sockfd);
+                closesocket (sockfd);
         } while ((res = res->ai_next) != NULL);
 
         freeaddrinfo (ressave);
@@ -206,7 +206,7 @@ static int listen_on_one_socket(struct addrinfo *ad)
                 log_message(LOG_ERR,
                             "setsockopt failed to set SO_REUSEADDR: %s",
                             strerror(errno));
-                close(listenfd);
+                closesocket(listenfd);
                 return -1;
         }
 
@@ -217,7 +217,7 @@ static int listen_on_one_socket(struct addrinfo *ad)
                         log_message(LOG_ERR,
                                     "setsockopt failed to set IPV6_V6ONLY: %s",
                                     strerror(errno));
-                        close(listenfd);
+                        closesocket(listenfd);
                         return -1;
                 }
         }
@@ -225,14 +225,14 @@ static int listen_on_one_socket(struct addrinfo *ad)
         ret = bind(listenfd, ad->ai_addr, ad->ai_addrlen);
         if (ret != 0) {
                log_message(LOG_ERR, "bind failed: %s", strerror (errno));
-               close(listenfd);
+               closesocket(listenfd);
                return -1;
         }
 
         ret = listen(listenfd, MAXLISTEN);
         if (ret != 0) {
                 log_message(LOG_ERR, "listen failed: %s", strerror(errno));
-                close(listenfd);
+                closesocket(listenfd);
                 return -1;
         }
 

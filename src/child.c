@@ -66,13 +66,62 @@ static unsigned int *servers_waiting;   /* servers waiting for a connection */
 
 /* START OF LOCKING SECTION */
 
+
+
+#ifdef MINGW
+/*
+ * Using Mutex Objects 
+ */
+HANDLE ghMutex;
+
+static void _child_lock_init (void)
+{
+        ghMutex = CreateMutex(
+                NULL,              // default security attributes
+                FALSE,             // initially not owned
+                NULL);             // unnamed mutex
+
+        if (ghMutex == NULL)
+        {
+                fprintf(stderr, "CreateMutex error: %d\n", GetLastError());
+                exit(EX_SOFTWARE);
+        }
+}
+static void _child_lock_wait (void)
+{
+        DWORD dwWaitResult;
+        dwWaitResult = WaitForSingleObject(
+            ghMutex,    // handle to mutex
+            INFINITE);  // no time-out interval
+ 
+        switch (dwWaitResult)
+        {
+            // The thread got ownership of the mutex
+            case WAIT_OBJECT_0:
+                return;
+
+            // The thread got ownership of an abandoned mutex
+            // The database is in an indeterminate state
+            case WAIT_ABANDONED:
+                fprintf(stderr, "WaitForSingleObject(ghMutex) error: WAIT_ABANDONED\n");
+                exit(EX_SOFTWARE);
+        }
+}
+static void _child_lock_release (void)
+{
+        if (!ReleaseMutex(ghMutex))
+        {
+                fprintf(stderr, "ReleaseMutex(ghMutex) error: cannot release mutex\n");
+                exit(EX_SOFTWARE);
+        }
+}
+#else
 /*
  * These variables are required for the locking mechanism.  Also included
  * are the "private" functions for locking/unlocking.
  */
 static struct flock lock_it, unlock_it;
 static int lock_fd = -1;
-
 static void _child_lock_init (void)
 {
         char lock_file[] = "/tmp/tinyproxy.servers.lock.XXXXXX";
@@ -113,7 +162,7 @@ static void _child_lock_release (void)
         if (fcntl (lock_fd, F_SETLKW, &unlock_it) < 0)
                 return;
 }
-
+#endif
 /* END OF LOCKING SECTION */
 
 #define SERVER_INC() do { \
@@ -380,6 +429,7 @@ static DWORD child_make(struct child_s *ptr)
                 fprintf (stderr, "Could not create child process.\n");
                 exit (EX_SOFTWARE);
         }
+        CloseHandle(hThread);
 
         return dwThreadId;
 }
@@ -537,6 +587,7 @@ void child_main_loop (void)
 
                 sleep (5);
 
+#ifndef MINGW
                 /* Handle log rotation if it was requested */
                 if (received_sighup) {
                         /*
@@ -554,6 +605,7 @@ void child_main_loop (void)
 
                         received_sighup = FALSE;
                 }
+#endif /* MINGW */
         }
 }
 
@@ -563,10 +615,47 @@ void child_main_loop (void)
 void child_kill_children (int sig)
 {
         unsigned int i;
+#ifdef MINGW
+        HANDLE hchl;
+        LPVOID lpMsgBuf;
+        LPVOID lpDisplayBuf;
+#endif /* MINGW */
 
         for (i = 0; i != child_config.maxclients; i++) {
                 if (child_ptr[i].status != T_EMPTY)
+#ifdef MINGW
+                        hchl = OpenThread(THREAD_TERMINATE, FALSE, child_ptr[i].tid);
+                        if (hchl == NULL) {
+                                FormatMessageA(
+                                        FORMAT_MESSAGE_ALLOCATE_BUFFER | 
+                                        FORMAT_MESSAGE_FROM_SYSTEM |
+                                        FORMAT_MESSAGE_IGNORE_INSERTS,
+                                        NULL,
+                                        GetLastError(),
+                                        MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+                                        (LPCSTR) &lpMsgBuf,
+                                        0, NULL );
+                                log_message(LOG_ERR, "Failed to close child thread: %d", lpMsgBuf);
+                                exit(EX_SOFTWARE);
+                        }
+                        if (!TerminateThread(hchl, sig)) {
+                                FormatMessageA(
+                                        FORMAT_MESSAGE_ALLOCATE_BUFFER | 
+                                        FORMAT_MESSAGE_FROM_SYSTEM |
+                                        FORMAT_MESSAGE_IGNORE_INSERTS,
+                                        NULL,
+                                        GetLastError(),
+                                        MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+                                        (LPCSTR) &lpMsgBuf,
+                                        0, NULL );
+                                log_message(LOG_ERR, "Failed to close child thread: %d", lpMsgBuf);
+                                exit(EX_SOFTWARE);
+                        }
+
+                        CloseHandle(hchl);
+#else /* MINGW */
                         kill (child_ptr[i].tid, sig);
+#endif /* MINGW */
         }
 }
 
@@ -626,7 +715,7 @@ void child_close_sock (void)
 
         for (i = 0; i < vector_length(listen_fds); i++) {
                 int *fd = (int *) vector_getentry(listen_fds, i, NULL);
-                close (*fd);
+                closesocket(*fd);
         }
 
         vector_delete(listen_fds);

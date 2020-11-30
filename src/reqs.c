@@ -1558,7 +1558,7 @@ void handle_connection (int fd)
         connptr = initialize_conn (fd, peer_ipaddr, peer_string,
                                    config.bindsame ? sock_ipaddr : NULL);
         if (!connptr) {
-                close (fd);
+                closesocket (fd);
                 return;
         }
 

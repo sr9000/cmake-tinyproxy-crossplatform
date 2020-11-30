@@ -57,14 +57,16 @@
 #  include      <signal.h> // mingw +ifdefs +winapi
 
 #ifdef MINGW
-#define LOG_EMERG   0
-#define LOG_ALERT   1
-#define LOG_CRIT    2
-#define LOG_ERR     3
-#define LOG_WARNING 4
-#define LOG_NOTICE  5
-#define LOG_INFO    6
-#define LOG_DEBUG   7
+#define LOG_EMERG   0  // <syslog.h>
+#define LOG_ALERT   1  // <syslog.h>
+#define LOG_CRIT    2  // <syslog.h>
+#define LOG_ERR     3  // <syslog.h>
+#define LOG_WARNING 4  // <syslog.h>
+#define LOG_NOTICE  5  // <syslog.h>
+#define LOG_INFO    6  // <syslog.h>
+#define LOG_DEBUG   7  // <syslog.h>
+
+#define MAP_FAILED  NULL  // <sys/mman.h>
 #else
 #  include      <syslog.h>    // only uses defines LOG_${LEVEL}
 #  include      <sys/mman.h>  // windows threads use common address space
@@ -74,9 +76,12 @@
 #endif /* MINGW */
 
 #ifdef HAVE_WSOCK32
-        #include <windows.h>
+        #define _WIN32_WINNT 0x0601 // Windows 7+
         #include <winsock2.h>
-        #define close closesocket
+        #include <Ws2ipdef.h>
+        #include <ws2tcpip.h>
+        #include <windows.h>
+        //#define close closesocket
 #else
         #include <sys/types.h>
         #include <sys/socket.h>
@@ -85,7 +90,7 @@
         #include <arpa/inet.h>
         #include <netdb.h>
         #include <fcntl.h>
-
+        #define closesocket close
 #endif
 
 

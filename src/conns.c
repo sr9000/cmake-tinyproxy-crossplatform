@@ -108,11 +108,11 @@ void destroy_conn (struct conn_s *connptr)
         assert (connptr != NULL);
 
         if (connptr->client_fd != -1)
-                if (close (connptr->client_fd) < 0)
+                if (closesocket (connptr->client_fd) < 0)
                         log_message (LOG_INFO, "Client (%d) close message: %s",
                                      connptr->client_fd, strerror (errno));
         if (connptr->server_fd != -1)
-                if (close (connptr->server_fd) < 0)
+                if (closesocket (connptr->server_fd) < 0)
                         log_message (LOG_INFO, "Server (%d) close message: %s",
                                      connptr->server_fd, strerror (errno));
 

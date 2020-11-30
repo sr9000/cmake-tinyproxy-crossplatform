@@ -77,7 +77,6 @@
  *		don't advocate this, but it could be useful at times.)
  */
 
-#include <syslog.h>
 
 #define LOG_CONN      8         /* extra to log connections without the INFO stuff */
 
