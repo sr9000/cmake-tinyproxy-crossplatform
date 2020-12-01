@@ -16,8 +16,6 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-/* See 'network.c' for detailed information. */
-
 #ifndef TINYPROXY_NETWORK_H
 #define TINYPROXY_NETWORK_H
 
@@ -30,4 +28,4 @@ extern ssize_t readline(int fd, char **whole_buffer);
 extern const char *get_ip_string(struct sockaddr *sa, char *buf, size_t len);
 extern int full_inet_pton(const char *ip, void *dst);
 
-#endif
+#endif // TINYPROXY_NETWORK_H

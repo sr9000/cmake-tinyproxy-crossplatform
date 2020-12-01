@@ -16,8 +16,6 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-/* See 'reverse-proxy.c' for detailed information. */
-
 #ifndef TINYPROXY_REVERSE_PROXY_H
 #define TINYPROXY_REVERSE_PROXY_H
 
@@ -38,4 +36,4 @@ extern struct reversepath *reversepath_get(char *url, struct reversepath *revers
 void free_reversepath_list(struct reversepath *reverse);
 extern char *reverse_rewrite_url(struct conn_s *connptr, hashmap_t hashofheaders, char *url);
 
-#endif
+#endif // TINYPROXY_REVERSE_PROXY_H

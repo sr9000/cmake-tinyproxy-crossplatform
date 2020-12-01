@@ -16,14 +16,10 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-/* See 'heap.c' for detailed information. */
-
 #ifndef TINYPROXY_HEAP_H
 #define TINYPROXY_HEAP_H
 
-/*
- * The following is to allow for better memory checking.
- */
+// the following is to allow for better memory checking.
 #ifndef NDEBUG
 
 extern void *debugging_calloc(size_t nmemb, size_t size, const char *file, unsigned long line);
@@ -38,7 +34,7 @@ extern char *debugging_strdup(const char *s, const char *file, unsigned long lin
 #define safestrdup(x)     debugging_strdup(x, __FILE__, __LINE__)
 #define safefree(x)       (debugging_free(x, __FILE__, __LINE__), *(&(x)) = NULL)
 
-#else
+#else // NDEBUG
 
 #define safecalloc(x, y)  calloc(x, y)
 #define safemalloc(x)     malloc(x)
@@ -46,12 +42,10 @@ extern char *debugging_strdup(const char *s, const char *file, unsigned long lin
 #define safefree(x)       (free(x), *(&(x)) = NULL)
 #define safestrdup(x)     strdup(x)
 
-#endif
+#endif // NDEBUG
 
-/*
- * Allocate memory from the "shared" region of memory.
- */
+// allocate memory from the "shared" region of memory.
 extern void *malloc_shared_memory(size_t size);
 extern void *calloc_shared_memory(size_t nmemb, size_t size);
 
-#endif
+#endif // TINYPROXY_HEAP_H

@@ -35,6 +35,7 @@
 
 /* standard C headers - we can safely assume they exist. */
 #include <ctype.h>
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -86,7 +87,6 @@
 #include <ws2tcpip.h>
 
 #include <windows.h>
-//#define close closesocket
 typedef unsigned long in_addr_t;
 #else
 #include <arpa/inet.h>
@@ -98,21 +98,7 @@ typedef unsigned long in_addr_t;
 #define closesocket close
 #endif
 
-/* rest - some oddball headers */
-
-#ifdef HAVE_MEMORY_H
-#include <memory.h>
-#endif
-
-#ifdef HAVE_MALLOC_H
-#include <malloc.h>
-#endif
-
 #include "custom_sysexits.h"
-
-//#ifdef HAVE_SYSEXITS_H
-//#  include	<sysexits.h>
-//#endif
 
 /*
  * If MSG_NOSIGNAL is not defined, define it to be zero so that it doesn't

@@ -17,21 +17,19 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-/* See 'main.c' for detailed information. */
-
-#ifndef __MAIN_H__
-#define __MAIN_H__
+#ifndef TINYPROXY_MAIN_H
+#define TINYPROXY_MAIN_H
 
 #include "common.h"
 
-/* Global variables for the main controls of the program */
-#define MAXBUFFSIZE   ((size_t)(1024 * 96)) /* Max size of buffer */
-#define MAX_IDLE_TIME (60 * 10)             /* 10 minutes of no activity */
+// global variables for the main controls of the program
+#define MAXBUFFSIZE   ((size_t)(1024 * 96)) // max size of buffer
+#define MAX_IDLE_TIME (60 * 10)             // 10 minutes of no activity
 
-/* Global Structures used in the program */
+// global structures used in the program
 extern struct config_s config;
-extern unsigned int received_sighup; /* boolean */
+extern unsigned int received_sighup; // boolean
 
 extern int reload_config(void);
 
-#endif /* __MAIN_H__ */
+#endif // TINYPROXY_MAIN_H

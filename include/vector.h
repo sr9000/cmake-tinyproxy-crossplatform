@@ -16,10 +16,8 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-/* See 'vector.c' for detailed information. */
-
-#ifndef _VECTOR_H
-#define _VECTOR_H
+#ifndef TINYPROXY_VECTOR_H
+#define TINYPROXY_VECTOR_H
 
 /*
  * We're using a typedef here to "hide" the implementation details of the
@@ -72,4 +70,4 @@ extern void *vector_getentry(vector_t vector, size_t pos, size_t *size);
  */
 extern ssize_t vector_length(vector_t vector);
 
-#endif /* _VECTOR_H */
+#endif // TINYPROXY_VECTOR_H

@@ -16,13 +16,11 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-/* See 'anonymous.c' for detailed information. */
-
-#ifndef _TINYPROXY_ANONYMOUS_H_
-#define _TINYPROXY_ANONYMOUS_H_
+#ifndef TINYPROXY_ANONYMOUS_H
+#define TINYPROXY_ANONYMOUS_H
 
 extern short int is_anonymous_enabled(void);
 extern int anonymous_search(const char *s);
 extern int anonymous_insert(const char *s);
 
-#endif
+#endif // TINYPROXY_ANONYMOUS_H

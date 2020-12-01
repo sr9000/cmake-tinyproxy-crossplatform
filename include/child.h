@@ -16,8 +16,6 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-/* See 'child.c' for detailed information. */
-
 #ifndef TINYPROXY_CHILD_H
 #define TINYPROXY_CHILD_H
 
@@ -40,4 +38,4 @@ extern void child_kill_children(int sig);
 
 extern short int child_configure(child_config_t type, unsigned int val);
 
-#endif
+#endif // TINYPROXY_CHILD_H

@@ -17,16 +17,13 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-/* See 'sock.c' for detailed information. */
-
 #ifndef TINYPROXY_SOCK_H
 #define TINYPROXY_SOCK_H
 
-/* The IP length is set to 48, since IPv6 can be that long */
+// the IP length is set to 48, since IPv6 can be that long
 #define IP_LENGTH       48
 #define HOSTNAME_LENGTH 1024
-
-#define MAXLINE (1024 * 4)
+#define MAXLINE         (1024 * 4)
 
 #include "vector.h"
 
@@ -39,4 +36,4 @@ extern int socket_blocking(int sock);
 extern int getsock_ip(int fd, char *ipaddr);
 extern int getpeer_information(int fd, char *ipaddr, char *string_addr);
 
-#endif
+#endif // TINYPROXY_SOCK_H

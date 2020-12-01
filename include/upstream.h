@@ -18,19 +18,14 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-/*
- * Routines for handling the list of upstream proxies.
- */
+/*** Routines for handling the list of upstream proxies ***/
 
-#ifndef _TINYPROXY_UPSTREAM_H_
-#define _TINYPROXY_UPSTREAM_H_
+#ifndef TINYPROXY_UPSTREAM_H
+#define TINYPROXY_UPSTREAM_H
 
 #include "common.h"
 
-/*
- * Even if upstream support is not compiled into tinyproxy, this
- * structure still needs to be defined.
- */
+// even if upstream support is not compiled into tinyproxy, this structure still needs to be defined
 typedef enum proxy_type
 {
   PT_NONE = 0,
@@ -42,7 +37,7 @@ typedef enum proxy_type
 struct upstream
 {
   struct upstream *next;
-  char *domain; /* optional */
+  char *domain; // optional
   char *host;
   union
   {
@@ -61,6 +56,6 @@ extern void upstream_add(const char *host, int port, const char *domain, const c
                          const char *pass, proxy_type type, struct upstream **upstream_list);
 extern struct upstream *upstream_get(char *host, struct upstream *up);
 extern void free_upstream_list(struct upstream *up);
-#endif /* UPSTREAM_SUPPORT */
+#endif // UPSTREAM_SUPPORT
 
-#endif /* _TINYPROXY_UPSTREAM_H_ */
+#endif // TINYPROXY_UPSTREAM_H

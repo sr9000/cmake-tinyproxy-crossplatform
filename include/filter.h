@@ -16,10 +16,8 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-/* See 'filter.c' for detailed information. */
-
-#ifndef _TINYPROXY_FILTER_H_
-#define _TINYPROXY_FILTER_H_
+#ifndef TINYPROXY_FILTER_H
+#define TINYPROXY_FILTER_H
 
 typedef enum
 {
@@ -35,4 +33,4 @@ extern int filter_url(const char *url);
 
 extern void filter_set_default_policy(filter_policy_t policy);
 
-#endif
+#endif // TINYPROXY_FILTER_H

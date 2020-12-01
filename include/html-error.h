@@ -16,12 +16,9 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-/* See 'html-error.c' for detailed information. */
-
 #ifndef TINYPROXY_HTML_ERROR_H
 #define TINYPROXY_HTML_ERROR_H
 
-/* Forward declaration */
 struct conn_s;
 
 extern int add_new_errorpage(char *filepath, unsigned int errornum);
@@ -32,4 +29,4 @@ extern int send_html_file(FILE *infile, struct conn_s *connptr);
 extern int send_http_headers(struct conn_s *connptr, int code, const char *message);
 extern int add_standard_vars(struct conn_s *connptr);
 
-#endif /* !TINYPROXY_HTML_ERROR_H */
+#endif // TINYPROXY_HTML_ERROR_H

@@ -18,8 +18,8 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#ifndef _TINYPROXY_CONNECT_PORTS_H_
-#define _TINYPROXY_CONNECT_PORTS_H_
+#ifndef TINYPROXY_CONNECT_PORTS_H
+#define TINYPROXY_CONNECT_PORTS_H
 
 #include "common.h"
 #include "vector.h"
@@ -28,4 +28,4 @@ extern void add_connect_port_allowed(int port, vector_t *connect_ports);
 int check_allowed_connect_ports(int port, vector_t connect_ports);
 void free_connect_ports_list(vector_t connect_ports);
 
-#endif /* _TINYPROXY_CONNECT_PORTS_ */
+#endif // TINYPROXY_CONNECT_PORTS_H

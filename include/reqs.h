@@ -17,22 +17,16 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-/* See 'reqs.c' for detailed information. */
-
-#ifndef _TINYPROXY_REQS_H_
-#define _TINYPROXY_REQS_H_
+#ifndef TINYPROXY_REQS_H
+#define TINYPROXY_REQS_H
 
 #include "common.h"
 
-/*
- * Port constants for HTTP (80) and SSL (443)
- */
+// port constants for HTTP (80) and SSL (443)
 #define HTTP_PORT     80
 #define HTTP_PORT_SSL 443
 
-/*
- * This structure holds the information pulled from a URL request.
- */
+// this structure holds the information pulled from a URL request
 struct request_s
 {
   char *method;
@@ -46,4 +40,4 @@ struct request_s
 
 extern void handle_connection(int fd);
 
-#endif
+#endif // TINYPROXY_REQS_H

@@ -17,14 +17,9 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-/* See 'utils.c' for detailed information. */
-
 #ifndef TINYPROXY_UTILS_H
 #define TINYPROXY_UTILS_H
 
-/*
- * Forward declaration.
- */
 struct conn_s;
 
 extern int send_http_message(struct conn_s *connptr, int http_code, const char *error_title,
@@ -33,4 +28,4 @@ extern int send_http_message(struct conn_s *connptr, int http_code, const char *
 extern int pidfile_create(const char *path);
 extern int create_file_safely(const char *filename, unsigned int truncate_file);
 
-#endif
+#endif // TINYPROXY_UTILS_H

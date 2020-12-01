@@ -16,14 +16,11 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-/* See 'transparent-proxy.c' for detailed information. */
-
 #ifndef TINYPROXY_TRANSPARENT_PROXY_H
 #define TINYPROXY_TRANSPARENT_PROXY_H
+#ifdef TRANSPARENT_PROXY
 
 #include "common.h"
-
-#ifdef TRANSPARENT_PROXY
 
 #include "conns.h"
 #include "hashmap.h"
@@ -32,6 +29,5 @@
 extern int do_transparent_proxy(struct conn_s *connptr, hashmap_t hashofheaders,
                                 struct request_s *request, struct config_s *config, char **url);
 
-#endif
-
-#endif
+#endif // TRANSPARENT_PROXY
+#endif // TINYPROXY_TRANSPARENT_PROXY_H

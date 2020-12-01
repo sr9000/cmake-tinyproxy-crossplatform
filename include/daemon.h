@@ -16,20 +16,16 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-/* See 'daemon.c' for detailed information. */
-
 #ifndef TINYPROXY_DAEMON_H
 #define TINYPROXY_DAEMON_H
 
 typedef void signal_func(int);
 
-/*
- * Pass a singal integer and a function to handle the signal.
- */
+// pass a singal integer and a function to handle the signal.
 #ifdef MINGW
 #define set_signal_handler signal
-#else /* MINGW */
+#else // MINGW
 extern signal_func *set_signal_handler(int signo, signal_func *func);
-#endif /* MINGW */
+#endif // MINGW
 
-#endif
+#endif // TINYPROXY_DAEMON_H

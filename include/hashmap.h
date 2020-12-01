@@ -16,10 +16,8 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-/* See 'hashmap.c' for detailed information. */
-
-#ifndef _HASHMAP_H
-#define _HASHMAP_H
+#ifndef TINYPROXY_HASHMAP_H
+#define TINYPROXY_HASHMAP_H
 
 #include "common.h"
 
@@ -119,4 +117,4 @@ extern ssize_t hashmap_remove(hashmap_t map, const char *key);
  */
 extern char *lookup_variable(hashmap_t map, const char *varname);
 
-#endif /* _HASHMAP_H */
+#endif // TINYPROXY_HASHMAP_H

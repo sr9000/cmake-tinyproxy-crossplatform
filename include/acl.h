@@ -16,8 +16,6 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-/* See 'acl.c' for detailed information. */
-
 #ifndef TINYPROXY_ACL_H
 #define TINYPROXY_ACL_H
 
@@ -33,4 +31,4 @@ extern int insert_acl(char *location, acl_access_t access_type, vector_t *access
 extern int check_acl(const char *ip_address, const char *string_address, vector_t access_list);
 extern void flush_access_list(vector_t access_list);
 
-#endif
+#endif // TINYPROXY_ACL_H

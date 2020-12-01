@@ -19,7 +19,6 @@ set(TINYPROXY_SOURCES
         basicauth.c
         buffer.c
         child.c
-        CMakeLists.txt
         conf.c
         connect-ports.c
         conns.c

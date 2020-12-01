@@ -16,30 +16,24 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-/* See 'stats.c' for detailed information. */
-
-#ifndef _TINYPROXY_STATS_H_
-#define _TINYPROXY_STATS_H_
+#ifndef TINYPROXY_STATS_H
+#define TINYPROXY_STATS_H
 
 #include "conns.h"
 
-/*
- * Various logable statistics
- */
+// various logable statistics
 typedef enum
 {
-  STAT_BADCONN, /* bad connection, for unknown reason */
-  STAT_OPEN,    /* connection opened */
-  STAT_CLOSE,   /* connection closed */
-  STAT_REFUSE,  /* connection refused (to outside world) */
-  STAT_DENIED   /* connection denied to tinyproxy itself */
+  STAT_BADCONN, // bad connection, for unknown reason
+  STAT_OPEN,    // connection opened
+  STAT_CLOSE,   // connection closed
+  STAT_REFUSE,  // connection refused (to outside world)
+  STAT_DENIED   // connection denied to tinyproxy itself
 } status_t;
 
-/*
- * Public API to the statistics for tinyproxy
- */
+// public API to the statistics for tinyproxy
 extern void init_stats(void);
 extern int showstats(struct conn_s *connptr);
 extern int update_stats(status_t update_level);
 
-#endif
+#endif // TINYPROXY_STATS_H
