@@ -6,3 +6,5 @@ cmake-build-debug/
 cmake-build-release/
 
 build/
+
+mingw-w64-build/
