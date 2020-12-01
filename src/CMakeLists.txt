@@ -1,15 +1,15 @@
 
 add_compile_definitions(
-    PACKAGE_BUGREPORT="https://tinyproxy.github.io/"
-    PACKAGE_NAME="Tinyproxy"
-    PACKAGE_STRING="Tinyproxy ${REAL_VERSION}"
-    PACKAGE_TARNAME="tinyproxy"
-    PACKAGE="tinyproxy"
-    PACKAGE_URL="https://tinyproxy.github.io/"
-    PACKAGE_VERSION="${REAL_VERSION}"
-    VERSION="${REAL_VERSION}"
-    TINYPROXY_VERSION="${REAL_VERSION}"
-    TINYPROXY_STATHOST="tinyproxy.stats"
+        PACKAGE_BUGREPORT="https://tinyproxy.github.io/"
+        PACKAGE_NAME="Tinyproxy"
+        PACKAGE_STRING="Tinyproxy ${REAL_VERSION}"
+        PACKAGE_TARNAME="tinyproxy"
+        PACKAGE="tinyproxy"
+        PACKAGE_URL="https://tinyproxy.github.io/"
+        PACKAGE_VERSION="${REAL_VERSION}"
+        VERSION="${REAL_VERSION}"
+        TINYPROXY_VERSION="${REAL_VERSION}"
+        TINYPROXY_STATHOST="tinyproxy.stats"
 )
 
 set(TINYPROXY_SOURCES

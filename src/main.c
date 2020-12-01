@@ -33,11 +33,11 @@
 
 #include "anonymous.h"
 #include "buffer.h"
+#include "child.h"
 #include "conf.h"
 #include "daemon.h"
-#include "heap.h"
 #include "filter.h"
-#include "child.h"
+#include "heap.h"
 #include "log.h"
 #include "reqs.h"
 #include "sock.h"
@@ -49,114 +49,113 @@
  */
 struct config_s config;
 struct config_s config_defaults;
-unsigned int received_sighup = FALSE;   /* boolean */
+unsigned int received_sighup = FALSE; /* boolean */
 
 /*
  * Handle a signal
  */
-static void
-takesig (int sig)
+static void takesig(int sig)
 {
-        int status;
+  int status;
 
-        switch (sig) {
-        case SIGTERM:
-                config.quit = TRUE;
-                break;
+  switch (sig)
+  {
+  case SIGTERM:
+    config.quit = TRUE;
+    break;
 #ifndef MINGW
-        case SIGHUP:
-                received_sighup = TRUE;
-                break;
+  case SIGHUP:
+    received_sighup = TRUE;
+    break;
 
-        case SIGCHLD:
-                while (waitpid (-1, &status, WNOHANG) > 0) ;
-                break;
+  case SIGCHLD:
+    while (waitpid(-1, &status, WNOHANG) > 0)
+      ;
+    break;
 #endif
-        }
+  }
 }
 
 /*
  * Display the version information for the user.
  */
-static void
-display_version (void)
+static void display_version(void)
 {
-        printf ("%s %s\n", PACKAGE, VERSION);
+  printf("%s %s\n", PACKAGE, VERSION);
 }
 
 /*
  * Display usage to the user.
  */
-static void
-display_usage (void)
+static void display_usage(void)
 {
-        int features = 0;
+  int features = 0;
 
-        printf ("Usage: %s [options]\n", PACKAGE);
-        printf ("\n"
-                "Options are:\n"
-                "  -d        Do not daemonize (run in foreground).\n"
-                "  -c FILE   Use an alternate configuration file.\n"
-                "  -h        Display this usage information.\n"
-                "  -v        Display version information.\n");
+  printf("Usage: %s [options]\n", PACKAGE);
+  printf("\n"
+         "Options are:\n"
+         "  -d        Do not daemonize (run in foreground).\n"
+         "  -c FILE   Use an alternate configuration file.\n"
+         "  -h        Display this usage information.\n"
+         "  -v        Display version information.\n");
 
-        /* Display the modes compiled into tinyproxy */
-        printf ("\nFeatures compiled in:\n");
+  /* Display the modes compiled into tinyproxy */
+  printf("\nFeatures compiled in:\n");
 
 #ifdef XTINYPROXY_ENABLE
-        printf ("    XTinyproxy header\n");
-        features++;
+  printf("    XTinyproxy header\n");
+  features++;
 #endif /* XTINYPROXY */
 
 #ifdef FILTER_ENABLE
-        printf ("    Filtering\n");
-        features++;
+  printf("    Filtering\n");
+  features++;
 #endif /* FILTER_ENABLE */
 
 #ifndef NDEBUG
-        printf ("    Debugging code\n");
-        features++;
+  printf("    Debugging code\n");
+  features++;
 #endif /* NDEBUG */
 
 #ifdef TRANSPARENT_PROXY
-        printf ("    Transparent proxy support\n");
-        features++;
+  printf("    Transparent proxy support\n");
+  features++;
 #endif /* TRANSPARENT_PROXY */
 
 #ifdef REVERSE_SUPPORT
-        printf ("    Reverse proxy support\n");
-        features++;
+  printf("    Reverse proxy support\n");
+  features++;
 #endif /* REVERSE_SUPPORT */
 
 #ifdef UPSTREAM_SUPPORT
-        printf ("    Upstream proxy support\n");
-        features++;
+  printf("    Upstream proxy support\n");
+  features++;
 #endif /* UPSTREAM_SUPPORT */
 
-        if (0 == features)
-                printf ("    None\n");
+  if (0 == features)
+    printf("    None\n");
 
-        printf ("\n"
-                "For support and bug reporting instructions, please visit\n"
-                "<https://tinyproxy.github.io/>.\n");
+  printf("\n"
+         "For support and bug reporting instructions, please visit\n"
+         "<https://tinyproxy.github.io/>.\n");
 }
 
-static int
-get_id (char *str)
+static int get_id(char *str)
 {
-        char *tstr;
+  char *tstr;
 
-        if (str == NULL)
-                return -1;
+  if (str == NULL)
+    return -1;
 
-        tstr = str;
-        while (*tstr != 0) {
-                if (!isdigit (*tstr))
-                        return -1;
-                tstr++;
-        }
+  tstr = str;
+  while (*tstr != 0)
+  {
+    if (!isdigit(*tstr))
+      return -1;
+    tstr++;
+  }
 
-        return atoi (str);
+  return atoi(str);
 }
 
 /**
@@ -166,39 +165,40 @@ get_id (char *str)
  *
  * This function parses command line arguments.
  **/
-static void
-process_cmdline (int argc, char **argv, struct config_s *conf)
+static void process_cmdline(int argc, char **argv, struct config_s *conf)
 {
-        int opt;
+  int opt;
 
-        while ((opt = getopt (argc, argv, "c:vdh")) != EOF) {
-                switch (opt) {
-                case 'v':
-                        display_version ();
-                        exit (EX_OK);
+  while ((opt = getopt(argc, argv, "c:vdh")) != EOF)
+  {
+    switch (opt)
+    {
+    case 'v':
+      display_version();
+      exit(EX_OK);
 
-                case 'c':
-                        if (conf->config_file != NULL) {
-                                safefree (conf->config_file);
-                        }
-                        conf->config_file = safestrdup (optarg);
-                        if (!conf->config_file) {
-                                fprintf (stderr,
-                                         "%s: Could not allocate memory.\n",
-                                         argv[0]);
-                                exit (EX_SOFTWARE);
-                        }
-                        break;
+    case 'c':
+      if (conf->config_file != NULL)
+      {
+        safefree(conf->config_file);
+      }
+      conf->config_file = safestrdup(optarg);
+      if (!conf->config_file)
+      {
+        fprintf(stderr, "%s: Could not allocate memory.\n", argv[0]);
+        exit(EX_SOFTWARE);
+      }
+      break;
 
-                case 'h':
-                        display_usage ();
-                        exit (EX_OK);
+    case 'h':
+      display_usage();
+      exit(EX_OK);
 
-                default:
-                        display_usage ();
-                        exit (EX_USAGE);
-                }
-        }
+    default:
+      display_usage();
+      exit(EX_USAGE);
+    }
+  }
 }
 
 /**
@@ -210,285 +210,283 @@ process_cmdline (int argc, char **argv, struct config_s *conf)
  * initialization when the effective user is root.
  **/
 #ifndef MINGW
-static void
-change_user (const char *program)
+static void change_user(const char *program)
 {
-        if (config.group && strlen (config.group) > 0) {
-                int gid = get_id (config.group);
+  if (config.group && strlen(config.group) > 0)
+  {
+    int gid = get_id(config.group);
 
-                if (gid < 0) {
-                        struct group *thisgroup = getgrnam (config.group);
+    if (gid < 0)
+    {
+      struct group *thisgroup = getgrnam(config.group);
 
-                        if (!thisgroup) {
-                                fprintf (stderr,
-                                         "%s: Unable to find group \"%s\".\n",
-                                         program, config.group);
-                                exit (EX_NOUSER);
-                        }
+      if (!thisgroup)
+      {
+        fprintf(stderr, "%s: Unable to find group \"%s\".\n", program, config.group);
+        exit(EX_NOUSER);
+      }
 
-                        gid = thisgroup->gr_gid;
-                }
+      gid = thisgroup->gr_gid;
+    }
 
-                if (setgid (gid) < 0) {
-                        fprintf (stderr,
-                                 "%s: Unable to change to group \"%s\".\n",
-                                 program, config.group);
-                        exit (EX_NOPERM);
-                }
+    if (setgid(gid) < 0)
+    {
+      fprintf(stderr, "%s: Unable to change to group \"%s\".\n", program, config.group);
+      exit(EX_NOPERM);
+    }
 
 #ifdef HAVE_SETGROUPS
-                /* Drop all supplementary groups, otherwise these are inherited from the calling process */
-                if (setgroups (0, NULL) < 0) {
-                        fprintf (stderr,
-                                 "%s: Unable to drop supplementary groups.\n",
-                                 program);
-                        exit (EX_NOPERM);
-                }
+    /* Drop all supplementary groups, otherwise these are inherited from the
+     * calling process */
+    if (setgroups(0, NULL) < 0)
+    {
+      fprintf(stderr, "%s: Unable to drop supplementary groups.\n", program);
+      exit(EX_NOPERM);
+    }
 #endif
 
-                log_message (LOG_INFO, "Now running as group \"%s\".",
-                             config.group);
-        }
+    log_message(LOG_INFO, "Now running as group \"%s\".", config.group);
+  }
 
-        if (config.user && strlen (config.user) > 0) {
-                int uid = get_id (config.user);
+  if (config.user && strlen(config.user) > 0)
+  {
+    int uid = get_id(config.user);
 
-                if (uid < 0) {
-                        struct passwd *thisuser = getpwnam (config.user);
+    if (uid < 0)
+    {
+      struct passwd *thisuser = getpwnam(config.user);
 
-                        if (!thisuser) {
-                                fprintf (stderr,
-                                         "%s: Unable to find user \"%s\".\n",
-                                         program, config.user);
-                                exit (EX_NOUSER);
-                        }
+      if (!thisuser)
+      {
+        fprintf(stderr, "%s: Unable to find user \"%s\".\n", program, config.user);
+        exit(EX_NOUSER);
+      }
 
-                        uid = thisuser->pw_uid;
-                }
+      uid = thisuser->pw_uid;
+    }
 
-                if (setuid (uid) < 0) {
-                        fprintf (stderr,
-                                 "%s: Unable to change to user \"%s\".\n",
-                                 program, config.user);
-                        exit (EX_NOPERM);
-                }
+    if (setuid(uid) < 0)
+    {
+      fprintf(stderr, "%s: Unable to change to user \"%s\".\n", program, config.user);
+      exit(EX_NOPERM);
+    }
 
-                log_message (LOG_INFO, "Now running as user \"%s\".",
-                             config.user);
-        }
+    log_message(LOG_INFO, "Now running as user \"%s\".", config.user);
+  }
 }
 #endif /* MINGW */
 
-static void initialize_config_defaults (struct config_s *conf)
+static void initialize_config_defaults(struct config_s *conf)
 {
-        memset (conf, 0, sizeof(*conf));
+  memset(conf, 0, sizeof(*conf));
 
-        conf->config_file = safestrdup ("tinyproxy.conf");
-        if (!conf->config_file) {
-                fprintf (stderr, PACKAGE ": Could not allocate memory.\n");
-                exit (EX_SOFTWARE);
-        }
+  conf->config_file = safestrdup("tinyproxy.conf");
+  if (!conf->config_file)
+  {
+    fprintf(stderr, PACKAGE ": Could not allocate memory.\n");
+    exit(EX_SOFTWARE);
+  }
 
-        /*
-         * Make sure the HTML error pages array is NULL to begin with.
-         * (FIXME: Should have a better API for all this)
-         */
-        conf->errorpages = NULL;
-        conf->stathost = safestrdup (TINYPROXY_STATHOST);
-        conf->idletimeout = MAX_IDLE_TIME;
-        conf->logf_name = NULL;
-        conf->pidpath = NULL;
+  /*
+   * Make sure the HTML error pages array is NULL to begin with.
+   * (FIXME: Should have a better API for all this)
+   */
+  conf->errorpages = NULL;
+  conf->stathost = safestrdup(TINYPROXY_STATHOST);
+  conf->idletimeout = MAX_IDLE_TIME;
+  conf->logf_name = NULL;
+  conf->pidpath = NULL;
 }
 
 /**
  * convenience wrapper around reload_config_file
  * that also re-initializes logging.
  */
-int reload_config (void)
+int reload_config(void)
 {
-        int ret;
+  int ret;
 
-        shutdown_logging ();
+  shutdown_logging();
 
-        ret = reload_config_file (config_defaults.config_file, &config,
-                                  &config_defaults);
-        if (ret != 0) {
-                goto done;
-        }
+  ret = reload_config_file(config_defaults.config_file, &config, &config_defaults);
+  if (ret != 0)
+  {
+    goto done;
+  }
 
-        ret = setup_logging ();
+  ret = setup_logging();
 
 done:
-        return ret;
+  return ret;
 }
 
-int
-main (int argc, char **argv)
+int main(int argc, char **argv)
 {
-        printf("debug 1\n");
+  printf("debug 1\n");
 #ifdef HAVE_WSOCK32
-        WSADATA wsa;
-        log_message (LOG_INFO, "Initialising Winsock...");
-        if (WSAStartup(MAKEWORD(2,2),&wsa) != 0)
-        {
-            log_message (LOG_ERR, "Initialising Winsock Failed. Error Code : %d", WSAGetLastError());
-            exit (EX_SOFTWARE);
-        }
-        log_message (LOG_INFO, "Winsock was successfully initialised.");
+  WSADATA wsa;
+  log_message(LOG_INFO, "Initialising Winsock...");
+  if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0)
+  {
+    log_message(LOG_ERR, "Initialising Winsock Failed. Error Code : %d", WSAGetLastError());
+    exit(EX_SOFTWARE);
+  }
+  log_message(LOG_INFO, "Winsock was successfully initialised.");
 #endif
-        /* Only allow u+rw bits. This may be required for some versions
-         * of glibc so that mkstemp() doesn't make us vulnerable.
-         */
-        umask (0177);
-        printf("debug 2\n");
+  /* Only allow u+rw bits. This may be required for some versions
+   * of glibc so that mkstemp() doesn't make us vulnerable.
+   */
+  umask(0177);
+  printf("debug 2\n");
 
-        log_message (LOG_INFO, "Initializing " PACKAGE " ...");
+  log_message(LOG_INFO, "Initializing " PACKAGE " ...");
 
-        if (config_compile_regex()) {
-                exit (EX_SOFTWARE);
-        }
+  if (config_compile_regex())
+  {
+    exit(EX_SOFTWARE);
+  }
 
-        printf("debug 3\n");
+  printf("debug 3\n");
 
-        initialize_config_defaults (&config_defaults);
+  initialize_config_defaults(&config_defaults);
 
-        printf("debug 3-1\n");
+  printf("debug 3-1\n");
 
-        process_cmdline (argc, argv, &config_defaults);
+  process_cmdline(argc, argv, &config_defaults);
 
-        printf("debug 3-2\n");
+  printf("debug 3-2\n");
 
-        if (reload_config_file (config_defaults.config_file,
-                                &config,
-                                &config_defaults)) {
-                printf("debug 3-3\n");
-                exit (EX_SOFTWARE);
-        }
+  if (reload_config_file(config_defaults.config_file, &config, &config_defaults))
+  {
+    printf("debug 3-3\n");
+    exit(EX_SOFTWARE);
+  }
 
-        printf("debug 4\n");
+  printf("debug 4\n");
 
-        init_stats ();
+  init_stats();
 
-        /* If ANONYMOUS is turned on, make sure that Content-Length is
-         * in the list of allowed headers, since it is required in a
-         * HTTP/1.0 request. Also add the Content-Type header since it
-         * goes hand in hand with Content-Length. */
-        if (is_anonymous_enabled ()) {
-                anonymous_insert ("Content-Length");
-                anonymous_insert ("Content-Type");
-        }
+  /* If ANONYMOUS is turned on, make sure that Content-Length is
+   * in the list of allowed headers, since it is required in a
+   * HTTP/1.0 request. Also add the Content-Type header since it
+   * goes hand in hand with Content-Length. */
+  if (is_anonymous_enabled())
+  {
+    anonymous_insert("Content-Length");
+    anonymous_insert("Content-Type");
+  }
 
-        printf("debug 5\n");
-
-#ifdef FILTER_ENABLE
-        if (config.filter)
-                filter_init ();
-#endif /* FILTER_ENABLE */
-
-        /* Start listening on the selected port. */
-        if (child_listening_sockets(config.listen_addrs, config.port) < 0) {
-                fprintf (stderr, "%s: Could not create listening sockets.\n",
-                         argv[0]);
-                exit (EX_OSERR);
-        }
-
-        printf("debug 6\n");
-
-        /* Create pid file before we drop privileges */
-        if (config.pidpath) {
-                if (pidfile_create (config.pidpath) < 0) {
-                        fprintf (stderr, "%s: Could not create PID file.\n",
-                                 argv[0]);
-                        exit (EX_OSERR);
-                }
-        }
-
-        /* Switch to a different user if we're running as root */
-#ifndef MINGW
-        if (geteuid () == 0)
-                change_user (argv[0]);
-        else
-                log_message (LOG_WARNING,
-                             "Not running as root, so not changing UID/GID.");
-#endif /* MINGW */
-
-        /* Create log file after we drop privileges */
-        if (setup_logging ()) {
-                exit (EX_SOFTWARE);
-        }
-
-        printf("debug 7\n");
-
-        if (child_pool_create () < 0) {
-                fprintf (stderr,
-                         "%s: Could not create the pool of children.\n",
-                         argv[0]);
-                exit (EX_SOFTWARE);
-        }
-
-        printf("debug 8\n");
-
-        /* These signals are only for the parent process. */
-        log_message (LOG_INFO, "Setting the various signals.");
-
-        if (set_signal_handler (SIGTERM, takesig) == SIG_ERR) {
-                fprintf (stderr, "%s: Could not set the \"SIGTERM\" signal.\n",
-                         argv[0]);
-                exit (EX_OSERR);
-        }
-
-#ifndef MINGW
-        if (set_signal_handler (SIGCHLD, takesig) == SIG_ERR) {
-                fprintf (stderr, "%s: Could not set the \"SIGCHLD\" signal.\n",
-                         argv[0]);
-                exit (EX_OSERR);
-        }
-
-        if (set_signal_handler (SIGHUP, takesig) == SIG_ERR) {
-                fprintf (stderr, "%s: Could not set the \"SIGHUP\" signal.\n",
-                         argv[0]);
-                exit (EX_OSERR);
-        }
-
-        if (set_signal_handler (SIGPIPE, SIG_IGN) == SIG_ERR) {
-                fprintf (stderr, "%s: Could not set the \"SIGPIPE\" signal.\n",
-                         argv[0]);
-                exit (EX_OSERR);
-        }
-#endif /* MINGW */
-
-        /* Start the main loop */
-        log_message (LOG_INFO, "Starting main loop. Accepting connections.");
-
-        printf("debug 9\n");
-
-        child_main_loop ();
-
-        printf("debug 10\n");
-
-        log_message (LOG_INFO, "Shutting down.");
-
-        child_kill_children (SIGTERM);
-
-        printf("debug 11\n");
-
-        child_close_sock ();
-
-        printf("debug 12\n");
-
-        /* Remove the PID file */
-        if (config.pidpath != NULL && unlink (config.pidpath) < 0) {
-                log_message (LOG_WARNING,
-                             "Could not remove PID file \"%s\": %s.",
-                             config.pidpath, strerror (errno));
-        }
+  printf("debug 5\n");
 
 #ifdef FILTER_ENABLE
-        if (config.filter)
-                filter_destroy ();
+  if (config.filter)
+    filter_init();
 #endif /* FILTER_ENABLE */
 
-        shutdown_logging ();
+  /* Start listening on the selected port. */
+  if (child_listening_sockets(config.listen_addrs, config.port) < 0)
+  {
+    fprintf(stderr, "%s: Could not create listening sockets.\n", argv[0]);
+    exit(EX_OSERR);
+  }
 
-        return EXIT_SUCCESS;
+  printf("debug 6\n");
+
+  /* Create pid file before we drop privileges */
+  if (config.pidpath)
+  {
+    if (pidfile_create(config.pidpath) < 0)
+    {
+      fprintf(stderr, "%s: Could not create PID file.\n", argv[0]);
+      exit(EX_OSERR);
+    }
+  }
+
+  /* Switch to a different user if we're running as root */
+#ifndef MINGW
+  if (geteuid() == 0)
+    change_user(argv[0]);
+  else
+    log_message(LOG_WARNING, "Not running as root, so not changing UID/GID.");
+#endif /* MINGW */
+
+  /* Create log file after we drop privileges */
+  if (setup_logging())
+  {
+    exit(EX_SOFTWARE);
+  }
+
+  printf("debug 7\n");
+
+  if (child_pool_create() < 0)
+  {
+    fprintf(stderr, "%s: Could not create the pool of children.\n", argv[0]);
+    exit(EX_SOFTWARE);
+  }
+
+  printf("debug 8\n");
+
+  /* These signals are only for the parent process. */
+  log_message(LOG_INFO, "Setting the various signals.");
+
+  if (set_signal_handler(SIGTERM, takesig) == SIG_ERR)
+  {
+    fprintf(stderr, "%s: Could not set the \"SIGTERM\" signal.\n", argv[0]);
+    exit(EX_OSERR);
+  }
+
+#ifndef MINGW
+  if (set_signal_handler(SIGCHLD, takesig) == SIG_ERR)
+  {
+    fprintf(stderr, "%s: Could not set the \"SIGCHLD\" signal.\n", argv[0]);
+    exit(EX_OSERR);
+  }
+
+  if (set_signal_handler(SIGHUP, takesig) == SIG_ERR)
+  {
+    fprintf(stderr, "%s: Could not set the \"SIGHUP\" signal.\n", argv[0]);
+    exit(EX_OSERR);
+  }
+
+  if (set_signal_handler(SIGPIPE, SIG_IGN) == SIG_ERR)
+  {
+    fprintf(stderr, "%s: Could not set the \"SIGPIPE\" signal.\n", argv[0]);
+    exit(EX_OSERR);
+  }
+#endif /* MINGW */
+
+  /* Start the main loop */
+  log_message(LOG_INFO, "Starting main loop. Accepting connections.");
+
+  printf("debug 9\n");
+
+  child_main_loop();
+
+  printf("debug 10\n");
+
+  log_message(LOG_INFO, "Shutting down.");
+
+  child_kill_children(SIGTERM);
+
+  printf("debug 11\n");
+
+  child_close_sock();
+
+  printf("debug 12\n");
+
+  /* Remove the PID file */
+  if (config.pidpath != NULL && unlink(config.pidpath) < 0)
+  {
+    log_message(LOG_WARNING, "Could not remove PID file \"%s\": %s.", config.pidpath,
+                strerror(errno));
+  }
+
+#ifdef FILTER_ENABLE
+  if (config.filter)
+    filter_destroy();
+#endif /* FILTER_ENABLE */
+
+  shutdown_logging();
+
+  return EXIT_SUCCESS;
 }

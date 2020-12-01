@@ -24,7 +24,7 @@
 #define TINYPROXY_LOG_H
 
 #ifdef HAVE_CONFIG_H
-#  include <config.h>
+#include <config.h>
 #endif
 
 /*
@@ -77,8 +77,7 @@
  *		don't advocate this, but it could be useful at times.)
  */
 
-
-#define LOG_CONN      8         /* extra to log connections without the INFO stuff */
+#define LOG_CONN 8 /* extra to log connections without the INFO stuff */
 
 /* Suppress warnings when GCC is in -pedantic mode and not -std=c99 */
 #if (__GNUC__ >= 3 || (__GNUC__ == 2 && __GNUC_MINOR__ >= 96))
@@ -91,22 +90,26 @@
  *    DEBUG2("There was a big problem: %s in connptr %p", "hello", connptr);
  */
 #ifndef NDEBUG
-# define DEBUG1(x) \
-  log_message(LOG_DEBUG, "[%s:%d] " x, __FILE__, __LINE__)
-# define DEBUG2(x, y...) \
-  log_message(LOG_DEBUG, "[%s:%d] " x, __FILE__, __LINE__, ## y)
+#define DEBUG1(x)       log_message(LOG_DEBUG, "[%s:%d] " x, __FILE__, __LINE__)
+#define DEBUG2(x, y...) log_message(LOG_DEBUG, "[%s:%d] " x, __FILE__, __LINE__, ##y)
 #else
-# define DEBUG1(x)       do { } while(0)
-# define DEBUG2(x, y...) do { } while(0)
+#define DEBUG1(x)                                                                                  \
+  do                                                                                               \
+  {                                                                                                \
+  } while (0)
+#define DEBUG2(x, y...)                                                                            \
+  do                                                                                               \
+  {                                                                                                \
+  } while (0)
 #endif
 
-extern int open_log_file (const char *file);
-extern void close_log_file (void);
+extern int open_log_file(const char *file);
+extern void close_log_file(void);
 
-extern void log_message (int level, const char *fmt, ...);
-extern void set_log_level (int level);
+extern void log_message(int level, const char *fmt, ...);
+extern void set_log_level(int level);
 
-extern int setup_logging (void);
-extern void shutdown_logging (void);
+extern int setup_logging(void);
+extern void shutdown_logging(void);
 
 #endif

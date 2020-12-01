@@ -26,32 +26,34 @@
 #include "daemon.h"
 #include "log.h"
 
-
 /*
  * Pass a signal number and a signal handling function into this function
  * to handle signals sent to the process.
  */
 #ifndef MINGW
-signal_func *set_signal_handler (int signo, signal_func * func)
+signal_func *set_signal_handler(int signo, signal_func *func)
 {
-        struct sigaction act, oact;
+  struct sigaction act, oact;
 
-        act.sa_handler = func;
-        sigemptyset (&act.sa_mask);
-        act.sa_flags = 0;
-        if (signo == SIGALRM) {
+  act.sa_handler = func;
+  sigemptyset(&act.sa_mask);
+  act.sa_flags = 0;
+  if (signo == SIGALRM)
+  {
 #ifdef SA_INTERRUPT
-                act.sa_flags |= SA_INTERRUPT;   /* SunOS 4.x */
+    act.sa_flags |= SA_INTERRUPT; /* SunOS 4.x */
 #endif
-        } else {
+  }
+  else
+  {
 #ifdef SA_RESTART
-                act.sa_flags |= SA_RESTART;     /* SVR4, 4.4BSD */
+    act.sa_flags |= SA_RESTART; /* SVR4, 4.4BSD */
 #endif
-        }
+  }
 
-        if (sigaction (signo, &act, &oact) < 0)
-                return SIG_ERR;
+  if (sigaction(signo, &act, &oact) < 0)
+    return SIG_ERR;
 
-        return oact.sa_handler;
+  return oact.sa_handler;
 }
 #endif /* MINGW */

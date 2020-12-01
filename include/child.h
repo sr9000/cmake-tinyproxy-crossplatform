@@ -23,20 +23,21 @@
 
 #include "vector.h"
 
-typedef enum {
-        CHILD_MAXCLIENTS,
-        CHILD_MAXSPARESERVERS,
-        CHILD_MINSPARESERVERS,
-        CHILD_STARTSERVERS,
-        CHILD_MAXREQUESTSPERCHILD
+typedef enum
+{
+  CHILD_MAXCLIENTS,
+  CHILD_MAXSPARESERVERS,
+  CHILD_MINSPARESERVERS,
+  CHILD_STARTSERVERS,
+  CHILD_MAXREQUESTSPERCHILD
 } child_config_t;
 
-extern short int child_pool_create (void);
-extern int child_listening_sockets (vector_t listen_addrs, uint16_t port);
-extern void child_close_sock (void);
-extern void child_main_loop (void);
-extern void child_kill_children (int sig);
+extern short int child_pool_create(void);
+extern int child_listening_sockets(vector_t listen_addrs, uint16_t port);
+extern void child_close_sock(void);
+extern void child_main_loop(void);
+extern void child_kill_children(int sig);
 
-extern short int child_configure (child_config_t type, unsigned int val);
+extern short int child_configure(child_config_t type, unsigned int val);
 
 #endif

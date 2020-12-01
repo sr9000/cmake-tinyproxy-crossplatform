@@ -25,236 +25,265 @@
  */
 
 #include "upstream.h"
-#include "heap.h"
-#include "log.h"
+
 #include "base64.h"
 #include "basicauth.h"
+#include "heap.h"
+#include "log.h"
 
 #ifdef UPSTREAM_SUPPORT
-const char *
-proxy_type_name(proxy_type type)
+const char *proxy_type_name(proxy_type type)
 {
-    switch(type) {
-        case PT_NONE: return "none";
-        case PT_HTTP: return "http";
-        case PT_SOCKS4: return "socks4";
-        case PT_SOCKS5: return "socks5";
-        default: return "unknown";
-    }
+  switch (type)
+  {
+  case PT_NONE:
+    return "none";
+  case PT_HTTP:
+    return "http";
+  case PT_SOCKS4:
+    return "socks4";
+  case PT_SOCKS5:
+    return "socks5";
+  default:
+    return "unknown";
+  }
 }
 
 /**
  * Construct an upstream struct from input data.
  */
-static struct upstream *upstream_build (const char *host, int port, const char *domain,
-                        const char *user, const char *pass,
-			proxy_type type)
+static struct upstream *upstream_build(const char *host, int port, const char *domain,
+                                       const char *user, const char *pass, proxy_type type)
 {
-        char *ptr;
-        struct upstream *up;
+  char *ptr;
+  struct upstream *up;
 
-        up = (struct upstream *) safemalloc (sizeof (struct upstream));
-        if (!up) {
-                log_message (LOG_ERR,
-                             "Unable to allocate memory in upstream_build()");
-                return NULL;
+  up = (struct upstream *)safemalloc(sizeof(struct upstream));
+  if (!up)
+  {
+    log_message(LOG_ERR, "Unable to allocate memory in upstream_build()");
+    return NULL;
+  }
+
+  up->type = type;
+  up->host = up->domain = up->ua.user = up->pass = NULL;
+  up->ip = up->mask = 0;
+  if (user)
+  {
+    if (type == PT_HTTP)
+    {
+      char b[BASE64ENC_BYTES((256 + 2) - 1) + 1];
+      ssize_t ret;
+      ret = basicauth_string(user, pass, b, sizeof b);
+      if (ret == 0)
+      {
+        log_message(LOG_ERR, "User / pass in upstream config too long");
+        return NULL;
+      }
+      up->ua.authstr = safestrdup(b);
+    }
+    else
+    {
+      up->ua.user = safestrdup(user);
+      up->pass = safestrdup(pass);
+    }
+  }
+
+  if (domain == NULL)
+  {
+    if (!host || host[0] == '\0' || port < 1)
+    {
+      log_message(LOG_WARNING, "Nonsense upstream rule: invalid host or port");
+      goto fail;
+    }
+
+    up->host = safestrdup(host);
+    up->port = port;
+
+    log_message(LOG_INFO, "Added upstream %s %s:%d for [default]", proxy_type_name(type), host,
+                port);
+  }
+  else if (host == NULL || type == PT_NONE)
+  {
+    if (!domain || domain[0] == '\0')
+    {
+      log_message(LOG_WARNING, "Nonsense no-upstream rule: empty domain");
+      goto fail;
+    }
+
+    ptr = strchr(domain, '/');
+    if (ptr)
+    {
+      struct in_addr addrstruct;
+
+      *ptr = '\0';
+      if (proxy_inet_aton(domain, &addrstruct) != 0)
+      {
+        up->ip = ntohl(addrstruct.s_addr);
+        *ptr++ = '/';
+
+        if (strchr(ptr, '.'))
+        {
+          if (proxy_inet_aton(ptr, &addrstruct) != 0)
+            up->mask = ntohl(addrstruct.s_addr);
         }
-
-        up->type = type;
-        up->host = up->domain = up->ua.user = up->pass = NULL;
-        up->ip = up->mask = 0;
-        if (user) {
-                if (type == PT_HTTP) {
-                        char b[BASE64ENC_BYTES((256+2)-1) + 1];
-                        ssize_t ret;
-                        ret = basicauth_string(user, pass, b, sizeof b);
-                        if (ret == 0) {
-                                log_message (LOG_ERR,
-                                             "User / pass in upstream config too long");
-                                return NULL;
-                        }
-                        up->ua.authstr = safestrdup (b);
-                } else {
-                        up->ua.user = safestrdup (user);
-                        up->pass = safestrdup (pass);
-                }
+        else
+        {
+          up->mask = ~((1 << (32 - atoi(ptr))) - 1);
         }
+      }
+    }
+    else
+    {
+      up->domain = safestrdup(domain);
+    }
 
-        if (domain == NULL) {
-                if (!host || host[0] == '\0' || port < 1) {
-                        log_message (LOG_WARNING,
-                                     "Nonsense upstream rule: invalid host or port");
-                        goto fail;
-                }
+    log_message(LOG_INFO, "Added no-upstream for %s", domain);
+  }
+  else
+  {
+    if (!host || host[0] == '\0' || port < 1 || !domain || domain[0] == '\0')
+    {
+      log_message(LOG_WARNING, "Nonsense upstream rule: invalid parameters");
+      goto fail;
+    }
 
-                up->host = safestrdup (host);
-                up->port = port;
+    up->host = safestrdup(host);
+    up->port = port;
+    up->domain = safestrdup(domain);
 
-                log_message (LOG_INFO, "Added upstream %s %s:%d for [default]",
-                             proxy_type_name(type), host, port);
-        } else if (host == NULL || type == PT_NONE) {
-                if (!domain || domain[0] == '\0') {
-                        log_message (LOG_WARNING,
-                                     "Nonsense no-upstream rule: empty domain");
-                        goto fail;
-                }
+    log_message(LOG_INFO, "Added upstream %s %s:%d for %s", proxy_type_name(type), host, port,
+                domain);
+  }
 
-                ptr = strchr (domain, '/');
-                if (ptr) {
-                        struct in_addr addrstruct;
-
-                        *ptr = '\0';
-                        if (proxy_inet_aton (domain, &addrstruct) != 0) {
-                                up->ip = ntohl (addrstruct.s_addr);
-                                *ptr++ = '/';
-
-                                if (strchr (ptr, '.')) {
-                                        if (proxy_inet_aton (ptr, &addrstruct) != 0)
-                                                up->mask =
-                                                    ntohl (addrstruct.s_addr);
-                                } else {
-                                        up->mask =
-                                            ~((1 << (32 - atoi (ptr))) - 1);
-                                }
-                        }
-                } else {
-                        up->domain = safestrdup (domain);
-                }
-
-                log_message (LOG_INFO, "Added no-upstream for %s", domain);
-        } else {
-                if (!host || host[0] == '\0' || port < 1 || !domain
-                    || domain[0] == '\0') {
-                        log_message (LOG_WARNING,
-                                     "Nonsense upstream rule: invalid parameters");
-                        goto fail;
-                }
-
-                up->host = safestrdup (host);
-                up->port = port;
-                up->domain = safestrdup (domain);
-
-                log_message (LOG_INFO, "Added upstream %s %s:%d for %s",
-                             proxy_type_name(type), host, port, domain);
-        }
-
-        return up;
+  return up;
 
 fail:
-        safefree (up->ua.user);
-        safefree (up->pass);
-        safefree (up->host);
-        safefree (up->domain);
-        safefree (up);
+  safefree(up->ua.user);
+  safefree(up->pass);
+  safefree(up->host);
+  safefree(up->domain);
+  safefree(up);
 
-        return NULL;
+  return NULL;
 }
 
 /*
  * Add an entry to the upstream list
  */
-void upstream_add (const char *host, int port, const char *domain,
-                   const char *user, const char *pass,
-                   proxy_type type, struct upstream **upstream_list)
+void upstream_add(const char *host, int port, const char *domain, const char *user,
+                  const char *pass, proxy_type type, struct upstream **upstream_list)
 {
-        struct upstream *up;
+  struct upstream *up;
 
-        up = upstream_build (host, port, domain, user, pass, type);
-        if (up == NULL) {
-                return;
-        }
+  up = upstream_build(host, port, domain, user, pass, type);
+  if (up == NULL)
+  {
+    return;
+  }
 
-        if (!up->domain && !up->ip) {   /* always add default to end */
-                struct upstream *tmp = *upstream_list;
+  if (!up->domain && !up->ip)
+  { /* always add default to end */
+    struct upstream *tmp = *upstream_list;
 
-                while (tmp) {
-                        if (!tmp->domain && !tmp->ip) {
-                                log_message (LOG_WARNING,
-                                             "Duplicate default upstream");
-                                goto upstream_cleanup;
-                        }
+    while (tmp)
+    {
+      if (!tmp->domain && !tmp->ip)
+      {
+        log_message(LOG_WARNING, "Duplicate default upstream");
+        goto upstream_cleanup;
+      }
 
-                        if (!tmp->next) {
-                                up->next = NULL;
-                                tmp->next = up;
-                                return;
-                        }
-
-                        tmp = tmp->next;
-                }
-        }
-
-        up->next = *upstream_list;
-        *upstream_list = up;
-
+      if (!tmp->next)
+      {
+        up->next = NULL;
+        tmp->next = up;
         return;
+      }
+
+      tmp = tmp->next;
+    }
+  }
+
+  up->next = *upstream_list;
+  *upstream_list = up;
+
+  return;
 
 upstream_cleanup:
-        safefree (up->host);
-        safefree (up->domain);
-        safefree (up);
+  safefree(up->host);
+  safefree(up->domain);
+  safefree(up);
 
-        return;
+  return;
 }
 
 /*
  * Check if a host is in the upstream list
  */
-struct upstream *upstream_get (char *host, struct upstream *up)
+struct upstream *upstream_get(char *host, struct upstream *up)
 {
-        in_addr_t my_ip = INADDR_NONE;
+  in_addr_t my_ip = INADDR_NONE;
 
-        while (up) {
-                if (up->domain) {
-                        if (strcasecmp (host, up->domain) == 0)
-                                break;  /* exact match */
+  while (up)
+  {
+    if (up->domain)
+    {
+      if (strcasecmp(host, up->domain) == 0)
+        break; /* exact match */
 
-                        if (up->domain[0] == '.') {
-                                char *dot = strchr (host, '.');
+      if (up->domain[0] == '.')
+      {
+        char *dot = strchr(host, '.');
 
-                                if (!dot && !up->domain[1])
-                                        break;  /* local host matches "." */
+        if (!dot && !up->domain[1])
+          break; /* local host matches "." */
 
-                                while (dot && strcasecmp (dot, up->domain))
-                                        dot = strchr (dot + 1, '.');
+        while (dot && strcasecmp(dot, up->domain))
+          dot = strchr(dot + 1, '.');
 
-                                if (dot)
-                                        break;  /* subdomain match */
-                        }
-                } else if (up->ip) {
-                        if (my_ip == INADDR_NONE)
-                                my_ip = ntohl (inet_addr (host));
+        if (dot)
+          break; /* subdomain match */
+      }
+    }
+    else if (up->ip)
+    {
+      if (my_ip == INADDR_NONE)
+        my_ip = ntohl(inet_addr(host));
 
-                        if ((my_ip & up->mask) == up->ip)
-                                break;
-                } else {
-                        break;  /* No domain or IP, default upstream */
-                }
+      if ((my_ip & up->mask) == up->ip)
+        break;
+    }
+    else
+    {
+      break; /* No domain or IP, default upstream */
+    }
 
-                up = up->next;
-        }
+    up = up->next;
+  }
 
-        if (up && (!up->host || !up->port))
-                up = NULL;
+  if (up && (!up->host || !up->port))
+    up = NULL;
 
-        if (up)
-                log_message (LOG_INFO, "Found upstream proxy %s %s:%d for %s",
-                             proxy_type_name(up->type), up->host, up->port, host);
-        else
-                log_message (LOG_INFO, "No upstream proxy for %s", host);
+  if (up)
+    log_message(LOG_INFO, "Found upstream proxy %s %s:%d for %s", proxy_type_name(up->type),
+                up->host, up->port, host);
+  else
+    log_message(LOG_INFO, "No upstream proxy for %s", host);
 
-        return up;
+  return up;
 }
 
-void free_upstream_list (struct upstream *up)
+void free_upstream_list(struct upstream *up)
 {
-        while (up) {
-                struct upstream *tmp = up;
-                up = up->next;
-                safefree (tmp->domain);
-                safefree (tmp->host);
-                safefree (tmp);
-        }
+  while (up)
+  {
+    struct upstream *tmp = up;
+    up = up->next;
+    safefree(tmp->domain);
+    safefree(tmp->host);
+    safefree(tmp);
+  }
 }
 
 #endif

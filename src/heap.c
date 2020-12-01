@@ -24,75 +24,71 @@
  */
 
 #include "main.h"
+
 #include "heap.h"
 #include "text.h"
 
 #ifndef NDEBUG
 
-void *debugging_calloc (size_t nmemb, size_t size, const char *file,
-                        unsigned long line)
+void *debugging_calloc(size_t nmemb, size_t size, const char *file, unsigned long line)
 {
-        void *ptr;
+  void *ptr;
 
-        assert (nmemb > 0);
-        assert (size > 0);
+  assert(nmemb > 0);
+  assert(size > 0);
 
-        ptr = calloc (nmemb, size);
-        fprintf (stderr, "{calloc: %p:%lu x %lu} %s:%lu\n", ptr,
-                 (unsigned long) nmemb, (unsigned long) size, file, line);
-        return ptr;
+  ptr = calloc(nmemb, size);
+  fprintf(stderr, "{calloc: %p:%lu x %lu} %s:%lu\n", ptr, (unsigned long)nmemb, (unsigned long)size,
+          file, line);
+  return ptr;
 }
 
-void *debugging_malloc (size_t size, const char *file, unsigned long line)
+void *debugging_malloc(size_t size, const char *file, unsigned long line)
 {
-        void *ptr;
+  void *ptr;
 
-        assert (size > 0);
+  assert(size > 0);
 
-        ptr = malloc (size);
-        fprintf (stderr, "{malloc: %p:%lu} %s:%lu\n", ptr,
-                 (unsigned long) size, file, line);
-        return ptr;
+  ptr = malloc(size);
+  fprintf(stderr, "{malloc: %p:%lu} %s:%lu\n", ptr, (unsigned long)size, file, line);
+  return ptr;
 }
 
-void *debugging_realloc (void *ptr, size_t size, const char *file,
-                         unsigned long line)
+void *debugging_realloc(void *ptr, size_t size, const char *file, unsigned long line)
 {
-        void *newptr;
+  void *newptr;
 
-        assert (size > 0);
+  assert(size > 0);
 
-        newptr = realloc (ptr, size);
-        fprintf (stderr, "{realloc: %p -> %p:%lu} %s:%lu\n", ptr, newptr,
-                 (unsigned long) size, file, line);
-        return newptr;
+  newptr = realloc(ptr, size);
+  fprintf(stderr, "{realloc: %p -> %p:%lu} %s:%lu\n", ptr, newptr, (unsigned long)size, file, line);
+  return newptr;
 }
 
-void debugging_free (void *ptr, const char *file, unsigned long line)
+void debugging_free(void *ptr, const char *file, unsigned long line)
 {
-        fprintf (stderr, "{free: %p} %s:%lu\n", ptr, file, line);
+  fprintf(stderr, "{free: %p} %s:%lu\n", ptr, file, line);
 
-        if (ptr != NULL)
-                free (ptr);
-        return;
+  if (ptr != NULL)
+    free(ptr);
+  return;
 }
 
-char *debugging_strdup (const char *s, const char *file, unsigned long line)
+char *debugging_strdup(const char *s, const char *file, unsigned long line)
 {
-        char *ptr;
-        size_t len;
+  char *ptr;
+  size_t len;
 
-        assert (s != NULL);
+  assert(s != NULL);
 
-        len = strlen (s) + 1;
-        ptr = (char *) malloc (len);
-        if (!ptr)
-                return NULL;
-        memcpy (ptr, s, len);
+  len = strlen(s) + 1;
+  ptr = (char *)malloc(len);
+  if (!ptr)
+    return NULL;
+  memcpy(ptr, s, len);
 
-        fprintf (stderr, "{strdup: %p:%lu} %s:%lu\n", ptr,
-                 (unsigned long) len, file, line);
-        return ptr;
+  fprintf(stderr, "{strdup: %p:%lu} %s:%lu\n", ptr, (unsigned long)len, file, line);
+  return ptr;
 }
 
 #endif /* !NDEBUG */
@@ -106,62 +102,65 @@ char *debugging_strdup (const char *s, const char *file, unsigned long line)
  * solution.
  */
 #ifdef MINGW
-// On windows threads use commond address space so we dont need shared memory mechanism
-void *malloc_shared_memory (size_t size) {
-        return malloc(size);
+// On windows threads use commond address space so we dont need shared memory
+// mechanism
+void *malloc_shared_memory(size_t size)
+{
+  return malloc(size);
 }
-void *calloc_shared_memory (size_t nmemb, size_t size) {
-        return calloc(nmemb, size);
+void *calloc_shared_memory(size_t nmemb, size_t size)
+{
+  return calloc(nmemb, size);
 }
 #else
-void *malloc_shared_memory (size_t size)
+void *malloc_shared_memory(size_t size)
 {
-        int fd;
-        void *ptr;
-        char buffer[32];
+  int fd;
+  void *ptr;
+  char buffer[32];
 
-        static const char *shared_file = "/tmp/tinyproxy.shared.XXXXXX";
+  static const char *shared_file = "/tmp/tinyproxy.shared.XXXXXX";
 
-        assert (size > 0);
+  assert(size > 0);
 
-        strlcpy (buffer, shared_file, sizeof (buffer));
+  strlcpy(buffer, shared_file, sizeof(buffer));
 
-        /* Only allow u+rw bits. This may be required for some versions
-         * of glibc so that mkstemp() doesn't make us vulnerable.
-         */
-        umask (0177);
+  /* Only allow u+rw bits. This may be required for some versions
+   * of glibc so that mkstemp() doesn't make us vulnerable.
+   */
+  umask(0177);
 
-        if ((fd = mkstemp (buffer)) == -1)
-                return MAP_FAILED;
-        unlink (buffer);
+  if ((fd = mkstemp(buffer)) == -1)
+    return MAP_FAILED;
+  unlink(buffer);
 
-        if (ftruncate (fd, size) == -1)
-                return MAP_FAILED;
-        ptr = mmap (NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+  if (ftruncate(fd, size) == -1)
+    return MAP_FAILED;
+  ptr = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
 
-        return ptr;
+  return ptr;
 }
 
 /*
  * Allocate a block of memory from the "shared" region an initialize it to
  * zero.
  */
-void *calloc_shared_memory (size_t nmemb, size_t size)
+void *calloc_shared_memory(size_t nmemb, size_t size)
 {
-        void *ptr;
-        long length;
+  void *ptr;
+  long length;
 
-        assert (nmemb > 0);
-        assert (size > 0);
+  assert(nmemb > 0);
+  assert(size > 0);
 
-        length = nmemb * size;
+  length = nmemb * size;
 
-        ptr = malloc_shared_memory (length);
-        if (ptr == MAP_FAILED)
-                return ptr;
+  ptr = malloc_shared_memory(length);
+  if (ptr == MAP_FAILED)
+    return ptr;
 
-        memset (ptr, 0, length);
+  memset(ptr, 0, length);
 
-        return ptr;
+  return ptr;
 }
 #endif /* MINGW */

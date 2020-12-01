@@ -35,8 +35,8 @@ typedef int hashmap_iter;
  * hashmap_create() takes one argument, which is the number of buckets to
  * use internally.  hashmap_delete() is self explanatory.
  */
-extern hashmap_t hashmap_create (unsigned int nbuckets);
-extern int hashmap_delete (hashmap_t map);
+extern hashmap_t hashmap_create(unsigned int nbuckets);
+extern int hashmap_delete(hashmap_t map);
 
 /*
  * When the you insert a key/data pair into the hashmap it will the key
@@ -47,15 +47,14 @@ extern int hashmap_delete (hashmap_t map);
  * Returns: negative on error
  *          0 upon successful insert
  */
-extern int hashmap_insert (hashmap_t map, const char *key,
-                           const void *data, size_t len);
+extern int hashmap_insert(hashmap_t map, const char *key, const void *data, size_t len);
 
 /*
  * Get an iterator to the first entry.
  *
  * Returns: an negative value upon error.
  */
-extern hashmap_iter hashmap_first (hashmap_t map);
+extern hashmap_iter hashmap_first(hashmap_t map);
 
 /*
  * Checks to see if the iterator is pointing at the "end" of the entries.
@@ -63,7 +62,7 @@ extern hashmap_iter hashmap_first (hashmap_t map);
  * Returns: 1 if it is the end
  *          0 otherwise
  */
-extern int hashmap_is_end (hashmap_t map, hashmap_iter iter);
+extern int hashmap_is_end(hashmap_t map, hashmap_iter iter);
 
 /*
  * Return a "pointer" to the first instance of the particular key.  It can
@@ -73,7 +72,7 @@ extern int hashmap_is_end (hashmap_t map, hashmap_iter iter);
  *          an "iterator" pointing at the first key
  *          an "end-iterator" if the key wasn't found
  */
-extern hashmap_iter hashmap_find (hashmap_t map, const char *key);
+extern hashmap_iter hashmap_find(hashmap_t map, const char *key);
 
 /*
  * Retrieve the key/data associated with a particular iterator.
@@ -83,8 +82,7 @@ extern hashmap_iter hashmap_find (hashmap_t map, const char *key);
  * Returns: the length of the data block upon success
  *          negative upon error
  */
-extern ssize_t hashmap_return_entry (hashmap_t map, hashmap_iter iter,
-                                     char **key, void **data);
+extern ssize_t hashmap_return_entry(hashmap_t map, hashmap_iter iter, char **key, void **data);
 
 /*
  * Get the first entry (assuming there is more than one) for a particular
@@ -94,8 +92,7 @@ extern ssize_t hashmap_return_entry (hashmap_t map, hashmap_iter iter,
  *          zero if no entry is found
  *          length of data for the entry
  */
-extern ssize_t hashmap_entry_by_key (hashmap_t map, const char *key,
-                                     void **data);
+extern ssize_t hashmap_entry_by_key(hashmap_t map, const char *key, void **data);
 
 /*
  * Searches for _any_ occurrances of "key" within the hashmap and returns the
@@ -105,7 +102,7 @@ extern ssize_t hashmap_entry_by_key (hashmap_t map, const char *key,
  *          zero if no key is found
  *          count found (positive value)
  */
-extern ssize_t hashmap_search (hashmap_t map, const char *key);
+extern ssize_t hashmap_search(hashmap_t map, const char *key);
 
 /*
  * Go through the hashmap and remove the particular key.
@@ -115,11 +112,11 @@ extern ssize_t hashmap_search (hashmap_t map, const char *key);
  *         0 if the key was not found
  *         positive count of entries deleted
  */
-extern ssize_t hashmap_remove (hashmap_t map, const char *key);
+extern ssize_t hashmap_remove(hashmap_t map, const char *key);
 
 /*
  * Look up the value for a variable.
  */
-extern char *lookup_variable (hashmap_t map, const char *varname);
+extern char *lookup_variable(hashmap_t map, const char *varname);
 
 #endif /* _HASHMAP_H */

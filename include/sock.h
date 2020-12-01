@@ -23,20 +23,20 @@
 #define TINYPROXY_SOCK_H
 
 /* The IP length is set to 48, since IPv6 can be that long */
-#define IP_LENGTH		48
-#define HOSTNAME_LENGTH		1024
+#define IP_LENGTH       48
+#define HOSTNAME_LENGTH 1024
 
 #define MAXLINE (1024 * 4)
 
 #include "vector.h"
 
-extern int opensock (const char *host, int port, const char *bind_to);
-extern int listen_sock (const char *addr, uint16_t port, vector_t listen_fds);
+extern int opensock(const char *host, int port, const char *bind_to);
+extern int listen_sock(const char *addr, uint16_t port, vector_t listen_fds);
 
-extern int socket_nonblocking (int sock);
-extern int socket_blocking (int sock);
+extern int socket_nonblocking(int sock);
+extern int socket_blocking(int sock);
 
-extern int getsock_ip (int fd, char *ipaddr);
-extern int getpeer_information (int fd, char *ipaddr, char *string_addr);
+extern int getsock_ip(int fd, char *ipaddr);
+extern int getpeer_information(int fd, char *ipaddr, char *string_addr);
 
 #endif

@@ -25,13 +25,13 @@
 #include "common.h"
 
 /* Global variables for the main controls of the program */
-#define MAXBUFFSIZE     ((size_t)(1024 * 96))   /* Max size of buffer */
-#define MAX_IDLE_TIME   (60 * 10)       /* 10 minutes of no activity */
+#define MAXBUFFSIZE   ((size_t)(1024 * 96)) /* Max size of buffer */
+#define MAX_IDLE_TIME (60 * 10)             /* 10 minutes of no activity */
 
 /* Global Structures used in the program */
 extern struct config_s config;
-extern unsigned int received_sighup;    /* boolean */
+extern unsigned int received_sighup; /* boolean */
 
-extern int reload_config (void);
+extern int reload_config(void);
 
 #endif /* __MAIN_H__ */

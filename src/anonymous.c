@@ -23,26 +23,26 @@
 #include "main.h"
 
 #include "anonymous.h"
+#include "conf.h"
 #include "hashmap.h"
 #include "heap.h"
 #include "log.h"
-#include "conf.h"
 
-short int is_anonymous_enabled (void)
+short int is_anonymous_enabled(void)
 {
-        return (config.anonymous_map != NULL) ? 1 : 0;
+  return (config.anonymous_map != NULL) ? 1 : 0;
 }
 
 /*
  * Search for the header.  This function returns a positive value greater than
  * zero if the string was found, zero if it wasn't and negative upon error.
  */
-int anonymous_search (const char *s)
+int anonymous_search(const char *s)
 {
-        assert (s != NULL);
-        assert (config.anonymous_map != NULL);
+  assert(s != NULL);
+  assert(config.anonymous_map != NULL);
 
-        return hashmap_search (config.anonymous_map, s);
+  return hashmap_search(config.anonymous_map, s);
 }
 
 /*
@@ -51,23 +51,25 @@ int anonymous_search (const char *s)
  * Return -1 if there is an error, otherwise a 0 is returned if the insert was
  * successful.
  */
-int anonymous_insert (const char *s)
+int anonymous_insert(const char *s)
 {
-        char data = 1;
+  char data = 1;
 
-        assert (s != NULL);
+  assert(s != NULL);
 
-        if (!config.anonymous_map) {
-                config.anonymous_map = hashmap_create (32);
-                if (!config.anonymous_map)
-                        return -1;
-        }
+  if (!config.anonymous_map)
+  {
+    config.anonymous_map = hashmap_create(32);
+    if (!config.anonymous_map)
+      return -1;
+  }
 
-        if (hashmap_search (config.anonymous_map, s) > 0) {
-                /* The key was already found, so return a positive number. */
-                return 0;
-        }
+  if (hashmap_search(config.anonymous_map, s) > 0)
+  {
+    /* The key was already found, so return a positive number. */
+    return 0;
+  }
 
-        /* Insert the new key */
-        return hashmap_insert (config.anonymous_map, s, &data, sizeof (data));
+  /* Insert the new key */
+  return hashmap_insert(config.anonymous_map, s, &data, sizeof(data));
 }

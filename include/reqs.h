@@ -27,22 +27,23 @@
 /*
  * Port constants for HTTP (80) and SSL (443)
  */
-#define HTTP_PORT 80
+#define HTTP_PORT     80
 #define HTTP_PORT_SSL 443
 
 /*
  * This structure holds the information pulled from a URL request.
  */
-struct request_s {
-        char *method;
-        char *protocol;
+struct request_s
+{
+  char *method;
+  char *protocol;
 
-        char *host;
-        uint16_t port;
+  char *host;
+  uint16_t port;
 
-        char *path;
+  char *path;
 };
 
-extern void handle_connection (int fd);
+extern void handle_connection(int fd);
 
 #endif

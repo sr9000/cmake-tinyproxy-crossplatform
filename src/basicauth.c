@@ -17,14 +17,15 @@
  */
 
 #include "main.h"
+
 #include "basicauth.h"
 
+#include "base64.h"
+#include "conf.h"
 #include "conns.h"
 #include "heap.h"
 #include "html-error.h"
 #include "log.h"
-#include "conf.h"
-#include "base64.h"
 
 /*
  * Create basic-auth token in buf.
@@ -32,47 +33,48 @@
  * -1 if user/pass missing
  * 0 if user/pass too long
  */
-ssize_t basicauth_string(const char *user, const char *pass,
-	char *buf, size_t bufsize)
+ssize_t basicauth_string(const char *user, const char *pass, char *buf, size_t bufsize)
 {
-	char tmp[256+2];
-	int l;
-	if (!user || !pass) return -1;
-	l = snprintf(tmp, sizeof tmp, "%s:%s", user, pass);
-	if (l < 0 || l >= (ssize_t) sizeof tmp) return 0;
-	if (bufsize < (BASE64ENC_BYTES((unsigned)l) + 1)) return 0;
-	base64enc(buf, tmp, l);
-	return BASE64ENC_BYTES(l);
+  char tmp[256 + 2];
+  int l;
+  if (!user || !pass)
+    return -1;
+  l = snprintf(tmp, sizeof tmp, "%s:%s", user, pass);
+  if (l < 0 || l >= (ssize_t)sizeof tmp)
+    return 0;
+  if (bufsize < (BASE64ENC_BYTES((unsigned)l) + 1))
+    return 0;
+  base64enc(buf, tmp, l);
+  return BASE64ENC_BYTES(l);
 }
 
 /*
  * Add entry to the basicauth list
  */
-void basicauth_add (vector_t authlist,
-	const char *user, const char *pass)
+void basicauth_add(vector_t authlist, const char *user, const char *pass)
 {
-	char b[BASE64ENC_BYTES((256+2)-1) + 1];
-	ssize_t ret;
+  char b[BASE64ENC_BYTES((256 + 2) - 1) + 1];
+  ssize_t ret;
 
-        ret = basicauth_string(user, pass, b, sizeof b);
-        if (ret == -1) {
-                log_message (LOG_WARNING,
-                             "Illegal basicauth rule: missing user or pass");
-                return;
-        } else if (ret == 0) {
-                log_message (LOG_WARNING,
-                             "User / pass in basicauth rule too long");
-                return;
-        }
+  ret = basicauth_string(user, pass, b, sizeof b);
+  if (ret == -1)
+  {
+    log_message(LOG_WARNING, "Illegal basicauth rule: missing user or pass");
+    return;
+  }
+  else if (ret == 0)
+  {
+    log_message(LOG_WARNING, "User / pass in basicauth rule too long");
+    return;
+  }
 
-        if (vector_append(authlist, b, ret + 1) == -ENOMEM) {
-                log_message (LOG_ERR,
-                             "Unable to allocate memory in basicauth_add()");
-                return;
-        }
+  if (vector_append(authlist, b, ret + 1) == -ENOMEM)
+  {
+    log_message(LOG_ERR, "Unable to allocate memory in basicauth_add()");
+    return;
+  }
 
-        log_message (LOG_INFO,
-                     "Added basic auth user : %s", user);
+  log_message(LOG_INFO, "Added basic auth user : %s", user);
 }
 
 /*
@@ -80,19 +82,21 @@ void basicauth_add (vector_t authlist,
  * is in the basicauth list.
  * return 1 on success, 0 on failure.
  */
-int basicauth_check (vector_t authlist, const char *authstring)
+int basicauth_check(vector_t authlist, const char *authstring)
 {
-        ssize_t vl, i;
-        size_t el;
-        const char* entry;
+  ssize_t vl, i;
+  size_t el;
+  const char *entry;
 
-        vl = vector_length (authlist);
-        if (vl == -EINVAL) return 0;
+  vl = vector_length(authlist);
+  if (vl == -EINVAL)
+    return 0;
 
-        for (i = 0; i < vl; i++) {
-                entry = vector_getentry (authlist, i, &el);
-                if (strcmp (authstring, entry) == 0)
-                        return 1;
-        }
-	return 0;
+  for (i = 0; i < vl; i++)
+  {
+    entry = vector_getentry(authlist, i, &el);
+    if (strcmp(authstring, entry) == 0)
+      return 1;
+  }
+  return 0;
 }

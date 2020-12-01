@@ -21,7 +21,7 @@
 #ifndef TINYPROXY_DAEMON_H
 #define TINYPROXY_DAEMON_H
 
-typedef void signal_func (int);
+typedef void signal_func(int);
 
 /*
  * Pass a singal integer and a function to handle the signal.
@@ -29,7 +29,7 @@ typedef void signal_func (int);
 #ifdef MINGW
 #define set_signal_handler signal
 #else /* MINGW */
-extern signal_func *set_signal_handler (int signo, signal_func * func);
+extern signal_func *set_signal_handler(int signo, signal_func *func);
 #endif /* MINGW */
 
 #endif

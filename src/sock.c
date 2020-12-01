@@ -27,47 +27,47 @@
 
 #include "main.h"
 
-#include "log.h"
+#include "conf.h"
 #include "heap.h"
+#include "log.h"
 #include "network.h"
 #include "sock.h"
 #include "text.h"
-#include "conf.h"
 
 /*
  * Bind the given socket to the supplied address.  The socket is
  * returned if the bind succeeded.  Otherwise, -1 is returned
  * to indicate an error.
  */
-static int
-bind_socket (int sockfd, const char *addr, int family)
+static int bind_socket(int sockfd, const char *addr, int family)
 {
-        struct addrinfo hints, *res, *ressave;
+  struct addrinfo hints, *res, *ressave;
 
-        assert (sockfd >= 0);
-        assert (addr != NULL && strlen (addr) != 0);
+  assert(sockfd >= 0);
+  assert(addr != NULL && strlen(addr) != 0);
 
-        memset (&hints, 0, sizeof (struct addrinfo));
-        hints.ai_family = family;
-        hints.ai_socktype = SOCK_STREAM;
+  memset(&hints, 0, sizeof(struct addrinfo));
+  hints.ai_family = family;
+  hints.ai_socktype = SOCK_STREAM;
 
-        /* The local port it not important */
-        if (getaddrinfo (addr, NULL, &hints, &res) != 0)
-                return -1;
+  /* The local port it not important */
+  if (getaddrinfo(addr, NULL, &hints, &res) != 0)
+    return -1;
 
-        ressave = res;
+  ressave = res;
 
-        /* Loop through the addresses and try to bind to each */
-        do {
-                if (bind (sockfd, res->ai_addr, res->ai_addrlen) == 0)
-                        break;  /* success */
-        } while ((res = res->ai_next) != NULL);
+  /* Loop through the addresses and try to bind to each */
+  do
+  {
+    if (bind(sockfd, res->ai_addr, res->ai_addrlen) == 0)
+      break; /* success */
+  } while ((res = res->ai_next) != NULL);
 
-        freeaddrinfo (ressave);
-        if (res == NULL)        /* was not able to bind to any address */
-                return -1;
+  freeaddrinfo(ressave);
+  if (res == NULL) /* was not able to bind to any address */
+    return -1;
 
-        return sockfd;
+  return sockfd;
 }
 
 /*
@@ -75,113 +75,113 @@ bind_socket (int sockfd, const char *addr, int family)
  * the getaddrinfo() library function, which allows for a protocol
  * independent implementation (mostly for IPv4 and IPv6 addresses.)
  */
-int opensock (const char *host, int port, const char *bind_to)
+int opensock(const char *host, int port, const char *bind_to)
 {
-        int sockfd, n;
-        struct addrinfo hints, *res, *ressave;
-        char portstr[6];
+  int sockfd, n;
+  struct addrinfo hints, *res, *ressave;
+  char portstr[6];
 
-        assert (host != NULL);
-        assert (port > 0);
+  assert(host != NULL);
+  assert(port > 0);
 
-        log_message(LOG_INFO,
-                    "opensock: opening connection to %s:%d", host, port);
+  log_message(LOG_INFO, "opensock: opening connection to %s:%d", host, port);
 
-        memset (&hints, 0, sizeof (struct addrinfo));
-        hints.ai_family = AF_UNSPEC;
-        hints.ai_socktype = SOCK_STREAM;
+  memset(&hints, 0, sizeof(struct addrinfo));
+  hints.ai_family = AF_UNSPEC;
+  hints.ai_socktype = SOCK_STREAM;
 
-        snprintf (portstr, sizeof (portstr), "%d", port);
+  snprintf(portstr, sizeof(portstr), "%d", port);
 
-        n = getaddrinfo (host, portstr, &hints, &res);
-        if (n != 0) {
-                log_message (LOG_ERR,
-                             "opensock: Could not retrieve info for %s", host);
-                return -1;
-        }
+  n = getaddrinfo(host, portstr, &hints, &res);
+  if (n != 0)
+  {
+    log_message(LOG_ERR, "opensock: Could not retrieve info for %s", host);
+    return -1;
+  }
 
-        log_message(LOG_INFO,
-                    "opensock: getaddrinfo returned for %s:%d", host, port);
+  log_message(LOG_INFO, "opensock: getaddrinfo returned for %s:%d", host, port);
 
-        ressave = res;
-        do {
-                sockfd =
-                    socket (res->ai_family, res->ai_socktype, res->ai_protocol);
-                if (sockfd < 0)
-                        continue;       /* ignore this one */
+  ressave = res;
+  do
+  {
+    sockfd = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
+    if (sockfd < 0)
+      continue; /* ignore this one */
 
-                /* Bind to the specified address */
-                if (bind_to) {
-                        if (bind_socket (sockfd, bind_to,
-                                         res->ai_family) < 0) {
-                                closesocket (sockfd);
-                                continue;       /* can't bind, so try again */
-                        }
-                } else if (config.bind_address) {
-                        if (bind_socket (sockfd, config.bind_address,
-                                         res->ai_family) < 0) {
-                                closesocket (sockfd);
-                                continue;       /* can't bind, so try again */
-                        }
-                }
+    /* Bind to the specified address */
+    if (bind_to)
+    {
+      if (bind_socket(sockfd, bind_to, res->ai_family) < 0)
+      {
+        closesocket(sockfd);
+        continue; /* can't bind, so try again */
+      }
+    }
+    else if (config.bind_address)
+    {
+      if (bind_socket(sockfd, config.bind_address, res->ai_family) < 0)
+      {
+        closesocket(sockfd);
+        continue; /* can't bind, so try again */
+      }
+    }
 
-                if (connect (sockfd, res->ai_addr, res->ai_addrlen) == 0)
-                        break;  /* success */
+    if (connect(sockfd, res->ai_addr, res->ai_addrlen) == 0)
+      break; /* success */
 
-                closesocket (sockfd);
-        } while ((res = res->ai_next) != NULL);
+    closesocket(sockfd);
+  } while ((res = res->ai_next) != NULL);
 
-        freeaddrinfo (ressave);
-        if (res == NULL) {
-                log_message (LOG_ERR,
-                             "opensock: Could not establish a connection to %s",
-                             host);
-                return -1;
-        }
+  freeaddrinfo(ressave);
+  if (res == NULL)
+  {
+    log_message(LOG_ERR, "opensock: Could not establish a connection to %s", host);
+    return -1;
+  }
 
-        return sockfd;
+  return sockfd;
 }
 
 /*
  * Set the socket to non blocking -rjkaes
  */
-int socket_nonblocking (int sock)
+int socket_nonblocking(int sock)
 {
-        int flags;
+  int flags;
 
-        assert (sock >= 0);
+  assert(sock >= 0);
 
 #ifdef HAVE_WSOCK32
-        long unsigned int mode = 1;
-        return ioctlsocket(sock, FIONBIO, &mode);
+  long unsigned int mode = 1;
+  return ioctlsocket(sock, FIONBIO, &mode);
 #else /* HAVE_WSOCK32 */
-        flags = fcntl (sock, F_GETFL, 0);
-        return fcntl (sock, F_SETFL, flags | O_NONBLOCK);
+  flags = fcntl(sock, F_GETFL, 0);
+  return fcntl(sock, F_SETFL, flags | O_NONBLOCK);
 #endif /* HAVE_WSOCK32 */
 }
 
 /*
  * Set the socket to blocking -rjkaes
  */
-int socket_blocking (int sock)
+int socket_blocking(int sock)
 {
-        int flags;
+  int flags;
 
-        assert (sock >= 0);
+  assert(sock >= 0);
 
 #ifdef HAVE_WSOCK32
-        long unsigned int mode = 0;
-        return ioctlsocket(sock, FIONBIO, &mode);
+  long unsigned int mode = 0;
+  return ioctlsocket(sock, FIONBIO, &mode);
 #else /* HAVE_WSOCK32 */
-        flags = fcntl (sock, F_GETFL, 0);
-        return fcntl (sock, F_SETFL, flags & ~O_NONBLOCK);
+  flags = fcntl(sock, F_GETFL, 0);
+  return fcntl(sock, F_SETFL, flags & ~O_NONBLOCK);
 #endif /* HAVE_WSOCK32 */
 }
 
 #ifdef HAVE_WSOCK32
-typedef const char* setsockopt_on_t;
+typedef const char *setsockopt_on_t;
 #else /* HAVE_WSOCK32 */
-typedef const int* setsockopt_on_t;
+typedef const int *setsockopt_on_t;
 #endif /* HAVE_WSOCK32 */
 
 /**
@@ -192,68 +192,69 @@ typedef const int* setsockopt_on_t;
  */
 static int listen_on_one_socket(struct addrinfo *ad)
 {
-        int listenfd;
-        int ret;
-        const int on = 1;
-        char numerichost[NI_MAXHOST];
-        int flags = NI_NUMERICHOST;
+  int listenfd;
+  int ret;
+  const int on = 1;
+  char numerichost[NI_MAXHOST];
+  int flags = NI_NUMERICHOST;
 
-        ret = getnameinfo(ad->ai_addr, ad->ai_addrlen,
-                          numerichost, NI_MAXHOST, NULL, 0, flags);
-        if (ret != 0) {
-                log_message(LOG_ERR, "error calling getnameinfo: %s",
-                            gai_strerror(errno));
-                return -1;
-        }
+  ret = getnameinfo(ad->ai_addr, ad->ai_addrlen, numerichost, NI_MAXHOST, NULL, 0, flags);
+  if (ret != 0)
+  {
+    log_message(LOG_ERR, "error calling getnameinfo: %s", gai_strerror(errno));
+    return -1;
+  }
 
-        log_message(LOG_INFO, "trying to listen on host[%s], family[%d], "
-                    "socktype[%d], proto[%d]", numerichost,
-                    ad->ai_family, ad->ai_socktype, ad->ai_protocol);
+  log_message(LOG_INFO,
+              "trying to listen on host[%s], family[%d], "
+              "socktype[%d], proto[%d]",
+              numerichost, ad->ai_family, ad->ai_socktype, ad->ai_protocol);
 
-        listenfd = socket(ad->ai_family, ad->ai_socktype, ad->ai_protocol);
-        if (listenfd == -1) {
-                log_message(LOG_ERR, "socket() failed: %s", strerror(errno));
-                return -1;
-        }
+  listenfd = socket(ad->ai_family, ad->ai_socktype, ad->ai_protocol);
+  if (listenfd == -1)
+  {
+    log_message(LOG_ERR, "socket() failed: %s", strerror(errno));
+    return -1;
+  }
 
-        ret = setsockopt(listenfd, SOL_SOCKET, SO_REUSEADDR, (setsockopt_on_t)&on, sizeof(on));
-        if (ret != 0) {
-                log_message(LOG_ERR,
-                            "setsockopt failed to set SO_REUSEADDR: %s",
-                            strerror(errno));
-                closesocket(listenfd);
-                return -1;
-        }
+  ret = setsockopt(listenfd, SOL_SOCKET, SO_REUSEADDR, (setsockopt_on_t)&on, sizeof(on));
+  if (ret != 0)
+  {
+    log_message(LOG_ERR, "setsockopt failed to set SO_REUSEADDR: %s", strerror(errno));
+    closesocket(listenfd);
+    return -1;
+  }
 
-        if (ad->ai_family == AF_INET6) {
-                ret = setsockopt(listenfd, IPPROTO_IPV6, IPV6_V6ONLY, (setsockopt_on_t) &on,
-                                 sizeof(on));
-                if (ret != 0) {
-                        log_message(LOG_ERR,
-                                    "setsockopt failed to set IPV6_V6ONLY: %s",
-                                    strerror(errno));
-                        closesocket(listenfd);
-                        return -1;
-                }
-        }
+  if (ad->ai_family == AF_INET6)
+  {
+    ret = setsockopt(listenfd, IPPROTO_IPV6, IPV6_V6ONLY, (setsockopt_on_t)&on, sizeof(on));
+    if (ret != 0)
+    {
+      log_message(LOG_ERR, "setsockopt failed to set IPV6_V6ONLY: %s", strerror(errno));
+      closesocket(listenfd);
+      return -1;
+    }
+  }
 
-        ret = bind(listenfd, ad->ai_addr, ad->ai_addrlen);
-        if (ret != 0) {
-               log_message(LOG_ERR, "bind failed: %s", strerror (errno));
-               closesocket(listenfd);
-               return -1;
-        }
+  ret = bind(listenfd, ad->ai_addr, ad->ai_addrlen);
+  if (ret != 0)
+  {
+    log_message(LOG_ERR, "bind failed: %s", strerror(errno));
+    closesocket(listenfd);
+    return -1;
+  }
 
-        ret = listen(listenfd, MAXLISTEN);
-        if (ret != 0) {
-                log_message(LOG_ERR, "listen failed: %s", strerror(errno));
-                closesocket(listenfd);
-                return -1;
-        }
+  ret = listen(listenfd, MAXLISTEN);
+  if (ret != 0)
+  {
+    log_message(LOG_ERR, "listen failed: %s", strerror(errno));
+    closesocket(listenfd);
+    return -1;
+  }
 
-        log_message(LOG_INFO, "listening on fd [%d]", listenfd);
+  log_message(LOG_INFO, "listening on fd [%d]", listenfd);
 
-        return listenfd;
+  return listenfd;
 }
 
 /*
@@ -266,110 +267,110 @@ static int listen_on_one_socket(struct addrinfo *ad)
  * Upon success, the listen-fds are added to the listen_fds list
  * and 0 is returned. Upon error,  -1 is returned.
  */
-int listen_sock (const char *addr, uint16_t port, vector_t listen_fds)
+int listen_sock(const char *addr, uint16_t port, vector_t listen_fds)
 {
-        struct addrinfo hints, *result, *rp;
-        char portstr[6];
-        int ret = -1;
+  struct addrinfo hints, *result, *rp;
+  char portstr[6];
+  int ret = -1;
 
-        assert (port > 0);
-        assert (listen_fds != NULL);
+  assert(port > 0);
+  assert(listen_fds != NULL);
 
-        log_message(LOG_INFO, "listen_sock called with addr = '%s'",
-                    addr == NULL ? "(NULL)" : addr);
+  log_message(LOG_INFO, "listen_sock called with addr = '%s'", addr == NULL ? "(NULL)" : addr);
 
-        memset (&hints, 0, sizeof (struct addrinfo));
-        hints.ai_family = AF_UNSPEC;
-        hints.ai_socktype = SOCK_STREAM;
-        hints.ai_flags = AI_PASSIVE;
+  memset(&hints, 0, sizeof(struct addrinfo));
+  hints.ai_family = AF_UNSPEC;
+  hints.ai_socktype = SOCK_STREAM;
+  hints.ai_flags = AI_PASSIVE;
 
-        snprintf (portstr, sizeof (portstr), "%d", port);
+  snprintf(portstr, sizeof(portstr), "%d", port);
 
-        if (getaddrinfo (addr, portstr, &hints, &result) != 0) {
-                log_message (LOG_ERR,
-                             "Unable to getaddrinfo() because of %s",
-                             strerror (errno));
-                return -1;
-        }
+  if (getaddrinfo(addr, portstr, &hints, &result) != 0)
+  {
+    log_message(LOG_ERR, "Unable to getaddrinfo() because of %s", strerror(errno));
+    return -1;
+  }
 
-        for (rp = result; rp != NULL; rp = rp->ai_next) {
-                int listenfd;
+  for (rp = result; rp != NULL; rp = rp->ai_next)
+  {
+    int listenfd;
 
-                listenfd = listen_on_one_socket(rp);
-                if (listenfd == -1) {
-                        continue;
-                }
+    listenfd = listen_on_one_socket(rp);
+    if (listenfd == -1)
+    {
+      continue;
+    }
 
-                vector_append (listen_fds, &listenfd, sizeof(int));
+    vector_append(listen_fds, &listenfd, sizeof(int));
 
-                /* success */
-                ret = 0;
+    /* success */
+    ret = 0;
 
-                if (addr != NULL) {
-                        /*
-                         * Unless wildcard is requested, only listen
-                         * on the first result that works.
-                         */
-                        break;
-                }
-        }
+    if (addr != NULL)
+    {
+      /*
+       * Unless wildcard is requested, only listen
+       * on the first result that works.
+       */
+      break;
+    }
+  }
 
-        if (ret != 0) {
-                log_message (LOG_ERR, "Unable to listen on any address.");
-        }
+  if (ret != 0)
+  {
+    log_message(LOG_ERR, "Unable to listen on any address.");
+  }
 
-        freeaddrinfo (result);
+  freeaddrinfo(result);
 
-        return ret;
+  return ret;
 }
 
 /*
  * Takes a socket descriptor and returns the socket's IP address.
  */
-int getsock_ip (int fd, char *ipaddr)
+int getsock_ip(int fd, char *ipaddr)
 {
-        struct sockaddr_storage name;
-        socklen_t namelen = sizeof (name);
+  struct sockaddr_storage name;
+  socklen_t namelen = sizeof(name);
 
-        assert (fd >= 0);
+  assert(fd >= 0);
 
-        if (getsockname (fd, (struct sockaddr *) &name, &namelen) != 0) {
-                log_message (LOG_ERR, "getsock_ip: getsockname() error: %s",
-                             strerror (errno));
-                return -1;
-        }
+  if (getsockname(fd, (struct sockaddr *)&name, &namelen) != 0)
+  {
+    log_message(LOG_ERR, "getsock_ip: getsockname() error: %s", strerror(errno));
+    return -1;
+  }
 
-        if (get_ip_string ((struct sockaddr *) &name, ipaddr, IP_LENGTH) ==
-            NULL)
-                return -1;
+  if (get_ip_string((struct sockaddr *)&name, ipaddr, IP_LENGTH) == NULL)
+    return -1;
 
-        return 0;
+  return 0;
 }
 
 /*
  * Return the peer's socket information.
  */
-int getpeer_information (int fd, char *ipaddr, char *string_addr)
+int getpeer_information(int fd, char *ipaddr, char *string_addr)
 {
-        struct sockaddr_storage sa;
-        socklen_t salen = sizeof sa;
+  struct sockaddr_storage sa;
+  socklen_t salen = sizeof sa;
 
-        assert (fd >= 0);
-        assert (ipaddr != NULL);
-        assert (string_addr != NULL);
+  assert(fd >= 0);
+  assert(ipaddr != NULL);
+  assert(string_addr != NULL);
 
-        /* Set the strings to default values */
-        ipaddr[0] = '\0';
-        strlcpy (string_addr, "[unknown]", HOSTNAME_LENGTH);
+  /* Set the strings to default values */
+  ipaddr[0] = '\0';
+  strlcpy(string_addr, "[unknown]", HOSTNAME_LENGTH);
 
-        /* Look up the IP address */
-        if (getpeername (fd, (struct sockaddr *) &sa, &salen) != 0)
-                return -1;
+  /* Look up the IP address */
+  if (getpeername(fd, (struct sockaddr *)&sa, &salen) != 0)
+    return -1;
 
-        if (get_ip_string ((struct sockaddr *) &sa, ipaddr, IP_LENGTH) == NULL)
-                return -1;
+  if (get_ip_string((struct sockaddr *)&sa, ipaddr, IP_LENGTH) == NULL)
+    return -1;
 
-        /* Get the full host name */
-        return getnameinfo ((struct sockaddr *) &sa, salen,
-                            string_addr, HOSTNAME_LENGTH, NULL, 0, 0);
+  /* Get the full host name */
+  return getnameinfo((struct sockaddr *)&sa, salen, string_addr, HOSTNAME_LENGTH, NULL, 0, 0);
 }

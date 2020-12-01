@@ -23,12 +23,14 @@
 
 #include "vector.h"
 
-typedef enum { ACL_ALLOW, ACL_DENY } acl_access_t;
+typedef enum
+{
+  ACL_ALLOW,
+  ACL_DENY
+} acl_access_t;
 
-extern int insert_acl (char *location, acl_access_t access_type,
-                       vector_t *access_list);
-extern int check_acl (const char *ip_address, const char *string_address,
-                      vector_t access_list);
-extern void flush_access_list (vector_t access_list);
+extern int insert_acl(char *location, acl_access_t access_type, vector_t *access_list);
+extern int check_acl(const char *ip_address, const char *string_address, vector_t access_list);
+extern void flush_access_list(vector_t access_list);
 
 #endif
