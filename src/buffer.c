@@ -204,6 +204,17 @@ static struct bufline_s *remove_from_buffer (struct buffer_s *buffptr)
         return line;
 }
 
+#ifdef MINGW
+int readsocket(SOCKET s, char *buf, int len) {
+        return recv(s, buf, len, 0);
+}
+int writesocket(SOCKET s, const char *buf, int len, int _ignore) {
+        return send(s, buf, len, 0);
+}
+#else /* MINGW */
+#define readsocket read
+#define writesocket send
+#endif /* MINGW */
 /*
  * Reads the bytes from the socket, and adds them to the buffer.
  * Takes a connection and returns the number of bytes read.
@@ -228,7 +239,7 @@ ssize_t read_buffer (int fd, struct buffer_s * buffptr)
                 return -ENOMEM;
         }
 
-        bytesin = read (fd, buffer, READ_BUFFER_SIZE);
+        bytesin = readsocket (fd, buffer, READ_BUFFER_SIZE);
 
         if (bytesin > 0) {
                 if (add_to_buffer (buffptr, buffer, bytesin) < 0) {
@@ -284,7 +295,7 @@ ssize_t write_buffer (int fd, struct buffer_s * buffptr)
         line = BUFFER_HEAD (buffptr);
 
         bytessent =
-            send (fd, line->string + line->pos, line->length - line->pos,
+            writesocket (fd, line->string + line->pos, line->length - line->pos,
                   MSG_NOSIGNAL);
 
         if (bytessent >= 0) {
