@@ -38,6 +38,7 @@
 #include "daemon.h"
 #include "filter.h"
 #include "log.h"
+#include "misc/file_api.h"
 #include "misc/heap.h"
 #include "reqs.h"
 #include "sock.h"

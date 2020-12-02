@@ -26,6 +26,7 @@
 
 #include "conf.h"
 #include "log.h"
+#include "misc/file_api.h"
 #include "misc/heap.h"
 #include "misc/list.h"
 #include "utils.h"

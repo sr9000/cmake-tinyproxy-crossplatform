@@ -59,5 +59,6 @@ target_link_libraries(tinyproxy
         tinyproxy_list
         tinyproxy_hashmap
         tinyproxy_text
+        tinyproxy_file_api
         ${PROXY_LIBRARIES}
         )

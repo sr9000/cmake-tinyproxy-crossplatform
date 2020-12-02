@@ -24,7 +24,6 @@
 #include "main.h"
 
 #include "daemon.h"
-#include "log.h"
 
 /*
  * Pass a signal number and a signal handling function into this function

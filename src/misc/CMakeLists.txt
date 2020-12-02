@@ -10,3 +10,5 @@ add_library(tinyproxy_hashmap hashmap.c)
 target_link_libraries(tinyproxy_hashmap tinyproxy_heap)
 
 add_library(tinyproxy_text text.c)
+
+add_library(tinyproxy_file_api file_api.c)
