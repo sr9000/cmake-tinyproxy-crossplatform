@@ -318,7 +318,7 @@ static int send_ssl_response(struct conn_s *connptr)
  * Break the request line apart and figure out where to connect and
  * build a new request line. Finally connect to the remote server.
  */
-static struct request_s *process_request(struct conn_s *connptr, hashmap_t hashofheaders)
+static struct request_s *process_request(struct conn_s *connptr, phashmap_t hashofheaders)
 {
   char *url;
   struct request_s *request;
@@ -599,7 +599,7 @@ static int add_xtinyproxy_header(struct conn_s *connptr)
  * Now insert this information into the hashmap for the connection so it
  * can be retrieved and manipulated later.
  */
-static int add_header_to_connection(hashmap_t hashofheaders, char *header, size_t len)
+static int add_header_to_connection(phashmap_t hashofheaders, char *header, size_t len)
 {
   char *sep;
 
@@ -630,7 +630,7 @@ static int add_header_to_connection(hashmap_t hashofheaders, char *header, size_
 /*
  * Read all the headers from the stream
  */
-static int get_all_headers(int fd, hashmap_t hashofheaders)
+static int get_all_headers(int fd, phashmap_t hashofheaders)
 {
   char *line = NULL;
   char *header = NULL;
@@ -727,7 +727,7 @@ static int get_all_headers(int fd, hashmap_t hashofheaders)
  * Extract the headers to remove.  These headers were listed in the Connection
  * and Proxy-Connection headers.
  */
-static int remove_connection_headers(hashmap_t hashofheaders)
+static int remove_connection_headers(phashmap_t hashofheaders)
 {
   static const char *headers[] = {"connection", "proxy-connection"};
 
@@ -777,7 +777,7 @@ static int remove_connection_headers(hashmap_t hashofheaders)
  * If there is a Content-Length header, then return the value; otherwise, return
  * a negative number.
  */
-static long get_content_length(hashmap_t hashofheaders)
+static long get_content_length(phashmap_t hashofheaders)
 {
   ssize_t len;
   char *data;
@@ -797,7 +797,7 @@ static long get_content_length(hashmap_t hashofheaders)
  * FIXME: Need to add code to "hide" our internal information for security
  * purposes.
  */
-static int write_via_header(int fd, hashmap_t hashofheaders, unsigned int major, unsigned int minor)
+static int write_via_header(int fd, phashmap_t hashofheaders, unsigned int major, unsigned int minor)
 {
   ssize_t len;
   char hostname[512];
@@ -852,7 +852,7 @@ done:
  * (plus a few which are required for various methods).
  *	- rjkaes
  */
-static int process_client_headers(struct conn_s *connptr, hashmap_t hashofheaders)
+static int process_client_headers(struct conn_s *connptr, phashmap_t hashofheaders)
 {
   static const char *skipheaders[] = {"host", "keep-alive", "proxy-connection",
                                       "te",   "trailers",   "upgrade"};
@@ -967,7 +967,7 @@ static int process_server_headers(struct conn_s *connptr)
 
   char *response_line;
 
-  hashmap_t hashofheaders;
+  phashmap_t hashofheaders;
   hashmap_iter iter;
   char *data, *header;
   ssize_t len;
@@ -1553,7 +1553,7 @@ void handle_connection(int fd)
   ssize_t i;
   struct conn_s *connptr;
   struct request_s *request = NULL;
-  hashmap_t hashofheaders = NULL;
+  phashmap_t hashofheaders = NULL;
 
   char sock_ipaddr[IP_LENGTH];
   char peer_ipaddr[IP_LENGTH];

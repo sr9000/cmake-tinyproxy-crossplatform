@@ -22,100 +22,83 @@
 #include <stddef.h>
 #include <sys/types.h>
 
-/*
- * We're using a typedef here to "hide" the implementation details of the
- * hash map.  Sure, it's a pointer, but the struct is hidden in the C file.
- * So, just use the hashmap_t like it's a cookie. :)
- */
-typedef struct hashmap_s *hashmap_t;
+// We're using a typedef here to "hide" the implementation details of the hash map. Sure, it's a
+// pointer, but the struct is hidden in the C file. So, just use the phashmap_t like it's a cookie.
+typedef struct hashmap_s *phashmap_t;
 typedef int hashmap_iter;
 
-/*
- * hashmap_create() takes one argument, which is the number of buckets to
- * use internally.  hashmap_delete() is self explanatory.
- */
-extern hashmap_t hashmap_create(unsigned int nbuckets);
-extern int hashmap_delete(hashmap_t map);
+// Create a hashmap with the requested number of buckets. If "nbuckets" is not greater than zero a
+// NULL is returned; otherwise, a _token_ to the hashmap is returned.
+// Always use hashmap_delete() to free memory after usage
+//
+// NULLs are also returned if memory could not be allocated for hashmap.
+extern phashmap_t hashmap_create(unsigned int nbuckets);
 
-/*
- * When the you insert a key/data pair into the hashmap it will the key
- * and data are duplicated, so you must free your copy if it was created
- * on the heap.  The key must be a NULL terminated string.  "data" must be
- * non-NULL and length must be greater than zero.
- *
- * Returns: negative on error
- *          0 upon successful insert
- */
-extern int hashmap_insert(hashmap_t map, const char *key, const void *data, size_t len);
+// Deletes a hashmap.  All the key/data pairs are also deleted.
+//
+// Returns: 0 on success
+//          negative if a NULL "map" was supplied
+extern int hashmap_delete(phashmap_t map);
 
-/*
- * Get an iterator to the first entry.
- *
- * Returns: an negative value upon error.
- */
-extern hashmap_iter hashmap_first(hashmap_t map);
+// When the you insert a key/data pair into the hashmap it will the key and data are duplicated, so
+// you must free your copy if it was created on the heap. The key must be a NULL terminated string.
+// "data" must be non-NULL and length must be greater than zero.
+//
+// Returns: negative on error
+//          0 upon successful insert
+extern int hashmap_insert(phashmap_t map, const char *key, const void *data, size_t len);
 
-/*
- * Checks to see if the iterator is pointing at the "end" of the entries.
- *
- * Returns: 1 if it is the end
- *          0 otherwise
- */
-extern int hashmap_is_end(hashmap_t map, hashmap_iter iter);
+// Get an iterator to the first entry.
+//
+// Returns: an negative value upon error.
+extern hashmap_iter hashmap_first(phashmap_t map);
 
-/*
- * Return a "pointer" to the first instance of the particular key.  It can
- * be tested against hashmap_is_end() to see if the key was not found.
- *
- * Returns: negative upon an error
- *          an "iterator" pointing at the first key
- *          an "end-iterator" if the key wasn't found
- */
-extern hashmap_iter hashmap_find(hashmap_t map, const char *key);
+// Checks to see if the iterator is pointing at the "end" of the entries.
+//
+// Returns: 1 if it is the end
+//          0 otherwise
+extern int hashmap_is_end(phashmap_t map, hashmap_iter iter);
 
-/*
- * Retrieve the key/data associated with a particular iterator.
- * NOTE: These are pointers to the actual data, so don't mess around with them
- *       too much.
- *
- * Returns: the length of the data block upon success
- *          negative upon error
- */
-extern ssize_t hashmap_return_entry(hashmap_t map, hashmap_iter iter, char **key, void **data);
+// Return a "pointer" to the first instance of the particular key. It can be tested against
+// hashmap_is_end() to see if the key was not found.
+//
+// Returns: negative upon an error
+//          an "iterator" pointing at the first key
+//          an "end-iterator" if the key wasn't found
+extern hashmap_iter hashmap_find(phashmap_t map, const char *key);
 
-/*
- * Get the first entry (assuming there is more than one) for a particular
- * key.  The data MUST be non-NULL.
- *
- * Returns: negative upon error
- *          zero if no entry is found
- *          length of data for the entry
- */
-extern ssize_t hashmap_entry_by_key(hashmap_t map, const char *key, void **data);
+// Retrieve the key/data associated with a particular iterator.
+// NOTE: These are pointers to the actual data, so don't mess around with them too much.
+//
+// Returns: the length of the data block upon success
+//          negative upon error
+extern ssize_t hashmap_return_entry(phashmap_t map, hashmap_iter iter, char **key, void **data);
 
-/*
- * Searches for _any_ occurrances of "key" within the hashmap and returns the
- * number of matching entries.
- *
- * Returns: negative upon an error
- *          zero if no key is found
- *          count found (positive value)
- */
-extern ssize_t hashmap_search(hashmap_t map, const char *key);
+// Get the first entry (assuming there is more than one) for a particular key. The data MUST be
+// non-NULL.
+//
+// Returns: negative upon error
+//          0 if no entry is found
+//          length of data for the entry
+extern ssize_t hashmap_entry_by_key(phashmap_t map, const char *key, void **data);
 
-/*
- * Go through the hashmap and remove the particular key.
- * NOTE: This will invalidate any iterators which have been created.
- *
- * Remove: negative upon error
- *         0 if the key was not found
- *         positive count of entries deleted
- */
-extern ssize_t hashmap_remove(hashmap_t map, const char *key);
+// Searches for _any_ occurrances of "key" within the hashmap and returns the number of matching
+// entries.
+//
+// Returns: negative upon an error
+//          zero if no key is found
+//          count found (positive value)
+extern ssize_t hashmap_search(phashmap_t map, const char *key);
 
-/*
- * Look up the value for a variable.
- */
-extern char *lookup_variable(hashmap_t map, const char *varname);
+// Go through the hashmap and remove the particular key.
+// NOTE: This will invalidate any iterators which have been created.
+//
+// Remove: negative upon error
+//         0 if the key was not found
+//         positive count of entries deleted
+extern ssize_t hashmap_remove(phashmap_t map, const char *key);
+
+// Look up the value for a variable.
+extern void *lookup_variable(phashmap_t map, const char *varname);
 
 #endif // TINYPROXY_HASHMAP_H

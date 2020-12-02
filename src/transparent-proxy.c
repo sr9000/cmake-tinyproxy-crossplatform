@@ -53,7 +53,7 @@ static int build_url(char **url, const char *host, int port, const char *path)
   return snprintf(*url, len, "http://%s:%d%s", host, port, path);
 }
 
-int do_transparent_proxy(struct conn_s *connptr, hashmap_t hashofheaders, struct request_s *request,
+int do_transparent_proxy(struct conn_s *connptr, phashmap_t hashofheaders, struct request_s *request,
                          struct config_s *conf, char **url)
 {
   socklen_t length;

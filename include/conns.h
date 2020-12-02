@@ -39,7 +39,7 @@ struct conn_s
   unsigned int show_stats;
 
   // this structure stores key -> value mappings for substitution in the error HTML files
-  hashmap_t error_variables;
+  phashmap_t error_variables;
 
   int error_number;
   char *error_string;

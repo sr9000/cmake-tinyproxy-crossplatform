@@ -70,7 +70,7 @@ struct config_s
   unsigned int disable_viaheader; // boolean
 
   // error page support.  Map error numbers to file paths
-  hashmap_t errorpages;
+  phashmap_t errorpages;
 
   // error page to be displayed if appropriate page cannot be located in the errorpages structure
   char *errorpage_undef;
@@ -84,7 +84,7 @@ struct config_s
   plist_t connect_ports;
 
   // map of headers which should be let through when the anonymous feature is turned on
-  hashmap_t anonymous_map;
+  phashmap_t anonymous_map;
 
   // extra headers to be added to outgoing HTTP requests
   plist_t add_headers;

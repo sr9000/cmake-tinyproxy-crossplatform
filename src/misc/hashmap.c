@@ -35,13 +35,10 @@
 #include "misc/hashmap.h"
 #include "misc/heap.h"
 
-/*
- * These structures are the storage for the hashmap.  Entries are stored in
- * struct hashentry_s (the key, data, and length), and all the "buckets" are
- * grouped together in hashmap_s.  The hashmap_s.size member is for
- * internal use.  It stores the number of buckets the hashmap was created
- * with.
- */
+// These structures are the storage for the hashmap. Entries are stored in struct hashentry_s (the
+// key, data, and length), and all the "buckets" are grouped together in hashmap_s.  The
+// hashmap_s.size member is for internal use. It stores the number of buckets the hashmap was
+// created with.
 struct hashentry_s
 {
   char *key;
@@ -65,18 +62,14 @@ struct hashmap_s
   struct hashbucket_s *buckets;
 };
 
-/*
- * A NULL terminated string is passed to this function and a "hash" value
- * is produced within the range of [0 .. size)  (In other words, 0 to one
- * less than size.)
- * The contents of the key are converted to lowercase, so this function
- * is not case-sensitive.
- *
- * This is Dan Bernstein's hash function as described, for example, here:
- * http://www.cse.yorku.ca/~oz/hash.html
- *
- * If any of the arguments are invalid a negative number is returned.
- */
+// A NULL terminated string is passed to this function and a "hash" value is produced within the
+// range of [0 .. size) (In other words, 0 to one less than size.) The contents of the key are
+// converted to lowercase, so this function is not case-sensitive.
+//
+// This is Dan Bernstein's hash function as described, for example, here:
+// http://www.cse.yorku.ca/~oz/hash.html
+//
+// If any of the arguments are invalid a negative number is returned.
 static int hashfunc(const char *key, unsigned int size, uint32_t seed)
 {
   uint32_t hash;
@@ -91,18 +84,15 @@ static int hashfunc(const char *key, unsigned int size, uint32_t seed)
     hash = ((hash << 5) + hash) ^ tolower(*key);
   }
 
-  /* Keep the hash within the table limits */
+  // keep the hash within the table limits
   return hash % size;
 }
 
-/*
- * Create a hashmap with the requested number of buckets.  If "nbuckets" is
- * not greater than zero a NULL is returned; otherwise, a _token_ to the
- * hashmap is returned.
- *
- * NULLs are also returned if memory could not be allocated for hashmap.
- */
-hashmap_t hashmap_create(unsigned int nbuckets)
+// Create a hashmap with the requested number of buckets. If "nbuckets" is  not greater than zero a
+// NULL is returned; otherwise, a _token_ to the hashmap is returned.
+//
+// NULLs are also returned if memory could not be allocated for hashmap.
+phashmap_t hashmap_create(unsigned int nbuckets)
 {
   struct hashmap_s *ptr;
 
@@ -122,19 +112,16 @@ hashmap_t hashmap_create(unsigned int nbuckets)
     return NULL;
   }
 
-  /* This points to "one" past the end of the hashmap. */
+  // this points to "one" past the end of the hashmap
   ptr->end_iterator = 0;
 
   return ptr;
 }
 
-/*
- * Follow the chain of hashentries and delete them (including the data and
- * the key.)
- *
- * Returns: 0 if the function completed successfully
- *          negative number is returned if "entry" was NULL
- */
+// Follow the chain of hashentries and delete them (including the data and the key.)
+//
+// Returns: 0 if the function completed successfully
+//          negative number is returned if "entry" was NULL
 static int delete_hashbucket(struct hashbucket_s *bucket)
 {
   struct hashentry_s *nextptr;
@@ -158,13 +145,11 @@ static int delete_hashbucket(struct hashbucket_s *bucket)
   return 0;
 }
 
-/*
- * Deletes a hashmap.  All the key/data pairs are also deleted.
- *
- * Returns: 0 on success
- *          negative if a NULL "map" was supplied
- */
-int hashmap_delete(hashmap_t map)
+// Deletes a hashmap. All the key/data pairs are also deleted.
+//
+// Returns: 0 on success
+//          negative if a NULL "map" was supplied
+int hashmap_delete(phashmap_t map)
 {
   unsigned int i;
 
@@ -185,17 +170,14 @@ int hashmap_delete(hashmap_t map)
   return 0;
 }
 
-/*
- * Inserts a NULL terminated string (as the key), plus any arbitrary "data"
- * of "len" bytes.  Both the key and the data are copied, so the original
- * key/data must be freed to avoid a memory leak.
- * The "data" must be non-NULL and "len" must be greater than zero.  You
- * cannot insert NULL data in association with the key.
- *
- * Returns: 0 on success
- *          negative number if there are errors
- */
-int hashmap_insert(hashmap_t map, const char *key, const void *data, size_t len)
+// Inserts a NULL terminated string (as the key), plus any arbitrary "data" of "len" bytes. Both
+// the key and the data are copied, so the original key/data must be freed to avoid a memory leak.
+// The "data" must be non-NULL and "len" must be greater than zero.  You cannot insert NULL data in
+// association with the key.
+//
+// Returns: 0 on success
+//          negative number if there are errors
+int hashmap_insert(phashmap_t map, const char *key, const void *data, size_t len)
 {
   struct hashentry_s *ptr;
   int hash;
@@ -216,10 +198,7 @@ int hashmap_insert(hashmap_t map, const char *key, const void *data, size_t len)
   if (hash < 0)
     return hash;
 
-  /*
-   * First make copies of the key and data in case there is a memory
-   * problem later.
-   */
+  // first make copies of the key and data in case there is a memory problem later
   key_copy = safestrdup(key);
   if (!key_copy)
     return -ENOMEM;
@@ -244,9 +223,7 @@ int hashmap_insert(hashmap_t map, const char *key, const void *data, size_t len)
   ptr->data = data_copy;
   ptr->len = len;
 
-  /*
-   * Now add the entry to the end of the bucket chain.
-   */
+  // now add the entry to the end of the bucket chain
   ptr->next = NULL;
   ptr->prev = map->buckets[hash].tail;
   if (map->buckets[hash].tail)
@@ -260,12 +237,10 @@ int hashmap_insert(hashmap_t map, const char *key, const void *data, size_t len)
   return 0;
 }
 
-/*
- * Get an iterator to the first entry.
- *
- * Returns: an negative value upon error.
- */
-hashmap_iter hashmap_first(hashmap_t map)
+// Get an iterator to the first entry.
+//
+// Returns: an negative value upon error.
+hashmap_iter hashmap_first(phashmap_t map)
 {
   assert(map != NULL);
 
@@ -278,13 +253,11 @@ hashmap_iter hashmap_first(hashmap_t map)
     return 0;
 }
 
-/*
- * Checks to see if the iterator is pointing at the "end" of the entries.
- *
- * Returns: 1 if it is the end
- *          0 otherwise
- */
-int hashmap_is_end(hashmap_t map, hashmap_iter iter)
+// Checks to see if the iterator is pointing at the "end" of the entries.
+//
+// Returns: 1 if it is the end
+//          0 otherwise
+int hashmap_is_end(phashmap_t map, hashmap_iter iter)
 {
   assert(map != NULL);
   assert(iter >= 0);
@@ -298,15 +271,13 @@ int hashmap_is_end(hashmap_t map, hashmap_iter iter)
     return 0;
 }
 
-/*
- * Return a "pointer" to the first instance of the particular key.  It can
- * be tested against hashmap_is_end() to see if the key was not found.
- *
- * Returns: negative upon an error
- *          an "iterator" pointing at the first key
- *          an "end-iterator" if the key wasn't found
- */
-hashmap_iter hashmap_find(hashmap_t map, const char *key)
+// Return a "pointer" to the first instance of the particular key. It can be tested against
+// hashmap_is_end() to see if the key was not found.
+//
+// Returns: negative upon an error
+//          an "iterator" pointing at the first key
+//          an "end-iterator" if the key wasn't found
+hashmap_iter hashmap_find(phashmap_t map, const char *key)
 {
   unsigned int i;
   hashmap_iter iter = 0;
@@ -318,10 +289,7 @@ hashmap_iter hashmap_find(hashmap_t map, const char *key)
   if (!map || !key)
     return -EINVAL;
 
-  /*
-   * Loop through all the keys and look for the first occurrence
-   * of a particular key.
-   */
+  // loop through all the keys and look for the first occurrence of a particular key
   for (i = 0; i != map->size; i++)
   {
     ptr = map->buckets[i].head;
@@ -330,7 +298,7 @@ hashmap_iter hashmap_find(hashmap_t map, const char *key)
     {
       if (strcasecmp(ptr->key, key) == 0)
       {
-        /* Found it, so return the current count */
+        // found it, so return the current count
         return iter;
       }
 
@@ -342,13 +310,11 @@ hashmap_iter hashmap_find(hashmap_t map, const char *key)
   return iter;
 }
 
-/*
- * Retrieve the data associated with a particular iterator.
- *
- * Returns: the length of the data block upon success
- *          negative upon error
- */
-ssize_t hashmap_return_entry(hashmap_t map, hashmap_iter iter, char **key, void **data)
+// Retrieve the data associated with a particular iterator.
+//
+// Returns: the length of the data block upon success
+//          negative upon error
+ssize_t hashmap_return_entry(phashmap_t map, hashmap_iter iter, char **key, void **data)
 {
   unsigned int i;
   struct hashentry_s *ptr;
@@ -370,7 +336,7 @@ ssize_t hashmap_return_entry(hashmap_t map, hashmap_iter iter, char **key, void 
     {
       if (count == iter)
       {
-        /* This is the data so return it */
+        // this is the data so return it
         *key = ptr->key;
         *data = ptr->data;
         return ptr->len;
@@ -384,14 +350,12 @@ ssize_t hashmap_return_entry(hashmap_t map, hashmap_iter iter, char **key, void 
   return -EFAULT;
 }
 
-/*
- * Searches for _any_ occurrences of "key" within the hashmap.
- *
- * Returns: negative upon an error
- *          zero if no key is found
- *          count found
- */
-ssize_t hashmap_search(hashmap_t map, const char *key)
+// Searches for _any_ occurrences of "key" within the hashmap.
+//
+// Returns: negative upon an error
+//          zero if no key is found
+//          count found
+ssize_t hashmap_search(phashmap_t map, const char *key)
 {
   int hash;
   struct hashentry_s *ptr;
@@ -406,28 +370,26 @@ ssize_t hashmap_search(hashmap_t map, const char *key)
 
   ptr = map->buckets[hash].head;
 
-  /* All right, there is an entry here, now see if it's the one we want */
+  // all right, there is an entry here, now see if it's the one we want
   while (ptr)
   {
     if (strcasecmp(ptr->key, key) == 0)
       ++count;
 
-    /* This entry didn't contain the key; move to the next one */
+    // this entry didn't contain the key; move to the next one
     ptr = ptr->next;
   }
 
   return count;
 }
 
-/*
- * Get the first entry (assuming there is more than one) for a particular
- * key.  The data MUST be non-NULL.
- *
- * Returns: negative upon error
- *          zero if no entry is found
- *          length of data for the entry
- */
-ssize_t hashmap_entry_by_key(hashmap_t map, const char *key, void **data)
+// Get the first entry (assuming there is more than one) for a particular key. The data MUST be
+// non-NULL.
+//
+// Returns: negative upon error
+//          zero if no entry is found
+//          length of data for the entry
+ssize_t hashmap_entry_by_key(phashmap_t map, const char *key, void **data)
 {
   int hash;
   struct hashentry_s *ptr;
@@ -455,15 +417,13 @@ ssize_t hashmap_entry_by_key(hashmap_t map, const char *key, void **data)
   return 0;
 }
 
-/*
- * Go through the hashmap and remove the particular key.
- * NOTE: This will invalidate any iterators which have been created.
- *
- * Remove: negative upon error
- *         0 if the key was not found
- *         positive count of entries deleted
- */
-ssize_t hashmap_remove(hashmap_t map, const char *key)
+// Go through the hashmap and remove the particular key.
+// NOTE: This will invalidate any iterators which have been created.
+//
+// Remove: negative upon error
+//         0 if the key was not found
+//         positive count of entries deleted
+ssize_t hashmap_remove(phashmap_t map, const char *key)
 {
   int hash;
   struct hashentry_s *ptr, *next;
@@ -481,10 +441,7 @@ ssize_t hashmap_remove(hashmap_t map, const char *key)
   {
     if (strcasecmp(ptr->key, key) == 0)
     {
-      /*
-       * Found the data, now need to remove everything
-       * and update the hashmap.
-       */
+      // found the data, now need to remove everything and update the hashmap
       next = ptr->next;
 
       if (ptr->prev)
@@ -508,18 +465,16 @@ ssize_t hashmap_remove(hashmap_t map, const char *key)
       continue;
     }
 
-    /* This entry didn't contain the key; move to the next one */
+    // this entry didn't contain the key; move to the next one
     ptr = ptr->next;
   }
 
-  /* The key was not found, so return 0 */
+  // the key was not found, so return 0
   return deleted;
 }
 
-/*
- * Look up the value for a variable.
- */
-char *lookup_variable(hashmap_t map, const char *varname)
+// look up the value for a variable
+void *lookup_variable(phashmap_t map, const char *varname)
 {
   hashmap_iter result_iter;
   char *key;

@@ -625,7 +625,7 @@ static void initialize_with_defaults(struct config_s *conf, struct config_s *def
 
   /* plist_t access_list; */
   /* plist_t connect_ports; */
-  /* hashmap_t anonymous_map; */
+  /* phashmap_t anonymous_map; */
 }
 
 /**

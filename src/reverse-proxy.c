@@ -111,7 +111,7 @@ void free_reversepath_list(struct reversepath *reverse)
 /*
  * Rewrite the URL for reverse proxying.
  */
-char *reverse_rewrite_url(struct conn_s *connptr, hashmap_t hashofheaders, char *url)
+char *reverse_rewrite_url(struct conn_s *connptr, phashmap_t hashofheaders, char *url)
 {
   char *rewrite_url = NULL;
   char *cookie = NULL;
