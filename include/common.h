@@ -83,12 +83,16 @@
 #undef _WIN32_WINNT
 #endif
 #define _WIN32_WINNT 0x0601 // Windows 7+
-#include <winsock2.h>
-#include <ws2tcpip.h>
 
-#include <Ws2ipdef.h>
+// winsock2 and ws2tcpip first
+#include <winsock2.h> // order does matter
+#include <ws2tcpip.h> // order does matter
 
-#include <windows.h>
+// Ws2ipdef second
+#include <Ws2ipdef.h> // order does matter
+
+// windows last
+#include <windows.h> // order does matter
 typedef unsigned long in_addr_t;
 #else
 #include <arpa/inet.h>
