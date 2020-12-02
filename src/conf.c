@@ -31,9 +31,9 @@
 #include "child.h"
 #include "connect-ports.h"
 #include "filter.h"
-#include "heap.h"
 #include "html-error.h"
 #include "log.h"
+#include "misc/heap.h"
 #include "reqs.h"
 #include "reverse-proxy.h"
 #include "upstream.h"
@@ -321,19 +321,19 @@ struct
 
 const unsigned int ndirectives = sizeof(directives) / sizeof(directives[0]);
 
-static void free_added_headers(vector_t add_headers)
+static void free_added_headers(plist_t add_headers)
 {
   ssize_t i;
 
-  for (i = 0; i < vector_length(add_headers); i++)
+  for (i = 0; i < list_length(add_headers); i++)
   {
-    http_header_t *header = (http_header_t *)vector_getentry(add_headers, i, NULL);
+    http_header_t *header = (http_header_t *)list_getentry(add_headers, i, NULL);
 
     safefree(header->name);
     safefree(header->value);
   }
 
-  vector_delete(add_headers);
+  list_delete(add_headers);
 }
 
 static void free_config(struct config_s *conf)
@@ -343,8 +343,8 @@ static void free_config(struct config_s *conf)
   safefree(conf->stathost);
   safefree(conf->user);
   safefree(conf->group);
-  vector_delete(conf->listen_addrs);
-  vector_delete(conf->basicauth_list);
+  list_delete(conf->listen_addrs);
+  list_delete(conf->basicauth_list);
 #ifdef FILTER_ENABLE
   safefree(conf->filter);
 #endif /* FILTER_ENABLE */
@@ -552,13 +552,13 @@ static void initialize_with_defaults(struct config_s *conf, struct config_s *def
   {
     ssize_t i;
 
-    conf->listen_addrs = vector_create();
-    for (i = 0; i < vector_length(defaults->listen_addrs); i++)
+    conf->listen_addrs = list_create();
+    for (i = 0; i < list_length(defaults->listen_addrs); i++)
     {
       char *addr;
       size_t size;
-      addr = (char *)vector_getentry(defaults->listen_addrs, i, &size);
-      vector_append(conf->listen_addrs, addr, size);
+      addr = (char *)list_getentry(defaults->listen_addrs, i, &size);
+      list_append(conf->listen_addrs, addr, size);
     }
   }
 
@@ -623,8 +623,8 @@ static void initialize_with_defaults(struct config_s *conf, struct config_s *def
     conf->statpage = safestrdup(defaults->statpage);
   }
 
-  /* vector_t access_list; */
-  /* vector_t connect_ports; */
+  /* plist_t access_list; */
+  /* plist_t connect_ports; */
   /* hashmap_t anonymous_map; */
 }
 
@@ -984,7 +984,7 @@ static HANDLE_FUNC(handle_listen)
 
   if (conf->listen_addrs == NULL)
   {
-    conf->listen_addrs = vector_create();
+    conf->listen_addrs = list_create();
     if (conf->listen_addrs == NULL)
     {
       log_message(LOG_WARNING, "Could not create a list "
@@ -994,7 +994,7 @@ static HANDLE_FUNC(handle_listen)
     }
   }
 
-  vector_append(conf->listen_addrs, arg, strlen(arg) + 1);
+  list_append(conf->listen_addrs, arg, strlen(arg) + 1);
 
   log_message(LOG_INFO, "Added address [%s] to listen addresses.", arg);
 
@@ -1027,14 +1027,14 @@ static HANDLE_FUNC(handle_addheader)
 
   if (!conf->add_headers)
   {
-    conf->add_headers = vector_create();
+    conf->add_headers = list_create();
   }
 
   header = (http_header_t *)safemalloc(sizeof(http_header_t));
   header->name = name;
   header->value = value;
 
-  vector_prepend(conf->add_headers, header, sizeof *header);
+  list_prepend(conf->add_headers, header, sizeof *header);
 
   safefree(header);
 
@@ -1092,7 +1092,7 @@ static HANDLE_FUNC(handle_basicauth)
   }
   if (!conf->basicauth_list)
   {
-    conf->basicauth_list = vector_create();
+    conf->basicauth_list = list_create();
   }
 
   basicauth_add(conf->basicauth_list, user, pass);

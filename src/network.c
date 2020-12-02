@@ -25,7 +25,7 @@
 
 #include "main.h"
 
-#include "heap.h"
+#include "misc/heap.h"
 #include "network.h"
 
 /*

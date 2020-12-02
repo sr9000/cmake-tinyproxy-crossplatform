@@ -16,29 +16,27 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#include "base64.h"
+#include "misc/base64.h"
 
 static const char base64_tbl[64] =
     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
-/*
-   rofl0r's base64 impl (taken from libulz)
-   takes count bytes from src, writing base64 encoded string into dst.
-   dst needs to be at least BASE64ENC_BYTES(count) + 1 bytes in size.
-   the string in dst will be zero-terminated.
-   */
+// rofl0r's base64 impl (taken from libulz)
+// takes count bytes from src, writing base64 encoded string into dst.
+// dst needs to be at least BASE64ENC_BYTES(count) + 1 bytes in size.
+// the string in dst will be zero-terminated.
 void base64enc(char *dst, const void *src, size_t count)
 {
   unsigned const char *s = src;
   char *d = dst;
   while (count)
   {
-    int i = 0, n = *s << 16;
+    unsigned int i = 0, n = *s << 16u;
     s++;
     count--;
     if (count)
     {
-      n |= *s << 8;
+      n |= *s << 8u;
       s++;
       count--;
       i++;
@@ -50,10 +48,10 @@ void base64enc(char *dst, const void *src, size_t count)
       count--;
       i++;
     }
-    *d++ = base64_tbl[(n >> 18) & 0x3f];
-    *d++ = base64_tbl[(n >> 12) & 0x3f];
-    *d++ = i ? base64_tbl[(n >> 6) & 0x3f] : '=';
-    *d++ = i == 2 ? base64_tbl[n & 0x3f] : '=';
+    *d++ = base64_tbl[(n >> 18u) & 0x3fu];
+    *d++ = base64_tbl[(n >> 12u) & 0x3fu];
+    *d++ = (i != 0) ? base64_tbl[(n >> 6u) & 0x3fu] : '=';
+    *d++ = (i == 2) ? base64_tbl[n & 0x3fu] : '=';
   }
   *d = 0;
 }

@@ -24,9 +24,9 @@
 
 #include "conf.h"
 #include "conns.h"
-#include "heap.h"
 #include "html-error.h"
 #include "log.h"
+#include "misc/heap.h"
 
 /*
  * Add entry to the reversepath list

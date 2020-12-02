@@ -28,7 +28,7 @@
 #include "main.h"
 
 #include "hashmap.h"
-#include "heap.h"
+#include "misc/heap.h"
 
 /*
  * These structures are the storage for the hashmap.  Entries are stored in

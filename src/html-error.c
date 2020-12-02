@@ -26,8 +26,8 @@
 #include "common.h"
 #include "conf.h"
 #include "conns.h"
-#include "heap.h"
 #include "html-error.h"
+#include "misc/heap.h"
 #include "network.h"
 #include "utils.h"
 

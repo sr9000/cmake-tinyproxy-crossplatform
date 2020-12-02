@@ -44,16 +44,17 @@
 #include <unistd.h>
 
 /* standard POSIX headers - they need to be there as well. */
-#include <assert.h>   // mingw +
-#include <errno.h>    // mingw +
-#include <fcntl.h>    // mingw +
-#include <inttypes.h> // mingw +
-#include <stdarg.h>   // mingw +
-#include <strings.h>  // mingw +
-#include <sys/stat.h> // mingw +
-#include <time.h>     // mingw +
-#include <wchar.h>    // mingw +
-#include <wctype.h>   // mingw +
+#include <assert.h>    // mingw +
+#include <errno.h>     // mingw +
+#include <fcntl.h>     // mingw +
+#include <inttypes.h>  // mingw +
+#include <stdarg.h>    // mingw +
+#include <strings.h>   // mingw +
+#include <sys/stat.h>  // mingw +
+#include <sys/types.h> // mingw +
+#include <time.h>      // mingw +
+#include <wchar.h>     // mingw +
+#include <wctype.h>    // mingw +
 
 #include <regex.h>  // mingw +libsystre
 #include <signal.h> // mingw +ifdefs +winapi
@@ -94,7 +95,6 @@ typedef unsigned long in_addr_t;
 #include <netinet/in.h>
 #include <sys/select.h>
 #include <sys/socket.h>
-#include <sys/types.h>
 #define closesocket close
 #endif
 

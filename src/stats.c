@@ -28,9 +28,9 @@
 #include "main.h"
 
 #include "conf.h"
-#include "heap.h"
 #include "html-error.h"
 #include "log.h"
+#include "misc/heap.h"
 #include "stats.h"
 #include "utils.h"
 

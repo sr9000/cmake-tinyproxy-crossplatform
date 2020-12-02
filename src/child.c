@@ -26,13 +26,13 @@
 #include "conf.h"
 #include "daemon.h"
 #include "filter.h"
-#include "heap.h"
 #include "log.h"
+#include "misc/heap.h"
 #include "reqs.h"
 #include "sock.h"
 #include "utils.h"
 
-static vector_t listen_fds;
+static plist_t listen_fds;
 
 /*
  * Stores the internal data needed for each child (connection)
@@ -275,9 +275,9 @@ static
 
   FD_ZERO(&rfds);
 
-  for (i = 0; i < vector_length(listen_fds); i++)
+  for (i = 0; i < list_length(listen_fds); i++)
   {
-    int *fd = (int *)vector_getentry(listen_fds, i, NULL);
+    int *fd = (int *)list_getentry(listen_fds, i, NULL);
 
     ret = socket_nonblocking(*fd);
     if (ret != 0)
@@ -318,9 +318,9 @@ static
       continue;
     }
 
-    for (i = 0; i < vector_length(listen_fds); i++)
+    for (i = 0; i < list_length(listen_fds); i++)
     {
-      int *fd = (int *)vector_getentry(listen_fds, i, NULL);
+      int *fd = (int *)list_getentry(listen_fds, i, NULL);
 
       if (FD_ISSET(*fd, &rfds))
       {
@@ -698,7 +698,7 @@ void child_kill_children(int sig)
 /**
  * Listen on the various configured interfaces
  */
-int child_listening_sockets(vector_t listen_addrs, uint16_t port)
+int child_listening_sockets(plist_t listen_addrs, uint16_t port)
 {
   int ret;
   ssize_t i;
@@ -707,7 +707,7 @@ int child_listening_sockets(vector_t listen_addrs, uint16_t port)
 
   if (listen_fds == NULL)
   {
-    listen_fds = vector_create();
+    listen_fds = list_create();
     if (listen_fds == NULL)
     {
       log_message(LOG_ERR, "Could not create the list "
@@ -716,7 +716,7 @@ int child_listening_sockets(vector_t listen_addrs, uint16_t port)
     }
   }
 
-  if ((listen_addrs == NULL) || (vector_length(listen_addrs) == 0))
+  if ((listen_addrs == NULL) || (list_length(listen_addrs) == 0))
   {
     /*
      * no Listen directive:
@@ -726,11 +726,11 @@ int child_listening_sockets(vector_t listen_addrs, uint16_t port)
     return ret;
   }
 
-  for (i = 0; i < vector_length(listen_addrs); i++)
+  for (i = 0; i < list_length(listen_addrs); i++)
   {
     const char *addr;
 
-    addr = (char *)vector_getentry(listen_addrs, i, NULL);
+    addr = (char *)list_getentry(listen_addrs, i, NULL);
     if (addr == NULL)
     {
       log_message(LOG_WARNING, "got NULL from listen_addrs - skipping");
@@ -751,13 +751,13 @@ void child_close_sock(void)
 {
   ssize_t i;
 
-  for (i = 0; i < vector_length(listen_fds); i++)
+  for (i = 0; i < list_length(listen_fds); i++)
   {
-    int *fd = (int *)vector_getentry(listen_fds, i, NULL);
+    int *fd = (int *)list_getentry(listen_fds, i, NULL);
     closesocket(*fd);
   }
 
-  vector_delete(listen_fds);
+  list_delete(listen_fds);
 
   listen_fds = NULL;
 }

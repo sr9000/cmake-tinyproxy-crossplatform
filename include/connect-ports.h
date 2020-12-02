@@ -22,10 +22,10 @@
 #define TINYPROXY_CONNECT_PORTS_H
 
 #include "common.h"
-#include "vector.h"
+#include "misc/list.h"
 
-extern void add_connect_port_allowed(int port, vector_t *connect_ports);
-int check_allowed_connect_ports(int port, vector_t connect_ports);
-void free_connect_ports_list(vector_t connect_ports);
+extern void add_connect_port_allowed(int port, plist_t *connect_ports);
+int check_allowed_connect_ports(int port, plist_t connect_ports);
+void free_connect_ports_list(plist_t connect_ports);
 
 #endif // TINYPROXY_CONNECT_PORTS_H

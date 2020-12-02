@@ -1,4 +1,7 @@
 
+add_subdirectory(misc)
+
+
 add_compile_definitions(
         PACKAGE_BUGREPORT="https://tinyproxy.github.io/"
         PACKAGE_NAME="Tinyproxy"
@@ -15,7 +18,6 @@ add_compile_definitions(
 set(TINYPROXY_SOURCES
         acl.c
         anonymous.c
-        base64.c
         basicauth.c
         buffer.c
         child.c
@@ -24,7 +26,6 @@ set(TINYPROXY_SOURCES
         conns.c
         daemon.c
         hashmap.c
-        heap.c
         html-error.c
         http-message.c
         log.c
@@ -35,7 +36,6 @@ set(TINYPROXY_SOURCES
         text.c
         upstream.c
         utils.c
-        vector.c
         )
 
 if (OPT_FILTER_ENABLE)
@@ -56,4 +56,10 @@ link_libraries(${PROXY_LIBRARIES})
 add_executable(tinyproxy
         main.c
         ${TINYPROXY_SOURCES}
+        )
+
+target_link_libraries(tinyproxy
+        tinyproxy_base64
+        tinyproxy_heap
+        tinyproxy_list
         )

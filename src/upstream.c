@@ -26,10 +26,10 @@
 
 #include "upstream.h"
 
-#include "base64.h"
 #include "basicauth.h"
-#include "heap.h"
 #include "log.h"
+#include "misc/base64.h"
+#include "misc/heap.h"
 
 #ifdef UPSTREAM_SUPPORT
 const char *proxy_type_name(proxy_type type)

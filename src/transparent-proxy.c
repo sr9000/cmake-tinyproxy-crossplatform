@@ -27,9 +27,9 @@
 
 #include "conf.h"
 #include "conns.h"
-#include "heap.h"
 #include "html-error.h"
 #include "log.h"
+#include "misc/heap.h"
 #include "reqs.h"
 #include "text.h"
 
@@ -108,11 +108,11 @@ int do_transparent_proxy(struct conn_s *connptr, hashmap_t hashofheaders, struct
     return 1;
   }
 
-  for (i = 0; i < vector_length(conf->listen_addrs); i++)
+  for (i = 0; i < list_length(conf->listen_addrs); i++)
   {
     const char *addr;
 
-    addr = (char *)vector_getentry(conf->listen_addrs, i, NULL);
+    addr = (char *)list_getentry(conf->listen_addrs, i, NULL);
 
     if (addr && strcmp(request->host, addr) == 0)
     {

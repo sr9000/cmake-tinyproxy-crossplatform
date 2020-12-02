@@ -20,8 +20,8 @@
 
 #include "common.h"
 
-#include "heap.h"
 #include "http-message.h"
+#include "misc/heap.h"
 #include "network.h"
 
 /*

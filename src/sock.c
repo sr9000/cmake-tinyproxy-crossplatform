@@ -28,8 +28,8 @@
 #include "main.h"
 
 #include "conf.h"
-#include "heap.h"
 #include "log.h"
+#include "misc/heap.h"
 #include "network.h"
 #include "sock.h"
 #include "text.h"
@@ -267,7 +267,7 @@ static int listen_on_one_socket(struct addrinfo *ad)
  * Upon success, the listen-fds are added to the listen_fds list
  * and 0 is returned. Upon error,  -1 is returned.
  */
-int listen_sock(const char *addr, uint16_t port, vector_t listen_fds)
+int listen_sock(const char *addr, uint16_t port, plist_t listen_fds)
 {
   struct addrinfo hints, *result, *rp;
   char portstr[6];
@@ -301,7 +301,7 @@ int listen_sock(const char *addr, uint16_t port, vector_t listen_fds)
       continue;
     }
 
-    vector_append(listen_fds, &listenfd, sizeof(int));
+    list_append(listen_fds, &listenfd, sizeof(int));
 
     /* success */
     ret = 0;

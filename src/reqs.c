@@ -36,9 +36,10 @@
 #include "conns.h"
 #include "filter.h"
 #include "hashmap.h"
-#include "heap.h"
 #include "html-error.h"
 #include "log.h"
+#include "misc/heap.h"
+#include "misc/list.h"
 #include "network.h"
 #include "reqs.h"
 #include "reverse-proxy.h"
@@ -48,7 +49,6 @@
 #include "transparent-proxy.h"
 #include "upstream.h"
 #include "utils.h"
-#include "vector.h"
 
 /*
  * Maximum length of a HTTP line
@@ -1658,9 +1658,9 @@ void handle_connection(int fd)
    * Add any user-specified headers (AddHeader directive) to the
    * outgoing HTTP request.
    */
-  for (i = 0; i < vector_length(config.add_headers); i++)
+  for (i = 0; i < list_length(config.add_headers); i++)
   {
-    http_header_t *header = (http_header_t *)vector_getentry(config.add_headers, i, NULL);
+    http_header_t *header = (http_header_t *)list_getentry(config.add_headers, i, NULL);
 
     hashmap_insert(hashofheaders, header->name, header->value, strlen(header->value) + 1);
   }

@@ -21,10 +21,10 @@
 
 #include <stddef.h>
 
-#include "vector.h"
+#include "misc/list.h"
 
 extern ssize_t basicauth_string(const char *user, const char *pass, char *buf, size_t bufsize);
-extern void basicauth_add(vector_t authlist, const char *user, const char *pass);
-extern int basicauth_check(vector_t authlist, const char *authstring);
+extern void basicauth_add(plist_t authlist, const char *user, const char *pass);
+extern int basicauth_check(plist_t authlist, const char *authstring);
 
 #endif // TINYPROXY_BASICAUTH_H

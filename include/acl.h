@@ -19,7 +19,7 @@
 #ifndef TINYPROXY_ACL_H
 #define TINYPROXY_ACL_H
 
-#include "vector.h"
+#include "misc/list.h"
 
 typedef enum
 {
@@ -27,8 +27,8 @@ typedef enum
   ACL_DENY
 } acl_access_t;
 
-extern int insert_acl(char *location, acl_access_t access_type, vector_t *access_list);
-extern int check_acl(const char *ip_address, const char *string_address, vector_t access_list);
-extern void flush_access_list(vector_t access_list);
+extern int insert_acl(char *location, acl_access_t access_type, plist_t *access_list);
+extern int check_acl(const char *ip_address, const char *string_address, plist_t access_list);
+extern void flush_access_list(plist_t access_list);
 
 #endif // TINYPROXY_ACL_H

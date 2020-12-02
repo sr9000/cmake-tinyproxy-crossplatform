@@ -23,12 +23,15 @@
  * format of the log message is standardized.
  */
 
-#include "main.h"
+#include "misc/heap.h"
 
-#include "heap.h"
-#include "text.h"
+#include <stdlib.h>
 
 #ifndef NDEBUG
+#include <assert.h>
+#include <stddef.h>
+#include <stdio.h>
+#include <string.h>
 
 void *debugging_calloc(size_t nmemb, size_t size, const char *file, unsigned long line)
 {
@@ -113,6 +116,10 @@ void *calloc_shared_memory(size_t nmemb, size_t size)
   return calloc(nmemb, size);
 }
 #else
+#include <sys/mman.h>
+#include <sys/stat.h>
+#include <unistd.h>
+
 void *malloc_shared_memory(size_t size)
 {
   int fd;
@@ -123,7 +130,7 @@ void *malloc_shared_memory(size_t size)
 
   assert(size > 0);
 
-  strlcpy(buffer, shared_file, sizeof(buffer));
+  strcpy(buffer, shared_file);
 
   /* Only allow u+rw bits. This may be required for some versions
    * of glibc so that mkstemp() doesn't make us vulnerable.

@@ -25,10 +25,10 @@
 #include "main.h"
 
 #include "conf.h"
-#include "heap.h"
 #include "log.h"
+#include "misc/heap.h"
+#include "misc/list.h"
 #include "utils.h"
-#include "vector.h"
 
 static const char *syslog_level[] = {NULL,     NULL,   "CRITICAL", "ERROR",  "WARNING",
                                      "NOTICE", "INFO", "DEBUG",    "CONNECT"};
@@ -52,7 +52,7 @@ static int log_level = LOG_INFO;
  * The key is the actual messages (already filled in full), and the value
  * is the log level.
  */
-static vector_t log_message_storage;
+static plist_t log_message_storage;
 
 static unsigned int logging_initialized = FALSE; /* boolean */
 
@@ -178,7 +178,7 @@ void log_message(int level, const char *fmt, ...)
 
     if (!log_message_storage)
     {
-      log_message_storage = vector_create();
+      log_message_storage = list_create();
       if (!log_message_storage)
         goto out;
     }
@@ -190,7 +190,7 @@ void log_message(int level, const char *fmt, ...)
       goto out;
 
     sprintf(entry_buffer, "%d %s", level, str);
-    vector_append(log_message_storage, entry_buffer, strlen(entry_buffer) + 1);
+    list_append(log_message_storage, entry_buffer, strlen(entry_buffer) + 1);
 
     safefree(entry_buffer);
     goto out;
@@ -254,9 +254,9 @@ static void send_stored_logs(void)
 
   log_message(LOG_DEBUG, "sending stored logs");
 
-  for (i = 0; (ssize_t)i != vector_length(log_message_storage); ++i)
+  for (i = 0; (ssize_t)i != list_length(log_message_storage); ++i)
   {
-    string = (char *)vector_getentry(log_message_storage, i, NULL);
+    string = (char *)list_getentry(log_message_storage, i, NULL);
 
     ptr = strchr(string, ' ') + 1;
     level = atoi(string);
@@ -276,7 +276,7 @@ static void send_stored_logs(void)
     log_message(level, "%s", ptr);
   }
 
-  vector_delete(log_message_storage);
+  list_delete(log_message_storage);
   log_message_storage = NULL;
 
   log_message(LOG_DEBUG, "done sending stored logs");

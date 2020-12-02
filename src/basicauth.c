@@ -20,12 +20,12 @@
 
 #include "basicauth.h"
 
-#include "base64.h"
 #include "conf.h"
 #include "conns.h"
-#include "heap.h"
 #include "html-error.h"
 #include "log.h"
+#include "misc/base64.h"
+#include "misc/heap.h"
 
 /*
  * Create basic-auth token in buf.
@@ -51,7 +51,7 @@ ssize_t basicauth_string(const char *user, const char *pass, char *buf, size_t b
 /*
  * Add entry to the basicauth list
  */
-void basicauth_add(vector_t authlist, const char *user, const char *pass)
+void basicauth_add(plist_t authlist, const char *user, const char *pass)
 {
   char b[BASE64ENC_BYTES((256 + 2) - 1) + 1];
   ssize_t ret;
@@ -68,7 +68,7 @@ void basicauth_add(vector_t authlist, const char *user, const char *pass)
     return;
   }
 
-  if (vector_append(authlist, b, ret + 1) == -ENOMEM)
+  if (list_append(authlist, b, ret + 1) == -ENOMEM)
   {
     log_message(LOG_ERR, "Unable to allocate memory in basicauth_add()");
     return;
@@ -82,19 +82,19 @@ void basicauth_add(vector_t authlist, const char *user, const char *pass)
  * is in the basicauth list.
  * return 1 on success, 0 on failure.
  */
-int basicauth_check(vector_t authlist, const char *authstring)
+int basicauth_check(plist_t authlist, const char *authstring)
 {
   ssize_t vl, i;
   size_t el;
   const char *entry;
 
-  vl = vector_length(authlist);
+  vl = list_length(authlist);
   if (vl == -EINVAL)
     return 0;
 
   for (i = 0; i < vl; i++)
   {
-    entry = vector_getentry(authlist, i, &el);
+    entry = list_getentry(authlist, i, &el);
     if (strcmp(authstring, entry) == 0)
       return 1;
   }

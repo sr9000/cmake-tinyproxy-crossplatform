@@ -26,9 +26,9 @@
 #include "main.h"
 
 #include "conns.h"
-#include "heap.h"
 #include "http-message.h"
 #include "log.h"
+#include "misc/heap.h"
 #include "utils.h"
 
 /*

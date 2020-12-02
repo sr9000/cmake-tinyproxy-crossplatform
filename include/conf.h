@@ -21,7 +21,7 @@
 #define TINYPROXY_CONF_H
 
 #include "hashmap.h"
-#include "vector.h"
+#include "misc/list.h"
 
 typedef struct
 {
@@ -32,7 +32,7 @@ typedef struct
 // main configuration structure
 struct config_s
 {
-  vector_t basicauth_list;
+  plist_t basicauth_list;
   char *logf_name;
   char *config_file;
   unsigned int port;
@@ -40,7 +40,7 @@ struct config_s
   unsigned int quit; // boolean
   char *user;
   char *group;
-  vector_t listen_addrs;
+  plist_t listen_addrs;
 #ifdef FILTER_ENABLE
   char *filter;
   unsigned int filter_url;           // boolean
@@ -78,16 +78,16 @@ struct config_s
   // the HTML statistics page
   char *statpage;
 
-  vector_t access_list;
+  plist_t access_list;
 
   // store the list of port allowed by CONNECT.
-  vector_t connect_ports;
+  plist_t connect_ports;
 
   // map of headers which should be let through when the anonymous feature is turned on
   hashmap_t anonymous_map;
 
   // extra headers to be added to outgoing HTTP requests
-  vector_t add_headers;
+  plist_t add_headers;
 };
 
 extern int reload_config_file(const char *config_fname, struct config_s *conf,

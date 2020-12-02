@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.17)
 project(cmake_tinyproxy C)
 
 set(CMAKE_C_STANDARD 11)
+add_compile_options(-Wall -Wextra -pedantic)
+
 
 set(MAJOR_VERSION 2)
 set(MINOR_VERSION 0)
