@@ -23,7 +23,7 @@
 #include "common.h"
 
 #include "conns.h"
-#include "hashmap.h"
+#include "misc/hashmap.h"
 #include "reqs.h"
 
 extern int do_transparent_proxy(struct conn_s *connptr, hashmap_t hashofheaders,

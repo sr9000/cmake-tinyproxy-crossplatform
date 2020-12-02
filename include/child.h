@@ -19,6 +19,8 @@
 #ifndef TINYPROXY_CHILD_H
 #define TINYPROXY_CHILD_H
 
+#include <inttypes.h>
+
 #include "misc/list.h"
 
 typedef enum

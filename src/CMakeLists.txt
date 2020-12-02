@@ -25,7 +25,6 @@ set(TINYPROXY_SOURCES
         connect-ports.c
         conns.c
         daemon.c
-        hashmap.c
         html-error.c
         http-message.c
         log.c
@@ -59,5 +58,6 @@ target_link_libraries(tinyproxy
         tinyproxy_base64
         tinyproxy_heap
         tinyproxy_list
+        tinyproxy_hashmap
         ${PROXY_LIBRARIES}
         )

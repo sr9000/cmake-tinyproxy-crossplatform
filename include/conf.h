@@ -20,7 +20,7 @@
 #ifndef TINYPROXY_CONF_H
 #define TINYPROXY_CONF_H
 
-#include "hashmap.h"
+#include "misc/hashmap.h"
 #include "misc/list.h"
 
 typedef struct

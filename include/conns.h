@@ -19,8 +19,8 @@
 #ifndef TINYPROXY_CONNS_H
 #define TINYPROXY_CONNS_H
 
-#include "hashmap.h"
 #include "main.h"
+#include "misc/hashmap.h"
 
 // connection Definition
 struct conn_s

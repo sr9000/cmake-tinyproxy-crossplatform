@@ -24,8 +24,8 @@
 
 #include "anonymous.h"
 #include "conf.h"
-#include "hashmap.h"
 #include "log.h"
+#include "misc/hashmap.h"
 #include "misc/heap.h"
 
 short int is_anonymous_enabled(void)

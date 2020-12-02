@@ -19,7 +19,8 @@
 #ifndef TINYPROXY_HASHMAP_H
 #define TINYPROXY_HASHMAP_H
 
-#include "common.h"
+#include <stddef.h>
+#include <sys/types.h>
 
 /*
  * We're using a typedef here to "hide" the implementation details of the

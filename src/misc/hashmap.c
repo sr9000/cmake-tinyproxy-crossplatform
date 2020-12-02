@@ -25,9 +25,14 @@
  * don't try to free the data, or realloc the memory. :)
  */
 
-#include "main.h"
+#include <assert.h>
+#include <ctype.h>
+#include <errno.h>
+#include <inttypes.h>
+#include <stdlib.h>
+#include <string.h>
 
-#include "hashmap.h"
+#include "misc/hashmap.h"
 #include "misc/heap.h"
 
 /*
