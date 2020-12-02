@@ -83,9 +83,10 @@
 #undef _WIN32_WINNT
 #endif
 #define _WIN32_WINNT 0x0601 // Windows 7+
-#include <Ws2ipdef.h>
 #include <winsock2.h>
 #include <ws2tcpip.h>
+
+#include <Ws2ipdef.h>
 
 #include <windows.h>
 typedef unsigned long in_addr_t;

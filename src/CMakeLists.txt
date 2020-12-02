@@ -1,7 +1,4 @@
 
-add_subdirectory(misc)
-
-
 add_compile_definitions(
         PACKAGE_BUGREPORT="https://tinyproxy.github.io/"
         PACKAGE_NAME="Tinyproxy"
@@ -13,7 +10,10 @@ add_compile_definitions(
         VERSION="${REAL_VERSION}"
         TINYPROXY_VERSION="${REAL_VERSION}"
         TINYPROXY_STATHOST="tinyproxy.stats"
+        ${PROXY_DEFINITIONS}
 )
+
+add_subdirectory(misc)
 
 set(TINYPROXY_SOURCES
         acl.c
@@ -50,9 +50,6 @@ if (OPT_TRANSPARENT_PROXY)
     list(APPEND TINYPROXY_SOURCES transparent-proxy.c)
 endif (OPT_TRANSPARENT_PROXY)
 
-add_compile_definitions(${PROXY_DEFINITIONS})
-link_libraries(${PROXY_LIBRARIES})
-
 add_executable(tinyproxy
         main.c
         ${TINYPROXY_SOURCES}
@@ -62,4 +59,5 @@ target_link_libraries(tinyproxy
         tinyproxy_base64
         tinyproxy_heap
         tinyproxy_list
+        ${PROXY_LIBRARIES}
         )
