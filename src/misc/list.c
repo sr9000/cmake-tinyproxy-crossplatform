@@ -24,6 +24,7 @@
 #include <errno.h>
 #include <stddef.h>
 #include <string.h>
+#include <sys/types.h>
 
 #include "misc/heap.h"
 #include "misc/list.h"

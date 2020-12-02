@@ -30,9 +30,9 @@
 #include "conf.h"
 #include "log.h"
 #include "misc/heap.h"
+#include "misc/text.h"
 #include "network.h"
 #include "sock.h"
-#include "text.h"
 
 /*
  * Bind the given socket to the supplied address.  The socket is
@@ -362,7 +362,7 @@ int getpeer_information(int fd, char *ipaddr, char *string_addr)
 
   /* Set the strings to default values */
   ipaddr[0] = '\0';
-  strlcpy(string_addr, "[unknown]", HOSTNAME_LENGTH);
+  safe_string_copy(string_addr, "[unknown]", HOSTNAME_LENGTH);
 
   /* Look up the IP address */
   if (getpeername(fd, (struct sockaddr *)&sa, &salen) != 0)

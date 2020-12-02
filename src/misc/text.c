@@ -22,17 +22,17 @@
  * with the standard C string library.
  */
 
-#include "main.h"
+#include <assert.h>
+#include <errno.h>
+#include <stddef.h>
+#include <string.h>
+#include <sys/types.h>
 
-#include "text.h"
+#include "misc/text.h"
 
-#ifndef HAVE_STRLCPY
-/*
- * Function API taken from OpenBSD. Like strncpy(), but does not 0 fill the
- * buffer, and always NULL terminates the buffer. size is the size of the
- * destination buffer.
- */
-size_t strlcpy(char *dst, const char *src, size_t size)
+// Function API taken from OpenBSD. Like strncpy(), but does not 0 fill the buffer, and always NULL
+// terminates the buffer. size is the size of the destination buffer.
+size_t safe_string_copy(char *dst, const char *src, size_t size)
 {
   size_t len = strlen(src);
   size_t ret = len;
@@ -45,16 +45,11 @@ size_t strlcpy(char *dst, const char *src, size_t size)
 
   return ret;
 }
-#endif
 
-#ifndef HAVE_STRLCAT
-/*
- * Function API taken from OpenBSD. Like strncat(), but does not 0 fill the
- * buffer, and always NULL terminates the buffer. size is the length of the
- * buffer, which should be one more than the maximum resulting string
- * length.
- */
-size_t strlcat(char *dst, const char *src, size_t size)
+// Function API taken from OpenBSD. Like strncat(), but does not 0 fill the buffer, and always NULL
+// terminates the buffer. size is the length of the buffer, which should be one more than the
+// maximum resulting string length.
+size_t safe_string_append(char *dst, const char *src, size_t size)
 {
   size_t len1 = strlen(dst);
   size_t len2 = strlen(src);
@@ -70,25 +65,21 @@ size_t strlcat(char *dst, const char *src, size_t size)
 
   return ret;
 }
-#endif
 
-/*
- * Removes any new-line or carriage-return characters from the end of the
- * string. This function is named after the same function in Perl.
- * "length" should be the number of characters in the buffer, not including
- * the trailing NULL.
- *
- * Returns the number of characters removed from the end of the string.  A
- * negative return value indicates an error.
- */
-ssize_t chomp(char *buffer, size_t length)
+// Removes any new-line or carriage-return characters from the end of the string. This function is
+// named after the same function in Perl. "length" should be the number of characters in the buffer,
+// not including the trailing NULL.
+//
+// Returns the number of characters removed from the end of the string. A negative return value
+// indicates an error.
+ssize_t trim_ending_newlines(char *buffer, size_t length)
 {
   size_t chars;
 
   assert(buffer != NULL);
   assert(length > 0);
 
-  /* Make sure the arguments are valid */
+  // Make sure the arguments are valid
   if (buffer == NULL)
     return -EFAULT;
   if (length < 1)
@@ -102,7 +93,7 @@ ssize_t chomp(char *buffer, size_t length)
     buffer[length] = '\0';
     chars++;
 
-    /* Stop once we get to zero to prevent wrap-around */
+    // Stop once we get to zero to prevent wrap-around
     if (length-- == 0)
       break;
   }

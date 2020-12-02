@@ -40,12 +40,12 @@
 #include "misc/hashmap.h"
 #include "misc/heap.h"
 #include "misc/list.h"
+#include "misc/text.h"
 #include "network.h"
 #include "reqs.h"
 #include "reverse-proxy.h"
 #include "sock.h"
 #include "stats.h"
-#include "text.h"
 #include "transparent-proxy.h"
 #include "upstream.h"
 #include "utils.h"
@@ -105,7 +105,7 @@ retry:
   /*
    * Strip the new line and carriage return from the string.
    */
-  if (chomp(connptr->request_line, len) == len)
+  if (trim_ending_newlines(connptr->request_line, len) == len)
   {
     /*
      * If the number of characters removed is the same as the
@@ -604,7 +604,7 @@ static int add_header_to_connection(phashmap_t hashofheaders, char *header, size
   char *sep;
 
   /* Get rid of the new line and return at the end */
-  len -= chomp(header, len);
+  len -= trim_ending_newlines(header, len);
 
   sep = strchr(header, ':');
   if (!sep)
@@ -812,11 +812,11 @@ static int write_via_header(int fd, phashmap_t hashofheaders, unsigned int major
 
   if (config.via_proxy_name)
   {
-    strlcpy(hostname, config.via_proxy_name, sizeof(hostname));
+    safe_string_copy(hostname, config.via_proxy_name, sizeof(hostname));
   }
   else if (gethostname(hostname, sizeof(hostname)) < 0)
   {
-    strlcpy(hostname, "unknown", 512);
+    safe_string_copy(hostname, "unknown", sizeof(hostname));
   }
 
   /*
@@ -987,7 +987,7 @@ retry:
   /*
    * Strip the new line and character return from the string.
    */
-  if (chomp(response_line, len) == len)
+  if (trim_ending_newlines(response_line, len) == len)
   {
     /*
      * If the number of characters removed is the same as the

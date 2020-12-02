@@ -32,7 +32,6 @@ set(TINYPROXY_SOURCES
         reqs.c
         sock.c
         stats.c
-        text.c
         upstream.c
         utils.c
         )
@@ -59,5 +58,6 @@ target_link_libraries(tinyproxy
         tinyproxy_heap
         tinyproxy_list
         tinyproxy_hashmap
+        tinyproxy_text
         ${PROXY_LIBRARIES}
         )

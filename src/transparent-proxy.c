@@ -30,8 +30,8 @@
 #include "html-error.h"
 #include "log.h"
 #include "misc/heap.h"
+#include "misc/text.h"
 #include "reqs.h"
-#include "text.h"
 
 /*
  * Build a URL from parts.
@@ -75,12 +75,12 @@ int do_transparent_proxy(struct conn_s *connptr, phashmap_t hashofheaders, struc
     }
 
     request->host = (char *)safemalloc(17);
-    strlcpy(request->host, inet_ntoa(dest_addr.sin_addr), 17);
+    safe_string_copy(request->host, inet_ntoa(dest_addr.sin_addr), 17);
 
     request->port = ntohs(dest_addr.sin_port);
 
     request->path = (char *)safemalloc(ulen + 1);
-    strlcpy(request->path, *url, ulen + 1);
+    safe_string_copy(request->path, *url, ulen + 1);
 
     build_url(url, request->host, request->port, request->path);
     log_message(LOG_INFO, "process_request: trans IP %s %s for %d", request->method, *url,
@@ -91,12 +91,12 @@ int do_transparent_proxy(struct conn_s *connptr, phashmap_t hashofheaders, struc
     request->host = (char *)safemalloc(length + 1);
     if (sscanf(data, "%[^:]:%hu", request->host, &request->port) != 2)
     {
-      strlcpy(request->host, data, length + 1);
+      safe_string_copy(request->host, data, length + 1);
       request->port = HTTP_PORT;
     }
 
     request->path = (char *)safemalloc(ulen + 1);
-    strlcpy(request->path, *url, ulen + 1);
+    safe_string_copy(request->path, *url, ulen + 1);
 
     build_url(url, request->host, request->port, request->path);
     log_message(LOG_INFO, "process_request: trans Host %s %s for %d", request->method, *url,
