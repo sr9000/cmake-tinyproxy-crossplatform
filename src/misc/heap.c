@@ -27,7 +27,9 @@
 
 #include <stdlib.h>
 
-#ifndef NDEBUG
+#ifdef NDEBUG
+// DO NOTHING
+#else
 #include <assert.h>
 #include <stddef.h>
 #include <stdio.h>
@@ -41,8 +43,8 @@ void *debugging_calloc(size_t nmemb, size_t size, const char *file, unsigned lon
   assert(size > 0);
 
   ptr = calloc(nmemb, size);
-  fprintf(stderr, "{calloc: %p:%lu x %lu} %s:%lu\n", ptr, (unsigned long)nmemb, (unsigned long)size,
-          file, line);
+  fprintf(stderr, "MEMORY {calloc: %p:%lu x %lu} %s:%lu\n", ptr, (unsigned long)nmemb,
+          (unsigned long)size, file, line);
   return ptr;
 }
 
@@ -53,7 +55,7 @@ void *debugging_malloc(size_t size, const char *file, unsigned long line)
   assert(size > 0);
 
   ptr = malloc(size);
-  fprintf(stderr, "{malloc: %p:%lu} %s:%lu\n", ptr, (unsigned long)size, file, line);
+  fprintf(stderr, "MEMORY {malloc: %p:%lu} %s:%lu\n", ptr, (unsigned long)size, file, line);
   return ptr;
 }
 
@@ -64,13 +66,14 @@ void *debugging_realloc(void *ptr, size_t size, const char *file, unsigned long 
   assert(size > 0);
 
   newptr = realloc(ptr, size);
-  fprintf(stderr, "{realloc: %p -> %p:%lu} %s:%lu\n", ptr, newptr, (unsigned long)size, file, line);
+  fprintf(stderr, "MEMORY {realloc: %p -> %p:%lu} %s:%lu\n", ptr, newptr, (unsigned long)size, file,
+          line);
   return newptr;
 }
 
 void debugging_free(void *ptr, const char *file, unsigned long line)
 {
-  fprintf(stderr, "{free: %p} %s:%lu\n", ptr, file, line);
+  fprintf(stderr, "MEMORY {free: %p} %s:%lu\n", ptr, file, line);
 
   if (ptr != NULL)
     free(ptr);
@@ -90,11 +93,11 @@ char *debugging_strdup(const char *s, const char *file, unsigned long line)
     return NULL;
   memcpy(ptr, s, len);
 
-  fprintf(stderr, "{strdup: %p:%lu} %s:%lu\n", ptr, (unsigned long)len, file, line);
+  fprintf(stderr, "MEMORY {strdup: %p:%lu} %s:%lu\n", ptr, (unsigned long)len, file, line);
   return ptr;
 }
 
-#endif /* !NDEBUG */
+#endif // NDEBUG
 
 /*
  * Allocate a block of memory in the "shared" memory region.

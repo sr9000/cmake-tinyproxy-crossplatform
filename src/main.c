@@ -36,6 +36,7 @@
 #include "child.h"
 #include "conf.h"
 #include "daemon.h"
+#include "debugtrace.h"
 #include "filter.h"
 #include "log.h"
 #include "misc/file_api.h"
@@ -165,9 +166,15 @@ static int get_id(char *str)
  * @argv: argv as passed to main()
  *
  * This function parses command line arguments.
+ *
+ * RETURN: 0     - normal state, safe to continue execution
+ *         1     - info showed, needs normal exit
+ *         other - error occurred, needs exit with error
  **/
-static void process_cmdline(int argc, char **argv, struct config_s *conf)
+static int process_cmdline(int argc, char **argv, struct config_s *conf)
 {
+  TRACECALLEX(process_cmdline, "%d, %p, %p", argc, (void *)argv, (void *)conf);
+
   int opt;
 
   while ((opt = getopt(argc, argv, "c:vdh")) != EOF)
@@ -176,7 +183,7 @@ static void process_cmdline(int argc, char **argv, struct config_s *conf)
     {
     case 'v':
       display_version();
-      exit(EX_OK);
+      TRACERETURNEX(1, "%s", "-v: display_version");
 
     case 'c':
       if (conf->config_file != NULL)
@@ -186,20 +193,21 @@ static void process_cmdline(int argc, char **argv, struct config_s *conf)
       conf->config_file = safestrdup(optarg);
       if (!conf->config_file)
       {
-        fprintf(stderr, "%s: Could not allocate memory.\n", argv[0]);
-        exit(EX_SOFTWARE);
+        TRACERETURNEX(-1, "%s: Could not allocate memory.\n", argv[0]);
       }
       break;
 
     case 'h':
       display_usage();
-      exit(EX_OK);
+      TRACERETURNEX(1, "%s", "-h: display_usage");
 
     default:
       display_usage();
-      exit(EX_USAGE);
+      TRACERETURNEX(1, "%s", "unknown argument: display_usage");
     }
   }
+
+  TRACERETURN(0);
 }
 
 /**
@@ -277,26 +285,34 @@ static void change_user(const char *program)
 }
 #endif /* MINGW */
 
-static void initialize_config_defaults(struct config_s *conf)
+static int initialize_config_defaults(struct config_s *conf)
 {
+  TRACECALLEX(initialize_config_defaults, "config_s *conf = %p", (void *)conf);
+
   memset(conf, 0, sizeof(*conf));
 
   conf->config_file = safestrdup("tinyproxy.conf");
   if (!conf->config_file)
   {
-    fprintf(stderr, PACKAGE ": Could not allocate memory.\n");
-    exit(EX_SOFTWARE);
+    TRACERETURNEX(-1, "conf->config_file = %p", (void *)conf->config_file);
   }
 
   /*
    * Make sure the HTML error pages array is NULL to begin with.
    * (FIXME: Should have a better API for all this)
    */
-  conf->errorpages = NULL;
   conf->stathost = safestrdup(TINYPROXY_STATHOST);
+  if (!conf->stathost)
+  {
+    TRACERETURNEX(-1, "conf->stathost = %p", (void *)conf->stathost);
+  }
+
+  conf->errorpages = NULL;
   conf->idletimeout = MAX_IDLE_TIME;
   conf->logf_name = NULL;
   conf->pidpath = NULL;
+
+  TRACERETURN(0);
 }
 
 /**
@@ -321,24 +337,37 @@ done:
   return ret;
 }
 
-int main(int argc, char **argv)
-{
-  printf("debug 1\n");
 #ifdef HAVE_WSOCK32
-  WSADATA wsa;
-  log_message(LOG_INFO, "Initialising Winsock...");
+WSADATA wsa;
+int initialize_winsock()
+{
+  TRACECALL(initialize_winsock);
   if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0)
   {
-    log_message(LOG_ERR, "Initialising Winsock Failed. Error Code : %d", WSAGetLastError());
+    TRACERETURNEX(-1, "Initialising Winsock Failed. Error Code : %d", WSAGetLastError());
+  }
+  TRACERETURNEX(0);
+}
+#else
+int initialize_winsock()
+{
+  return 0;
+}
+#endif
+
+int main(int argc, char **argv)
+{
+  TRACECALLEX(main, "%d, %p", argc, (void *)argv);
+
+  if (initialize_winsock() != 0)
+  {
     exit(EX_SOFTWARE);
   }
-  log_message(LOG_INFO, "Winsock was successfully initialised.");
-#endif
+
   /* Only allow u+rw bits. This may be required for some versions
    * of glibc so that mkstemp() doesn't make us vulnerable.
    */
   umask(0177);
-  printf("debug 2\n");
 
   log_message(LOG_INFO, "Initializing " PACKAGE " ...");
 
@@ -347,23 +376,32 @@ int main(int argc, char **argv)
     exit(EX_SOFTWARE);
   }
 
-  printf("debug 3\n");
-
-  initialize_config_defaults(&config_defaults);
-
-  printf("debug 3-1\n");
-
-  process_cmdline(argc, argv, &config_defaults);
-
-  printf("debug 3-2\n");
-
-  if (reload_config_file(config_defaults.config_file, &config, &config_defaults))
+  if (initialize_config_defaults(&config_defaults))
   {
-    printf("debug 3-3\n");
     exit(EX_SOFTWARE);
   }
 
-  printf("debug 4\n");
+  {
+    int r = process_cmdline(argc, argv, &config_defaults);
+    switch (r)
+    {
+    case 0:
+      break;
+    case 1:
+      exit(EX_OK);
+      break;
+    default:
+      exit(EX_SOFTWARE);
+      break;
+    }
+  }
+
+  if (reload_config_file(config_defaults.config_file, &config, &config_defaults))
+  {
+    exit(EX_SOFTWARE);
+  }
+
+  // todo: init log
 
   init_stats();
 
@@ -377,8 +415,6 @@ int main(int argc, char **argv)
     anonymous_insert("Content-Type");
   }
 
-  printf("debug 5\n");
-
 #ifdef FILTER_ENABLE
   if (config.filter)
     filter_init();
@@ -390,8 +426,6 @@ int main(int argc, char **argv)
     fprintf(stderr, "%s: Could not create listening sockets.\n", argv[0]);
     exit(EX_OSERR);
   }
-
-  printf("debug 6\n");
 
   /* Create pid file before we drop privileges */
   if (config.pidpath)
@@ -417,15 +451,11 @@ int main(int argc, char **argv)
     exit(EX_SOFTWARE);
   }
 
-  printf("debug 7\n");
-
   if (child_pool_create() < 0)
   {
     fprintf(stderr, "%s: Could not create the pool of children.\n", argv[0]);
     exit(EX_SOFTWARE);
   }
-
-  printf("debug 8\n");
 
   /* These signals are only for the parent process. */
   log_message(LOG_INFO, "Setting the various signals.");
@@ -459,21 +489,13 @@ int main(int argc, char **argv)
   /* Start the main loop */
   log_message(LOG_INFO, "Starting main loop. Accepting connections.");
 
-  printf("debug 9\n");
-
   child_main_loop();
-
-  printf("debug 10\n");
 
   log_message(LOG_INFO, "Shutting down.");
 
   child_kill_children(SIGTERM);
 
-  printf("debug 11\n");
-
   child_close_sock();
-
-  printf("debug 12\n");
 
   /* Remove the PID file */
   if (config.pidpath != NULL && unlink(config.pidpath) < 0)

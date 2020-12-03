@@ -30,6 +30,7 @@
 #include "basicauth.h"
 #include "child.h"
 #include "connect-ports.h"
+#include "debugtrace.h"
 #include "filter.h"
 #include "html-error.h"
 #include "log.h"
@@ -338,6 +339,8 @@ static void free_added_headers(plist_t add_headers)
 
 static void free_config(struct config_s *conf)
 {
+  TRACECALLEX(free_config, "%p", (void *)conf);
+
   safefree(conf->config_file);
   safefree(conf->logf_name);
   safefree(conf->stathost);
@@ -367,6 +370,8 @@ static void free_config(struct config_s *conf)
   hashmap_delete(conf->anonymous_map);
 
   memset(conf, 0, sizeof(*conf));
+
+  TRACERETVOID;
 }
 
 /*
@@ -377,6 +382,8 @@ static void free_config(struct config_s *conf)
  */
 int config_compile_regex(void)
 {
+  TRACECALL(config_compile_regex);
+
   unsigned int i, r;
 
   for (i = 0; i != ndirectives; ++i)
@@ -386,16 +393,20 @@ int config_compile_regex(void)
 
     directives[i].cre = (regex_t *)safemalloc(sizeof(regex_t));
     if (!directives[i].cre)
-      return -1;
+    {
+      TRACERETURNEX(-1, "directives[%d]: malloc failed", i);
+    }
 
     r = regcomp(directives[i].cre, directives[i].re, REG_EXTENDED | REG_ICASE | REG_NEWLINE);
     if (r)
-      return r;
+    {
+      TRACERETURNEX(r, "directives[%d]: regcomp failed", i);
+    }
   }
 
   atexit(config_free_regex);
 
-  return 0;
+  TRACERETURN(0);
 }
 
 /*
@@ -404,6 +415,8 @@ int config_compile_regex(void)
  */
 static void config_free_regex(void)
 {
+  TRACECALL(config_free_regex);
+
   unsigned int i;
 
   for (i = 0; i < ndirectives; i++)
@@ -415,6 +428,8 @@ static void config_free_regex(void)
       directives[i].cre = NULL;
     }
   }
+
+  TRACERETVOID;
 }
 
 /*
@@ -427,8 +442,8 @@ static void config_free_regex(void)
  */
 static int check_match(struct config_s *conf, const char *line)
 {
-  printf("debug 3-2 4 3 3 1\n");
-  printf("line: %s\n", line);
+  TRACECALLEX(check_match, "&conf = %p, line = ...", (void *)conf);
+
   regmatch_t match[RE_MAX_MATCHES];
   unsigned int i;
 
@@ -439,15 +454,12 @@ static int check_match(struct config_s *conf, const char *line)
     assert(directives[i].cre);
     if (!regexec(directives[i].cre, line, RE_MAX_MATCHES, match, 0))
     {
-      printf("debug 3-2 4 3 3 2\n");
-      printf("directive no: %d\n", i);
-      return (*directives[i].handler)(conf, line, match);
+      int r = (*directives[i].handler)(conf, line, match);
+      TRACERETURNEX(r, "return code = %d for directives[%d].handler", r, i);
     }
-    printf("skip directive no: %d\n", i);
   }
-  printf("debug 3-2 4 3 3 3\n");
 
-  return -1;
+  TRACERETURN(-1);
 }
 
 /*
@@ -455,26 +467,19 @@ static int check_match(struct config_s *conf, const char *line)
  */
 static int config_parse(struct config_s *conf, FILE *f)
 {
-  printf("debug 3-2 4 3 1\n");
-  char buffer[1024]; /* 1KB lines should be plenty */
-  unsigned long lineno = 1;
+  TRACECALLEX(config_parse, "&conf = %p, &file = %p", (void *)conf, (void *)f);
 
-  printf("debug 3-2 4 3 2\n");
+  char buffer[1024]; // 1KB lines should be plenty
 
-  while (fgets(buffer, sizeof(buffer), f))
+  for (unsigned long lineno = 1; fgets(buffer, sizeof(buffer), f); ++lineno)
   {
-    printf("debug 3-2 4 3 3\n");
     if (check_match(conf, buffer))
     {
-      printf("debug 3-2 4 3 4\n");
-      printf("Syntax error on line %ld\n", lineno);
-      return 1;
+      TRACERETURNEX(1, "Syntax error on line %ld: %s", lineno, buffer);
     }
-    printf("debug 3-2 4 3 5\n");
-    ++lineno;
   }
-  printf("debug 3-2 4 3 6\n");
-  return 0;
+
+  TRACERETURN(0);
 }
 
 /**
@@ -482,71 +487,60 @@ static int config_parse(struct config_s *conf, FILE *f)
  */
 static int load_config_file(const char *config_fname, struct config_s *conf)
 {
-  printf("config_fname: %s\n", config_fname);
-  printf("debug 3-2 4 1\n");
-  FILE *config_file;
-  int ret = -1;
+  TRACECALLEX(load_config_file, "%s, %p", config_fname, (void *)conf);
 
-  printf("debug 3-2 4 2\n");
+  FILE *fconfig;
 
-  config_file = fopen(config_fname, "r");
-  if (!config_file)
+  fconfig = fopen(config_fname, "r");
+  if (!fconfig)
   {
-    fprintf(stderr, "%s: Could not open config file \"%s\".\n", PACKAGE, config_fname);
-    goto done;
+    TRACERETURNEX(-1, "Could not open config file \"%s\"", config_fname);
   }
 
-  printf("debug 3-2 4 3\n");
-
-  if (config_parse(conf, config_file))
+  if (config_parse(conf, fconfig))
   {
-    fprintf(stderr, "Unable to parse config file. "
-                    "Not starting.\n");
-    goto done;
+    fclose(fconfig);
+    TRACERETURNEX(-1, "Unable to parse config file \"%s\"", config_fname);
   }
 
-  printf("debug 3-2 4 4\n");
-
-  ret = 0;
-
-done:
-  printf("debug 3-2 4 5\n");
-  if (config_file)
-    fclose(config_file);
-
-  return ret;
+  fclose(fconfig);
+  TRACERETURN(0);
 }
 
-static void initialize_with_defaults(struct config_s *conf, struct config_s *defaults)
-{
-  if (defaults->logf_name)
-  {
-    conf->logf_name = safestrdup(defaults->logf_name);
-  }
+#define INIT_STRFLD_WITH_DEFAULT(fieldname)                                                        \
+  if (defaults->fieldname)                                                                         \
+  {                                                                                                \
+    conf->fieldname = safestrdup(defaults->fieldname);                                             \
+    if (!conf->fieldname)                                                                          \
+    {                                                                                              \
+      TRACECALLEX(-1, "conf->%s = %p", #fieldname, (void *)conf->logf_name);                       \
+    }                                                                                              \
+  }                                                                                                \
+  do                                                                                               \
+  {                                                                                                \
+  } while (0)
 
-  if (defaults->config_file)
-  {
-    conf->config_file = safestrdup(defaults->config_file);
-  }
+static int initialize_with_defaults(struct config_s *conf, struct config_s *defaults)
+{
+  TRACECALLEX(initialize_with_defaults, "&conf = %p, &defaults = %p", (void *)conf,
+              (void *)defaults);
+
+  INIT_STRFLD_WITH_DEFAULT(logf_name);
+  INIT_STRFLD_WITH_DEFAULT(config_file);
+  INIT_STRFLD_WITH_DEFAULT(stathost);
+  INIT_STRFLD_WITH_DEFAULT(user);
+  INIT_STRFLD_WITH_DEFAULT(group);
+  INIT_STRFLD_WITH_DEFAULT(pidpath);
+  INIT_STRFLD_WITH_DEFAULT(bind_address);
+  INIT_STRFLD_WITH_DEFAULT(via_proxy_name);
+  INIT_STRFLD_WITH_DEFAULT(errorpage_undef);
+  INIT_STRFLD_WITH_DEFAULT(statpage);
 
   conf->port = defaults->port;
-
-  if (defaults->stathost)
-  {
-    conf->stathost = safestrdup(defaults->stathost);
-  }
-
   conf->quit = defaults->quit;
-
-  if (defaults->user)
-  {
-    conf->user = safestrdup(defaults->user);
-  }
-
-  if (defaults->group)
-  {
-    conf->group = safestrdup(defaults->group);
-  }
+  conf->idletimeout = defaults->idletimeout;
+  conf->bindsame = defaults->bindsame;
+  conf->disable_viaheader = defaults->disable_viaheader;
 
   if (defaults->listen_addrs)
   {
@@ -563,69 +557,25 @@ static void initialize_with_defaults(struct config_s *conf, struct config_s *def
   }
 
 #ifdef FILTER_ENABLE
-  if (defaults->filter)
-  {
-    conf->filter = safestrdup(defaults->filter);
-  }
+  INIT_STRFLD_WITH_DEFAULT(filter);
 
   conf->filter_url = defaults->filter_url;
   conf->filter_extended = defaults->filter_extended;
   conf->filter_casesensitive = defaults->filter_casesensitive;
-#endif /* FILTER_ENABLE */
+#endif // FILTER_ENABLE
 
 #ifdef XTINYPROXY_ENABLE
   conf->add_xtinyproxy = defaults->add_xtinyproxy;
-#endif
+#endif // XTINYPROXY_ENABLE
 
 #ifdef REVERSE_SUPPORT
-  /* struct reversepath *reversepath_list; */
+  INIT_STRFLD_WITH_DEFAULT(reversebaseurl);
+
   conf->reverseonly = defaults->reverseonly;
   conf->reversemagic = defaults->reversemagic;
+#endif // REVERSE_SUPPORT
 
-  if (defaults->reversebaseurl)
-  {
-    conf->reversebaseurl = safestrdup(defaults->reversebaseurl);
-  }
-#endif
-
-#ifdef UPSTREAM_SUPPORT
-  /* struct upstream *upstream_list; */
-#endif /* UPSTREAM_SUPPORT */
-
-  if (defaults->pidpath)
-  {
-    conf->pidpath = safestrdup(defaults->pidpath);
-  }
-
-  conf->idletimeout = defaults->idletimeout;
-
-  if (defaults->bind_address)
-  {
-    conf->bind_address = safestrdup(defaults->bind_address);
-  }
-
-  conf->bindsame = defaults->bindsame;
-
-  if (defaults->via_proxy_name)
-  {
-    conf->via_proxy_name = safestrdup(defaults->via_proxy_name);
-  }
-
-  conf->disable_viaheader = defaults->disable_viaheader;
-
-  if (defaults->errorpage_undef)
-  {
-    conf->errorpage_undef = safestrdup(defaults->errorpage_undef);
-  }
-
-  if (defaults->statpage)
-  {
-    conf->statpage = safestrdup(defaults->statpage);
-  }
-
-  /* plist_t access_list; */
-  /* plist_t connect_ports; */
-  /* phashmap_t anonymous_map; */
+  TRACERETURN(0);
 }
 
 /**
@@ -633,66 +583,32 @@ static void initialize_with_defaults(struct config_s *conf, struct config_s *def
  */
 int reload_config_file(const char *config_fname, struct config_s *conf, struct config_s *defaults)
 {
+  TRACECALLEX(reload_config_file, "%s, &conf = %p, &defaults = %p", config_fname, (void *)conf,
+              (void *)defaults);
+
   int ret;
 
-  printf("debug 3-2 1\n");
-
-  log_message(LOG_INFO, "Reloading config file");
-
-  printf("debug 3-2 2\n");
-
   free_config(conf);
-
-  printf("debug 3-2 3\n");
-
-  initialize_with_defaults(conf, defaults);
-
-  printf("debug 3-2 4\n");
+  if (initialize_with_defaults(conf, defaults))
+  {
+    TRACERETURN(-1);
+  }
 
   ret = load_config_file(config_fname, conf);
-  printf("debug 3-2 4-1\n");
-  if (ret != 0)
+  if (ret == 0)
   {
-    goto done;
+    TRACERETURN(0);
   }
-  printf("debug 3-2 5\n");
 
-  /* Set the default values if they were not set in the config file. */
   if (conf->port == 0)
   {
-    /*
-     * Don't log here in error path:
-     * logging might not be set up yet!
-     */
-    fprintf(stderr, PACKAGE ": You MUST set a Port in the "
-                            "config file.\n");
-    ret = -1;
-    goto done;
+    TRACERETURNEX(-1, "conf->port = %d: You MUST set a Port in the config file.", conf->port);
   }
 
-  printf("debug 3-2 6\n");
+  // set the default values if they were not set in the config file
+  conf->idletimeout = conf->idletimeout ? conf->idletimeout : MAX_IDLE_TIME;
 
-  if (!conf->user)
-  {
-    log_message(LOG_WARNING, "You SHOULD set a UserName in the "
-                             "config file. Using current user instead.");
-  }
-
-  printf("debug 3-2 7\n");
-
-  if (conf->idletimeout == 0)
-  {
-    log_message(LOG_WARNING,
-                "Invalid idle time setting. "
-                "Only values greater than zero are allowed. "
-                "Therefore setting idle timeout to %u seconds.",
-                MAX_IDLE_TIME);
-    conf->idletimeout = MAX_IDLE_TIME;
-  }
-  printf("debug 3-2 8\n");
-
-done:
-  return ret;
+  TRACERETURN(ret);
 }
 
 /***********************************************************************
