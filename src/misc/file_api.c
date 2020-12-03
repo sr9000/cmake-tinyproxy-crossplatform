@@ -20,13 +20,6 @@
           " file %s: %s\n",                                                                        \
           PACKAGE, (msg), filename, strerror(errno))
 
-#define FILE_ERROR(msg, filename)                                                                  \
-  fprintf(stderr,                                                                                  \
-          "ERROR: %s: "                                                                            \
-          "%s"                                                                                     \
-          " file %s\n",                                                                            \
-          PACKAGE, (msg), filename)
-
 // Safely creates filename and returns the low-level file descriptor.
 #ifdef MINGW
 #include <io.h>
