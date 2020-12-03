@@ -64,8 +64,6 @@ int create_file_safely(const char *filename, bool truncate_file)
   }
   else
   {
-    // file exists, so open it for writing and perform the fstat() check
-    struct stat fstatinfo;
     int flags;
 
     flags = O_RDWR;
@@ -77,25 +75,6 @@ int create_file_safely(const char *filename, bool truncate_file)
     {
       FATAL_FILE_ERROR("Could not open.", filename);
       return fildes;
-    }
-
-    // fstat() the opened file and check that the file mode bits, inode, and device match
-    if (fstat(fildes, &fstatinfo) < 0 || lstatinfo.st_mode != fstatinfo.st_mode ||
-        lstatinfo.st_ino != fstatinfo.st_ino || lstatinfo.st_dev != fstatinfo.st_dev)
-    {
-      FILE_ERROR("The file has been changed before it could be opened.", filename);
-      close(fildes);
-      return -EIO;
-    }
-
-    // If the above check was passed, we know that the stat() and fstat() were done on the same
-    // file. Now we check that there's only one link, and that it's a normal file (this isn't
-    // strictly necessary because the fstat() vs stat() st_mode check would also find this)
-    if (fstatinfo.st_nlink > 1 || !S_ISREG(lstatinfo.st_mode))
-    {
-      FATAL_FILE_ERROR("The file has too many links or is not a regular file.", filename);
-      close(fildes);
-      return -EMLINK;
     }
 
     // just return the file descriptor if we _don't_ want the file truncated.
@@ -153,6 +132,8 @@ int pidfile_create(const char *filename)
 }
 
 #ifdef MINGW
+#include <windows.h>
+
 int flush_file_buffer(int fd)
 {
   HANDLE h = (HANDLE)_get_osfhandle(fd);
