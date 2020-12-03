@@ -29,11 +29,14 @@
 
 // Safely creates filename and returns the low-level file descriptor.
 #ifdef MINGW
-int create_file_safely(const char *filename, bool truncate_file)
-{
-  // todo: create_file_safely for mingw
-}
-#else // MINGW
+#include <io.h>
+
+#define O_RDWR  _O_RDWR
+#define O_CREAT _O_CREAT
+#define O_EXCL  _O_EXCL
+#define O_TRUNC _O_TRUNC
+
+#endif // MINGW
 int create_file_safely(const char *filename, bool truncate_file)
 {
   struct stat lstatinfo;
@@ -121,7 +124,6 @@ int create_file_safely(const char *filename, bool truncate_file)
 
   return fildes;
 }
-#endif // MINGW
 
 // Creates a file with the PID of the Tinyproxy process.
 //
