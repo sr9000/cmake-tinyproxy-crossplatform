@@ -8,3 +8,5 @@ cmake-build-release/
 build/
 
 mingw-w64-build/
+
+tinyproxy.log
