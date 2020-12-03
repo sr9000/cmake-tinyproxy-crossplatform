@@ -51,6 +51,7 @@ endif (OPT_TRANSPARENT_PROXY)
 add_executable(tinyproxy
         main.c
         ${TINYPROXY_SOURCES}
+        "${TINYPROXY_HEADERS}"
         )
 
 target_link_libraries(tinyproxy

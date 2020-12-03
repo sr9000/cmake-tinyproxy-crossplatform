@@ -44,4 +44,5 @@ proxy_option_to_definition(OPT_TRANSPARENT_PROXY TRANSPARENT_PROXY PROXY_DEFINIT
 
 include_directories(include)
 
+add_subdirectory(include)
 add_subdirectory(src)

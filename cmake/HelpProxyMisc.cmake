@@ -44,3 +44,20 @@ function(proxy_option_to_definition _OPTION _DEFINITION DEFS_LISTNAME)
         global_proxy_list_append(${DEFS_LISTNAME} ${_DEFINITION})
     endif ()
 endfunction(proxy_option_to_definition)
+
+function(proxy_collect_absolute_file_paths _RET_VAR _FILE_LIST)
+    set(_ABS_FILES)
+
+    foreach (file ${_FILE_LIST})
+        get_filename_component(_PATH "${file}" ABSOLUTE)
+        list(APPEND _ABS_FILES "${_PATH}")
+    endforeach (file)
+
+    set(${_RET_VAR} "${_ABS_FILES}" PARENT_SCOPE)
+endfunction(proxy_collect_absolute_file_paths)
+
+function(proxy_global_header_absolute_paths _GLOBAL_PATHS_VAR _LOCAL_HEADERS)
+    set(${_GLOBAL_PATHS_VAR}_ORIGINAL "${_LOCAL_HEADERS}" CACHE INTERNAL "some orig headers")
+    proxy_collect_absolute_file_paths(${_GLOBAL_PATHS_VAR} "${_LOCAL_HEADERS}")
+    set(${_GLOBAL_PATHS_VAR} "${${_GLOBAL_PATHS_VAR}}" CACHE INTERNAL "some headers")
+endfunction(proxy_global_header_absolute_paths)

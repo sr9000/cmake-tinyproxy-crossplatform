@@ -1,0 +1,6 @@
+proxy_global_header_absolute_paths(TINYPROXY_BASE64_HEADERS "base64.h")
+proxy_global_header_absolute_paths(TINYPROXY_FILE_API_HEADERS "file_api.h")
+proxy_global_header_absolute_paths(TINYPROXY_HASHMAP_HEADERS "hashmap.h")
+proxy_global_header_absolute_paths(TINYPROXY_HEAP_HEADERS "heap.h")
+proxy_global_header_absolute_paths(TINYPROXY_LIST_HEADERS "list.h")
+proxy_global_header_absolute_paths(TINYPROXY_TEXT_HEADERS "text.h")

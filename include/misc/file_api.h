@@ -16,4 +16,7 @@ extern int create_file_safely(const char *filename, bool truncate_file);
 //          non-zero values on errors
 extern int pidfile_create(const char *path);
 
+// Immediately push all changes to file on disk.
+extern int flush_file_buffer(int fd);
+
 #endif // CMAKE_TINYPROXY_FILE_API_H
