@@ -35,6 +35,7 @@
 #include "html-error.h"
 #include "log.h"
 #include "misc/heap.h"
+#include "misc/list.h"
 #include "reqs.h"
 #include "reverse-proxy.h"
 #include "upstream.h"
@@ -324,6 +325,8 @@ const unsigned int ndirectives = sizeof(directives) / sizeof(directives[0]);
 
 static void free_added_headers(plist_t add_headers)
 {
+  TRACECALLEX(free_added_headers, "&add_headers = %p", add_headers);
+
   ssize_t i;
 
   for (i = 0; i < list_length(add_headers); i++)
@@ -335,6 +338,7 @@ static void free_added_headers(plist_t add_headers)
   }
 
   list_delete(add_headers);
+  TRACERETVOID;
 }
 
 static void free_config(struct config_s *conf)
@@ -736,25 +740,28 @@ static HANDLE_FUNC(handle_anonymous)
 
 static HANDLE_FUNC(handle_viaproxyname)
 {
-  int r = set_string_arg(&conf->via_proxy_name, line, &match[2]);
+  TRACECALL(handle_viaproxyname);
 
+  int r = set_string_arg(&conf->via_proxy_name, line, &match[2]);
   if (r)
-    return r;
-  log_message(LOG_INFO, "Setting \"Via\" header to '%s'", conf->via_proxy_name);
-  return 0;
+  {
+    TRACERETURNEX(r, "ret code: %d", r);
+  }
+
+  TRACERETURNEX(0, "Setting \"Via\" header to '%s'", conf->via_proxy_name);
 }
 
 static HANDLE_FUNC(handle_disableviaheader)
 {
-  int r = set_bool_arg(&conf->disable_viaheader, line, &match[2]);
+  TRACECALL(handle_disableviaheader);
 
+  int r = set_bool_arg(&conf->disable_viaheader, line, &match[2]);
   if (r)
   {
-    return r;
+    TRACERETURNEX(r, "ret code: %d", r);
   }
 
-  log_message(LOG_INFO, "Disabling transmission of the \"Via\" header.");
-  return 0;
+  TRACERETURNEX(0, "%s", "Disabling transmission of the \"Via\" header.");
 }
 
 static HANDLE_FUNC(handle_defaulterrorfile)
@@ -769,45 +776,53 @@ static HANDLE_FUNC(handle_statfile)
 
 static HANDLE_FUNC(handle_stathost)
 {
-  int r = set_string_arg(&conf->stathost, line, &match[2]);
+  TRACECALL(handle_stathost);
 
+  int r = set_string_arg(&conf->stathost, line, &match[2]);
   if (r)
-    return r;
-  log_message(LOG_INFO, "Stathost set to \"%s\"", conf->stathost);
-  return 0;
+  {
+    TRACERETURNEX(r, "ret code: %d", r);
+  }
+
+  TRACERETURNEX(0, "Stathost set to \"%s\"", conf->stathost);
 }
 
 static HANDLE_FUNC(handle_xtinyproxy)
 {
+  TRACECALL(handle_xtinyproxy);
+
 #ifdef XTINYPROXY_ENABLE
-  return set_bool_arg(&conf->add_xtinyproxy, line, &match[2]);
+  int r = set_bool_arg(&conf->add_xtinyproxy, line, &match[2]);
+  TRACERETURNEX(r, "ret code: %d", r);
 #else
-  fprintf(stderr, "XTinyproxy NOT Enabled! Recompile with --enable-xtinyproxy\n");
-  return 1;
+  TRACERETURNEX(1, "%s", "XTinyproxy NOT Enabled! Recompile with --enable-xtinyproxy");
 #endif
 }
 
 static HANDLE_FUNC(handle_bindsame)
 {
-  int r = set_bool_arg(&conf->bindsame, line, &match[2]);
+  TRACECALL(handle_bindsame);
 
+  int r = set_bool_arg(&conf->bindsame, line, &match[2]);
   if (r)
-    return r;
-  log_message(LOG_INFO, "Binding outgoing connection to incoming IP");
-  return 0;
+  {
+    TRACERETURNEX(r, "ret code: %d", r);
+  }
+
+  TRACERETURNEX(0, "%s", "Binding outgoing connection to incoming IP");
 }
 
 static HANDLE_FUNC(handle_port)
 {
+  TRACECALL(handle_port);
   set_int_arg(&conf->port, line, &match[2]);
 
   if (conf->port > 65535)
   {
-    fprintf(stderr, "Bad port number (%d) supplied for Port.\n", conf->port);
-    return 1;
+    TRACERETURNEX(1, "Bad port number (%d) supplied for Port.", conf->port);
   }
 
-  return 0;
+  TRACERETURN(0);
 }
 
 static HANDLE_FUNC(handle_maxclients)
@@ -881,21 +896,25 @@ static HANDLE_FUNC(handle_deny)
 
 static HANDLE_FUNC(handle_bind)
 {
-  int r = set_string_arg(&conf->bind_address, line, &match[2]);
+  TRACECALL(handle_bind);
 
+  int r = set_string_arg(&conf->bind_address, line, &match[2]);
   if (r)
-    return r;
-  log_message(LOG_INFO, "Outgoing connections bound to IP %s", conf->bind_address);
-  return 0;
+  {
+    TRACERETURNEX(r, "ret code: %d", r);
+  }
+
+  TRACERETURNEX(0, "Outgoing connections bound to IP %s", conf->bind_address);
 }
 
 static HANDLE_FUNC(handle_listen)
 {
-  char *arg = get_string_arg(line, &match[2]);
+  TRACECALL(handle_listen);
 
+  char *arg = get_string_arg(line, &match[2]);
   if (arg == NULL)
   {
-    return -1;
+    TRACERETURNEX(-1, "%s", "get_string_arg == NULL");
   }
 
   if (conf->listen_addrs == NULL)
@@ -903,19 +922,16 @@ static HANDLE_FUNC(handle_listen)
     conf->listen_addrs = list_create();
     if (conf->listen_addrs == NULL)
     {
-      log_message(LOG_WARNING, "Could not create a list "
-                               "of listen addresses.");
       safefree(arg);
-      return -1;
+      TRACERETURNEX(-1, "%s", "Could not create a list of listen addresses.");
     }
   }
 
   list_append(conf->listen_addrs, arg, strlen(arg) + 1);
-
-  log_message(LOG_INFO, "Added address [%s] to listen addresses.", arg);
-
   safefree(arg);
-  return 0;
+
+  TRACERETURNEX(0, "Added address [%s] to listen addresses.",
+                list_getentry(conf->listen_addrs, list_length(conf->listen_addrs), NULL););
 }
 
 static HANDLE_FUNC(handle_errorfile)
@@ -952,18 +968,13 @@ static HANDLE_FUNC(handle_addheader)
 
   list_prepend(conf->add_headers, header, sizeof *header);
 
+  // don't free name or value here, as they are referenced in the struct inserted into the vector
   safefree(header);
-
-  /* Don't free name or value here, as they are referenced in the
-   * struct inserted into the vector. */
 
   return 0;
 }
 
-/*
- * Log level's strings.
-
- */
+// log level's strings
 struct log_levels_s
 {
   const char *string;
@@ -1066,9 +1077,7 @@ static HANDLE_FUNC(handle_reversebaseurl)
 
 static HANDLE_FUNC(handle_reversepath)
 {
-  /*
-   * The second string argument is optional.
-   */
+  // The second string argument is optional.
   char *arg1, *arg2;
 
   arg1 = get_string_arg(line, &match[2]);
