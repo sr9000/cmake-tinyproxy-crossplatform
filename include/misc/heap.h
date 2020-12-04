@@ -20,6 +20,7 @@
 #define TINYPROXY_HEAP_H
 
 #include <stddef.h>
+#include <stdlib.h>
 
 // the following is to allow for better memory checking.
 #ifdef NDEBUG
