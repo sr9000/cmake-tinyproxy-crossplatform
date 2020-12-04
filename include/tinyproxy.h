@@ -1,0 +1,8 @@
+//
+// Created by sr9000 on 04/12/2020.
+//
+
+#ifndef CMAKE_TINYPROXY_TINYPROXY_H
+#define CMAKE_TINYPROXY_TINYPROXY_H
+
+#endif // CMAKE_TINYPROXY_TINYPROXY_H

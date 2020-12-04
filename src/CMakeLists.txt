@@ -34,7 +34,7 @@ set(TINYPROXY_SOURCES
         stats.c
         upstream.c
         utils.c
-        )
+        tinyproxy.c ../include/tinyproxy.h)
 
 if (OPT_FILTER_ENABLE)
     list(APPEND TINYPROXY_SOURCES filter.c)
