@@ -28,8 +28,8 @@
 #include "main.h"
 
 #include "buffer.h"
-#include "log.h"
 #include "misc/heap.h"
+#include "subservice/log.h"
 
 #define BUFFER_HEAD(x) (x)->head
 #define BUFFER_TAIL(x) (x)->tail

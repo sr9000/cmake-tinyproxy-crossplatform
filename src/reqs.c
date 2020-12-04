@@ -26,17 +26,17 @@
  */
 
 #include "main.h"
+#include <child.h>
 
 #include "acl.h"
 #include "anonymous.h"
 #include "basicauth.h"
 #include "buffer.h"
-#include "conf.h"
+#include "config/conf.h"
 #include "connect-ports.h"
 #include "conns.h"
 #include "filter.h"
 #include "html-error.h"
-#include "log.h"
 #include "misc/hashmap.h"
 #include "misc/heap.h"
 #include "misc/list.h"
@@ -46,6 +46,7 @@
 #include "reverse-proxy.h"
 #include "sock.h"
 #include "stats.h"
+#include "subservice/log.h"
 #include "transparent-proxy.h"
 #include "upstream.h"
 #include "utils.h"
@@ -86,7 +87,7 @@
  * connections. The request line is allocated from the heap, but it must
  * be freed in another function.
  */
-static int read_request_line(struct conn_s *connptr)
+static int read_request_line(pproxy_t proxy, struct conn_s *connptr)
 {
   ssize_t len;
 
@@ -94,7 +95,7 @@ retry:
   len = readline(connptr->client_fd, &connptr->request_line);
   if (len <= 0)
   {
-    log_message(LOG_ERR,
+    log_message(proxy->log, LOG_ERR,
                 "read_request_line: Client (file descriptor: %d) "
                 "closed socket before read.",
                 connptr->client_fd);
@@ -116,7 +117,7 @@ retry:
     goto retry;
   }
 
-  log_message(LOG_CONN, "Request (file descriptor %d): %s", connptr->client_fd,
+  log_message(proxy->log, LOG_CONN, "Request (file descriptor %d): %s", connptr->client_fd,
               connptr->request_line);
 
   return 0;
@@ -318,7 +319,8 @@ static int send_ssl_response(struct conn_s *connptr)
  * Break the request line apart and figure out where to connect and
  * build a new request line. Finally connect to the remote server.
  */
-static struct request_s *process_request(struct conn_s *connptr, phashmap_t hashofheaders)
+static struct request_s *process_request(pproxy_t proxy, struct conn_s *connptr,
+                                         phashmap_t hashofheaders)
 {
   char *url;
   struct request_s *request;
@@ -369,8 +371,13 @@ static struct request_s *process_request(struct conn_s *connptr, phashmap_t hash
   else
   {
   BAD_REQUEST_ERROR:
-    log_message(LOG_ERR, "process_request: Bad Request on file descriptor %d", connptr->client_fd);
-    indicate_http_error(connptr, 400, "Bad Request", "detail", "Request has an invalid format",
+    log_message(proxy->log, LOG_ERR,
+                "process_request: "
+                "Bad Request on file descriptor %d",
+                connptr->client_fd);
+    indicate_http_error(connptr, 400, "Bad Request", "detail",
+                        "Request has an "
+                        "invalid format",
                         "url", url, NULL);
     goto fail;
   }
@@ -386,7 +393,7 @@ static struct request_s *process_request(struct conn_s *connptr, phashmap_t hash
      */
     char *reverse_url;
 
-    reverse_url = reverse_rewrite_url(connptr, hashofheaders, url);
+    reverse_url = reverse_rewrite_url(proxy, connptr, hashofheaders, url);
 
     if (reverse_url != NULL)
     {
@@ -395,7 +402,7 @@ static struct request_s *process_request(struct conn_s *connptr, phashmap_t hash
     }
     else if (config.reverseonly)
     {
-      log_message(LOG_ERR, "Bad request, no mapping for '%s' found", url);
+      log_message(proxy->log, LOG_ERR, "Bad request, no mapping for '%s' found", url);
       indicate_http_error(connptr, 400, "Bad Request", "detail",
                           "No mapping found for "
                           "requested url",
@@ -433,7 +440,7 @@ static struct request_s *process_request(struct conn_s *connptr, phashmap_t hash
                           "The CONNECT method not allowed "
                           "with the port you tried to use.",
                           "url", url, NULL);
-      log_message(LOG_INFO, "Refused CONNECT method on port %d", request->port);
+      log_message(proxy->log, LOG_INFO, "Refused CONNECT method on port %d", request->port);
       goto fail;
     }
 
@@ -442,14 +449,14 @@ static struct request_s *process_request(struct conn_s *connptr, phashmap_t hash
   else
   {
 #ifdef TRANSPARENT_PROXY
-    if (!do_transparent_proxy(connptr, hashofheaders, request, &config, &url))
+    if (!do_transparent_proxy(proxy, connptr, hashofheaders, request, &config, &url))
     {
       goto fail;
     }
 #else
     indicate_http_error(connptr, 501, "Not Implemented", "detail",
                         "Unknown method or unsupported protocol.", "url", url, NULL);
-    log_message(LOG_INFO, "Unknown method (%s) or protocol (%s)", request->method, url);
+    log_message(proxy->log, LOG_INFO, "Unknown method (%s) or protocol (%s)", request->method, url);
     goto fail;
 #endif
   }
@@ -470,9 +477,10 @@ static struct request_s *process_request(struct conn_s *connptr, phashmap_t hash
       update_stats(STAT_DENIED);
 
       if (config.filter_url)
-        log_message(LOG_NOTICE, "Proxying refused on filtered url \"%s\"", url);
+        log_message(proxy->log, LOG_NOTICE, "Proxying refused on filtered url \"%s\"", url);
       else
-        log_message(LOG_NOTICE, "Proxying refused on filtered domain \"%s\"", request->host);
+        log_message(proxy->log, LOG_NOTICE, "Proxying refused on filtered domain \"%s\"",
+                    request->host);
 
       indicate_http_error(connptr, 403, "Filtered", "detail",
                           "The request you made has been filtered", "url", url, NULL);
@@ -486,7 +494,7 @@ static struct request_s *process_request(struct conn_s *connptr, phashmap_t hash
    */
   if (config.stathost && strcmp(config.stathost, request->host) == 0)
   {
-    log_message(LOG_NOTICE, "Request for the stathost.");
+    log_message(proxy->log, LOG_NOTICE, "Request for the stathost.");
     connptr->show_stats = TRUE;
     goto fail;
   }
@@ -507,7 +515,7 @@ fail:
  * server headers can be processed.
  *	- rjkaes
  */
-static int pull_client_data(struct conn_s *connptr, long int length)
+static int pull_client_data(pproxy_t proxy, struct conn_s *connptr, long int length)
 {
   char *buffer;
   ssize_t len;
@@ -540,7 +548,7 @@ static int pull_client_data(struct conn_s *connptr, long int length)
   ret = socket_nonblocking(connptr->client_fd);
   if (ret != 0)
   {
-    log_message(LOG_ERR,
+    log_message(proxy->log, LOG_ERR,
                 "Failed to set the client socket "
                 "to non-blocking: %s",
                 strerror(errno));
@@ -552,7 +560,7 @@ static int pull_client_data(struct conn_s *connptr, long int length)
   ret = socket_blocking(connptr->client_fd);
   if (ret != 0)
   {
-    log_message(LOG_ERR,
+    log_message(proxy->log, LOG_ERR,
                 "Failed to set the client socket "
                 "to blocking: %s",
                 strerror(errno));
@@ -569,7 +577,7 @@ static int pull_client_data(struct conn_s *connptr, long int length)
     bytes_read = read(connptr->client_fd, buffer, 2);
     if (bytes_read == -1)
     {
-      log_message(LOG_WARNING, "Could not read two bytes from POST message");
+      log_message(proxy->log, LOG_WARNING, "Could not read two bytes from POST message");
     }
   }
 
@@ -797,7 +805,8 @@ static long get_content_length(phashmap_t hashofheaders)
  * FIXME: Need to add code to "hide" our internal information for security
  * purposes.
  */
-static int write_via_header(int fd, phashmap_t hashofheaders, unsigned int major, unsigned int minor)
+static int write_via_header(int fd, phashmap_t hashofheaders, unsigned int major,
+                            unsigned int minor)
 {
   ssize_t len;
   char hostname[512];
@@ -852,7 +861,7 @@ done:
  * (plus a few which are required for various methods).
  *	- rjkaes
  */
-static int process_client_headers(struct conn_s *connptr, phashmap_t hashofheaders)
+static int process_client_headers(pproxy_t proxy, struct conn_s *connptr, phashmap_t hashofheaders)
 {
   static const char *skipheaders[] = {"host", "keep-alive", "proxy-connection",
                                       "te",   "trailers",   "upgrade"};
@@ -870,7 +879,7 @@ static int process_client_headers(struct conn_s *connptr, phashmap_t hashofheade
   if (connptr->server_fd == -1 || connptr->show_stats ||
       (connptr->connect_method && !UPSTREAM_IS_HTTP(connptr)))
   {
-    log_message(LOG_INFO, "Not sending client headers to remote machine");
+    log_message(proxy->log, LOG_INFO, "Not sending client headers to remote machine");
     return 0;
   }
 
@@ -946,7 +955,7 @@ static int process_client_headers(struct conn_s *connptr, phashmap_t hashofheade
 PULL_CLIENT_DATA:
   if (connptr->content_length.client > 0)
   {
-    ret = pull_client_data(connptr, connptr->content_length.client);
+    ret = pull_client_data(proxy, connptr, connptr->content_length.client);
   }
 
   return ret;
@@ -956,7 +965,7 @@ PULL_CLIENT_DATA:
  * Loop through all the headers (including the response code) from the
  * server.
  */
-static int process_server_headers(struct conn_s *connptr)
+static int process_server_headers(pproxy_t proxy, struct conn_s *connptr)
 {
   static const char *skipheaders[] = {
       "keep-alive",
@@ -1010,7 +1019,8 @@ retry:
    */
   if (get_all_headers(connptr->server_fd, hashofheaders) < 0)
   {
-    log_message(LOG_WARNING, "Could not retrieve all the headers from the remote server.");
+    log_message(proxy->log, LOG_WARNING,
+                "Could not retrieve all the headers from the remote server.");
     hashmap_delete(hashofheaders);
     safefree(response_line);
 
@@ -1097,8 +1107,8 @@ retry:
       if (ret < 0)
         goto ERROR_EXIT;
 
-      log_message(LOG_INFO, "Rewriting HTTP redirect: %s -> %s%s%s", header, config.reversebaseurl,
-                  (reverse->path + 1), (header + len));
+      log_message(proxy->log, LOG_INFO, "Rewriting HTTP redirect: %s -> %s%s%s", header,
+                  config.reversebaseurl, (reverse->path + 1), (header + len));
       hashmap_remove(hashofheaders, "location");
     }
   }
@@ -1140,7 +1150,7 @@ ERROR_EXIT:
  * tinyproxy oh so long ago...)
  *	- rjkaes
  */
-static void relay_connection(struct conn_s *connptr)
+static void relay_connection(pproxy_t proxy, struct conn_s *connptr)
 {
   fd_set rset, wset;
   struct timeval tv;
@@ -1153,7 +1163,7 @@ static void relay_connection(struct conn_s *connptr)
   ret = socket_nonblocking(connptr->client_fd);
   if (ret != 0)
   {
-    log_message(LOG_ERR,
+    log_message(proxy->log, LOG_ERR,
                 "Failed to set the client socket "
                 "to non-blocking: %s",
                 strerror(errno));
@@ -1163,7 +1173,7 @@ static void relay_connection(struct conn_s *connptr)
   ret = socket_nonblocking(connptr->server_fd);
   if (ret != 0)
   {
-    log_message(LOG_ERR,
+    log_message(proxy->log, LOG_ERR,
                 "Failed to set the server socket "
                 "to non-blocking: %s",
                 strerror(errno));
@@ -1196,7 +1206,8 @@ static void relay_connection(struct conn_s *connptr)
       tdiff = difftime(time(NULL), last_access);
       if (tdiff > config.idletimeout)
       {
-        log_message(LOG_INFO, "Idle Timeout (after select) as %g > %u.", tdiff, config.idletimeout);
+        log_message(proxy->log, LOG_INFO, "Idle Timeout (after select) as %g > %u.", tdiff,
+                    config.idletimeout);
         return;
       }
       else
@@ -1206,7 +1217,7 @@ static void relay_connection(struct conn_s *connptr)
     }
     else if (ret < 0)
     {
-      log_message(LOG_ERR,
+      log_message(proxy->log, LOG_ERR,
                   "relay_connection: select() error \"%s\". "
                   "Closing connection (client_fd:%d, server_fd:%d)",
                   strerror(errno), connptr->client_fd, connptr->server_fd);
@@ -1254,7 +1265,8 @@ static void relay_connection(struct conn_s *connptr)
   ret = socket_blocking(connptr->client_fd);
   if (ret != 0)
   {
-    log_message(LOG_ERR, "Failed to set client socket to blocking: %s", strerror(errno));
+    log_message(proxy->log, LOG_ERR, "Failed to set client socket to blocking: %s",
+                strerror(errno));
     return;
   }
 
@@ -1271,7 +1283,8 @@ static void relay_connection(struct conn_s *connptr)
   ret = socket_blocking(connptr->server_fd);
   if (ret != 0)
   {
-    log_message(LOG_ERR, "Failed to set server socket to blocking: %s", strerror(errno));
+    log_message(proxy->log, LOG_ERR, "Failed to set server socket to blocking: %s",
+                strerror(errno));
     return;
   }
 
@@ -1284,7 +1297,8 @@ static void relay_connection(struct conn_s *connptr)
   return;
 }
 
-static int connect_to_upstream_proxy(struct conn_s *connptr, struct request_s *request)
+static int connect_to_upstream_proxy(pproxy_t proxy, struct conn_s *connptr,
+                                     struct request_s *request)
 {
   unsigned len;
   unsigned char buff[512]; /* won't use more than 7 + 255 */
@@ -1297,7 +1311,8 @@ static int connect_to_upstream_proxy(struct conn_s *connptr, struct request_s *r
   ulen = cur_upstream->ua.user ? strlen(cur_upstream->ua.user) : 0;
   passlen = cur_upstream->pass ? strlen(cur_upstream->pass) : 0;
 
-  log_message(LOG_CONN, "Established connection to %s proxy \"%s\" using file descriptor %d.",
+  log_message(proxy->log, LOG_CONN,
+              "Established connection to %s proxy \"%s\" using file descriptor %d.",
               proxy_type_name(cur_upstream->type), cur_upstream->host, connptr->server_fd);
 
   if (cur_upstream->type == PT_SOCKS4)
@@ -1412,7 +1427,7 @@ static int connect_to_upstream_proxy(struct conn_s *connptr, struct request_s *r
 /*
  * Establish a connection to the upstream proxy server.
  */
-static int connect_to_upstream(struct conn_s *connptr, struct request_s *request)
+static int connect_to_upstream(pproxy_t proxy, struct conn_s *connptr, struct request_s *request)
 {
 #ifndef UPSTREAM_SUPPORT
   /*
@@ -1428,7 +1443,7 @@ static int connect_to_upstream(struct conn_s *connptr, struct request_s *request
 
   if (!cur_upstream)
   {
-    log_message(LOG_WARNING, "No upstream proxy defined for %s.", request->host);
+    log_message(proxy->log, LOG_WARNING, "No upstream proxy defined for %s.", request->host);
     indicate_http_error(connptr, 404, "Unable to connect to upstream proxy.");
     return -1;
   }
@@ -1437,7 +1452,7 @@ static int connect_to_upstream(struct conn_s *connptr, struct request_s *request
 
   if (connptr->server_fd < 0)
   {
-    log_message(LOG_WARNING, "Could not connect to upstream proxy.");
+    log_message(proxy->log, LOG_WARNING, "Could not connect to upstream proxy.");
     indicate_http_error(connptr, 404, "Unable to connect to upstream proxy", "detail",
                         "A network error occurred while trying to "
                         "connect to the upstream web proxy.",
@@ -1446,9 +1461,9 @@ static int connect_to_upstream(struct conn_s *connptr, struct request_s *request
   }
 
   if (cur_upstream->type != PT_HTTP)
-    return connect_to_upstream_proxy(connptr, request);
+    return connect_to_upstream_proxy(proxy, connptr, request);
 
-  log_message(LOG_CONN,
+  log_message(proxy->log, LOG_CONN,
               "Established connection to upstream proxy \"%s\" "
               "using file descriptor %d.",
               cur_upstream->host, connptr->server_fd);
@@ -1490,7 +1505,7 @@ static int connect_to_upstream(struct conn_s *connptr, struct request_s *request
 #endif
 }
 
-static int get_request_entity(struct conn_s *connptr)
+static int get_request_entity(pproxy_t proxy, struct conn_s *connptr)
 {
   int ret;
   fd_set rset;
@@ -1504,12 +1519,12 @@ static int get_request_entity(struct conn_s *connptr)
 
   if (ret == -1)
   {
-    log_message(LOG_ERR, "Error calling select on client fd %d: %s", connptr->client_fd,
+    log_message(proxy->log, LOG_ERR, "Error calling select on client fd %d: %s", connptr->client_fd,
                 strerror(errno));
   }
   else if (ret == 0)
   {
-    log_message(LOG_INFO, "no entity");
+    log_message(proxy->log, LOG_INFO, "no entity");
   }
   else if (ret == 1 && FD_ISSET(connptr->client_fd, &rset))
   {
@@ -1517,18 +1532,18 @@ static int get_request_entity(struct conn_s *connptr)
     nread = read_buffer(connptr->client_fd, connptr->cbuffer);
     if (nread < 0)
     {
-      log_message(LOG_ERR, "Error reading readable client_fd %d", connptr->client_fd);
+      log_message(proxy->log, LOG_ERR, "Error reading readable client_fd %d", connptr->client_fd);
       ret = -1;
     }
     else
     {
-      log_message(LOG_INFO, "Read request entity of %d bytes", nread);
+      log_message(proxy->log, LOG_INFO, "Read request entity of %d bytes", nread);
       ret = 0;
     }
   }
   else
   {
-    log_message(LOG_ERR,
+    log_message(proxy->log, LOG_ERR,
                 "strange situation after select: "
                 "ret = %d, but client_fd (%d) is not readable...",
                 ret, connptr->client_fd);
@@ -1547,7 +1562,7 @@ static int get_request_entity(struct conn_s *connptr)
  * tinyproxy code, which was confusing, redundant. Hail progress.
  * 	- rjkaes
  */
-void handle_connection(int fd)
+void handle_connection(pproxy_t proxy, int fd)
 {
   // todo: put libwebsocket here
   ssize_t i;
@@ -1562,9 +1577,9 @@ void handle_connection(int fd)
   getpeer_information(fd, peer_ipaddr, peer_string);
 
   if (config.bindsame)
-    getsock_ip(fd, sock_ipaddr);
+    getsock_ip(proxy, fd, sock_ipaddr);
 
-  log_message(LOG_CONN,
+  log_message(proxy->log, LOG_CONN,
               config.bindsame ? "Connect (file descriptor %d): %s [%s] at [%s]"
                               : "Connect (file descriptor %d): %s [%s]",
               fd, peer_string, peer_ipaddr, sock_ipaddr);
@@ -1576,7 +1591,7 @@ void handle_connection(int fd)
     return;
   }
 
-  if (check_acl(peer_ipaddr, peer_string, config.access_list) <= 0)
+  if (check_acl(proxy, peer_ipaddr, peer_string, config.access_list) <= 0)
   {
     update_stats(STAT_DENIED);
     indicate_http_error(connptr, 403, "Access denied", "detail",
@@ -1586,7 +1601,7 @@ void handle_connection(int fd)
     goto fail;
   }
 
-  if (read_request_line(connptr) < 0)
+  if (read_request_line(proxy, connptr) < 0)
   {
     update_stats(STAT_BADCONN);
     indicate_http_error(connptr, 408, "Timeout", "detail",
@@ -1615,7 +1630,7 @@ void handle_connection(int fd)
    */
   if (get_all_headers(connptr->client_fd, hashofheaders) < 0)
   {
-    log_message(LOG_WARNING, "Could not retrieve all the headers from the client");
+    log_message(proxy->log, LOG_WARNING, "Could not retrieve all the headers from the client");
     indicate_http_error(connptr, 400, "Bad Request", "detail",
                         "Could not retrieve all the headers from "
                         "the client.",
@@ -1665,7 +1680,7 @@ void handle_connection(int fd)
     hashmap_insert(hashofheaders, header->name, header->value, strlen(header->value) + 1);
   }
 
-  request = process_request(connptr, hashofheaders);
+  request = process_request(proxy, connptr, hashofheaders);
   if (!request)
   {
     if (!connptr->show_stats)
@@ -1678,7 +1693,7 @@ void handle_connection(int fd)
   connptr->upstream_proxy = UPSTREAM_HOST(request->host);
   if (connptr->upstream_proxy != NULL)
   {
-    if (connect_to_upstream(connptr, request) < 0)
+    if (connect_to_upstream(proxy, connptr, request) < 0)
     {
       goto fail;
     }
@@ -1695,7 +1710,7 @@ void handle_connection(int fd)
       goto fail;
     }
 
-    log_message(LOG_CONN,
+    log_message(proxy->log, LOG_CONN,
                 "Established connection to host \"%s\" using "
                 "file descriptor %d.",
                 request->host, connptr->server_fd);
@@ -1704,7 +1719,7 @@ void handle_connection(int fd)
       establish_http_connection(connptr, request);
   }
 
-  if (process_client_headers(connptr, hashofheaders) < 0)
+  if (process_client_headers(proxy, connptr, hashofheaders) < 0)
   {
     update_stats(STAT_BADCONN);
     goto fail;
@@ -1712,7 +1727,7 @@ void handle_connection(int fd)
 
   if (!connptr->connect_method || UPSTREAM_IS_HTTP(connptr))
   {
-    if (process_server_headers(connptr) < 0)
+    if (process_server_headers(proxy, connptr) < 0)
     {
       update_stats(STAT_BADCONN);
       goto fail;
@@ -1722,16 +1737,17 @@ void handle_connection(int fd)
   {
     if (send_ssl_response(connptr) < 0)
     {
-      log_message(LOG_ERR, "handle_connection: Could not send SSL greeting "
-                           "to client.");
+      log_message(proxy->log, LOG_ERR,
+                  "handle_connection: Could not send SSL greeting "
+                  "to client.");
       update_stats(STAT_BADCONN);
       goto fail;
     }
   }
 
-  relay_connection(connptr);
+  relay_connection(proxy, connptr);
 
-  log_message(LOG_INFO,
+  log_message(proxy->log, LOG_INFO,
               "Closed connection between local client (fd:%d) "
               "and remote client (fd:%d)",
               connptr->client_fd, connptr->server_fd);
@@ -1745,9 +1761,9 @@ fail:
    * it is still marked for reading and we won't be able
    * to send our data properly.
    */
-  if (get_request_entity(connptr) < 0)
+  if (get_request_entity(proxy, connptr) < 0)
   {
-    log_message(LOG_WARNING, "Could not retrieve request entity");
+    log_message(proxy->log, LOG_WARNING, "Could not retrieve request entity");
     indicate_http_error(connptr, 400, "Bad Request", "detail",
                         "Could not retrieve the request entity "
                         "the client.",

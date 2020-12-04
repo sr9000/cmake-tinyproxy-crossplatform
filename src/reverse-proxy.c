@@ -22,11 +22,11 @@
 
 #include "reverse-proxy.h"
 
-#include "conf.h"
+#include "config/conf.h"
 #include "conns.h"
 #include "html-error.h"
-#include "log.h"
 #include "misc/heap.h"
+#include "subservice/log.h"
 
 /*
  * Add entry to the reversepath list
@@ -111,7 +111,8 @@ void free_reversepath_list(struct reversepath *reverse)
 /*
  * Rewrite the URL for reverse proxying.
  */
-char *reverse_rewrite_url(struct conn_s *connptr, phashmap_t hashofheaders, char *url)
+char *reverse_rewrite_url(pproxy_t proxy, struct conn_s *connptr, phashmap_t hashofheaders,
+                          char *url)
 {
   char *rewrite_url = NULL;
   char *cookie = NULL;
@@ -143,7 +144,7 @@ char *reverse_rewrite_url(struct conn_s *connptr, phashmap_t hashofheaders, char
         strcpy(rewrite_url, reverse->url);
         strcat(rewrite_url, url + 1);
 
-        log_message(LOG_INFO, "Magical tracking cookie says: %s", reverse->path);
+        log_message(proxy->log, LOG_INFO, "Magical tracking cookie says: %s", reverse->path);
       }
     }
   }
@@ -153,7 +154,7 @@ char *reverse_rewrite_url(struct conn_s *connptr, phashmap_t hashofheaders, char
     return NULL;
   }
 
-  log_message(LOG_CONN, "Rewriting URL: %s -> %s", url, rewrite_url);
+  log_message(proxy->log, LOG_CONN, "Rewriting URL: %s -> %s", url, rewrite_url);
 
   /* Store reverse path so that the magical tracking cookie can be set */
   if (config.reversemagic && reverse)

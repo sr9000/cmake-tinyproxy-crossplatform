@@ -19,7 +19,7 @@
  */
 
 #include "connect-ports.h"
-#include "log.h"
+#include "subservice/log.h"
 
 /*
  * Now, this routine adds a "port" to the list.  It also creates the list if

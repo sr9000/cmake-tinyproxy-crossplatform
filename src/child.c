@@ -23,13 +23,14 @@
 #include "main.h"
 
 #include "child.h"
-#include "conf.h"
+#include "config/conf.h"
 #include "daemon.h"
+#include "debugtrace.h"
 #include "filter.h"
-#include "log.h"
 #include "misc/heap.h"
 #include "reqs.h"
 #include "sock.h"
+#include "subservice/log.h"
 #include "utils.h"
 
 static plist_t listen_fds;
@@ -48,6 +49,7 @@ struct child_s
   pid_t tid;
   unsigned int connects;
   enum child_status_t status;
+  pproxy_t proxy;
 };
 
 /*
@@ -169,22 +171,22 @@ static void _child_lock_release(void)
 #endif
 /* END OF LOCKING SECTION */
 
-#define SERVER_INC()                                                                               \
+#define SERVER_INC(l)                                                                              \
   do                                                                                               \
   {                                                                                                \
     SERVER_COUNT_LOCK();                                                                           \
     ++(*servers_waiting);                                                                          \
-    DEBUG2("INC: servers_waiting: %d", *servers_waiting);                                          \
+    DEBUG2(l, "INC: servers_waiting: %d", *servers_waiting);                                       \
     SERVER_COUNT_UNLOCK();                                                                         \
   } while (0)
 
-#define SERVER_DEC()                                                                               \
+#define SERVER_DEC(l)                                                                              \
   do                                                                                               \
   {                                                                                                \
     SERVER_COUNT_LOCK();                                                                           \
     assert(*servers_waiting > 0);                                                                  \
     --(*servers_waiting);                                                                          \
-    DEBUG2("DEC: servers_waiting: %d", *servers_waiting);                                          \
+    DEBUG2(l, "DEC: servers_waiting: %d", *servers_waiting);                                       \
     SERVER_COUNT_UNLOCK();                                                                         \
   } while (0)
 
@@ -193,6 +195,8 @@ static void _child_lock_release(void)
  */
 short int child_configure(child_config_t type, unsigned int val)
 {
+  TRACECALLEX(child_configure, "type = %d, val = %u", type, val);
+
   switch (type)
   {
   case CHILD_MAXCLIENTS:
@@ -211,11 +215,10 @@ short int child_configure(child_config_t type, unsigned int val)
     child_config.maxrequestsperchild = val;
     break;
   default:
-    DEBUG2("Invalid type (%d)", type);
-    return -1;
+    TRACERETURNEX(-1, "Invalid type (%d)", type);
   }
 
-  return 0;
+  TRACERETURN(0);
 }
 
 /**
@@ -224,18 +227,7 @@ short int child_configure(child_config_t type, unsigned int val)
 #ifndef MINGW
 static void child_sighup_handler(int sig)
 {
-  if (sig == SIGHUP)
-  {
-    /*
-     * Ignore the return value of reload_config for now.
-     * This should actually be handled somehow...
-     */
-    reload_config();
-
-#ifdef FILTER_ENABLE
-    filter_reload();
-#endif /* FILTER_ENABLE */
-  }
+  // todo: delete me
 }
 #endif /* MINGW */
 
@@ -261,7 +253,7 @@ static
   cliaddr = (struct sockaddr *)safemalloc(sizeof(struct sockaddr_storage));
   if (!cliaddr)
   {
-    log_message(LOG_CRIT, "Could not allocate memory for child address.");
+    log_message(ptr->proxy->log, LOG_CRIT, "Could not allocate memory for child address.");
     exit(0);
   }
 
@@ -282,7 +274,7 @@ static
     ret = socket_nonblocking(*fd);
     if (ret != 0)
     {
-      log_message(LOG_ERR,
+      log_message(ptr->proxy->log, LOG_ERR,
                   "Failed to set the listening "
                   "socket %d to non-blocking: %s",
                   fd, strerror(errno));
@@ -308,13 +300,14 @@ static
       {
         continue;
       }
-      log_message(LOG_ERR, "error calling select: %s", strerror(errno));
+      log_message(ptr->proxy->log, LOG_ERR, "error calling select: %s", strerror(errno));
       exit(1);
     }
     else if (ret == 0)
     {
-      log_message(LOG_WARNING, "Strange: select returned 0 "
-                               "but we did not specify a timeout...");
+      log_message(ptr->proxy->log, LOG_WARNING,
+                  "Strange: select returned 0 "
+                  "but we did not specify a timeout...");
       continue;
     }
 
@@ -335,15 +328,16 @@ static
 
     if (listenfd == -1)
     {
-      log_message(LOG_WARNING, "Strange: None of our listen "
-                               "fds was readable after select");
+      log_message(ptr->proxy->log, LOG_WARNING,
+                  "Strange: None of our listen "
+                  "fds was readable after select");
       continue;
     }
 
     ret = socket_blocking(listenfd);
     if (ret != 0)
     {
-      log_message(LOG_ERR,
+      log_message(ptr->proxy->log, LOG_ERR,
                   "Failed to set listening "
                   "socket %d to blocking for accept: %s",
                   listenfd, strerror(errno));
@@ -376,24 +370,25 @@ static
      */
     if (connfd < 0)
     {
-      log_message(LOG_ERR, "Accept returned an error (%s) ... retrying.", strerror(errno));
+      log_message(ptr->proxy->log, LOG_ERR, "Accept returned an error (%s) ... retrying.",
+                  strerror(errno));
       continue;
     }
 
     ptr->status = T_CONNECTED;
 
-    SERVER_DEC();
+    SERVER_DEC(ptr->proxy->log);
 
-    handle_connection(connfd);
+    handle_connection(ptr->proxy, connfd);
     ptr->connects++;
 
     if (child_config.maxrequestsperchild != 0)
     {
-      DEBUG2("%u connections so far...", ptr->connects);
+      DEBUG2(ptr->proxy->log, "%u connections so far...", ptr->connects);
 
       if (ptr->connects == child_config.maxrequestsperchild)
       {
-        log_message(LOG_NOTICE,
+        log_message(ptr->proxy->log, LOG_NOTICE,
                     "Child has reached MaxRequestsPerChild (%u). "
                     "Killing child.",
                     ptr->connects);
@@ -408,7 +403,7 @@ static
        * There are too many spare children, kill ourself
        * off.
        */
-      log_message(LOG_NOTICE,
+      log_message(ptr->proxy->log, LOG_NOTICE,
                   "Waiting servers (%d) exceeds MaxSpareServers (%d). "
                   "Killing child.",
                   *servers_waiting, child_config.maxspareservers);
@@ -421,7 +416,7 @@ static
       SERVER_COUNT_UNLOCK();
     }
 
-    SERVER_INC();
+    SERVER_INC(ptr->proxy->log);
   }
 
   ptr->status = T_EMPTY;
@@ -483,7 +478,7 @@ static pid_t child_make(struct child_s *ptr)
 /*
  * Create a pool of children to handle incoming connections
  */
-short int child_pool_create(void)
+short int child_pool_create(pproxy_t proxy)
 {
   unsigned int i;
 
@@ -494,15 +489,17 @@ short int child_pool_create(void)
    */
   if (child_config.maxclients == 0)
   {
-    log_message(LOG_ERR, "child_pool_create: \"MaxClients\" must be "
-                         "greater than zero.");
+    log_message(proxy->log, LOG_ERR,
+                "child_pool_create: \"MaxClients\" must be "
+                "greater than zero.");
     return -1;
   }
 
   if (child_config.startservers == 0)
   {
-    log_message(LOG_ERR, "child_pool_create: \"StartServers\" must be "
-                         "greater than zero.");
+    log_message(proxy->log, LOG_ERR,
+                "child_pool_create: \"StartServers\" must be "
+                "greater than zero.");
     return -1;
   }
 
@@ -510,14 +507,14 @@ short int child_pool_create(void)
       (struct child_s *)calloc_shared_memory(child_config.maxclients, sizeof(struct child_s));
   if (!child_ptr)
   {
-    log_message(LOG_ERR, "Could not allocate memory for children.");
+    log_message(proxy->log, LOG_ERR, "Could not allocate memory for children.");
     return -1;
   }
 
   servers_waiting = (unsigned int *)malloc_shared_memory(sizeof(unsigned int));
   if (servers_waiting == MAP_FAILED)
   {
-    log_message(LOG_ERR, "Could not allocate memory for child counting.");
+    log_message(proxy->log, LOG_ERR, "Could not allocate memory for child counting.");
     return -1;
   }
   *servers_waiting = 0;
@@ -530,7 +527,7 @@ short int child_pool_create(void)
 
   if (child_config.startservers > child_config.maxclients)
   {
-    log_message(LOG_WARNING,
+    log_message(proxy->log, LOG_WARNING,
                 "Can not start more than \"MaxClients\" servers. "
                 "Starting %u servers instead.",
                 child_config.maxclients);
@@ -545,24 +542,26 @@ short int child_pool_create(void)
 
   for (i = 0; i != child_config.startservers; i++)
   {
-    DEBUG2("Trying to create child %d of %d", i + 1, child_config.startservers);
+    DEBUG2(proxy->log, "Trying to create child %d of %d", i + 1, child_config.startservers);
     child_ptr[i].status = T_WAITING;
+    child_ptr[i].proxy = proxy;
     child_ptr[i].tid = child_make(&child_ptr[i]);
 
     if (child_ptr[i].tid < 0)
     {
-      log_message(LOG_WARNING, "Could not create child number %d of %d", i,
+      log_message(proxy->log, LOG_WARNING, "Could not create child number %d of %d", i,
                   child_config.startservers);
       return -1;
     }
     else
     {
-      log_message(LOG_INFO, "Creating child number %d of %d ...", i + 1, child_config.startservers);
-      SERVER_INC();
+      log_message(proxy->log, LOG_INFO, "Creating child number %d of %d ...", i + 1,
+                  child_config.startservers);
+      SERVER_INC(proxy->log);
     }
   }
 
-  log_message(LOG_INFO, "Finished creating all children.");
+  log_message(proxy->log, LOG_INFO, "Finished creating all children.");
 
   return 0;
 }
@@ -571,7 +570,7 @@ short int child_pool_create(void)
  * Keep the proper number of servers running. This is the birth of the
  * servers. It monitors this at least once a second.
  */
-void child_main_loop(void)
+void child_main_loop(pproxy_t proxy)
 {
   unsigned int i;
 
@@ -584,7 +583,7 @@ void child_main_loop(void)
     SERVER_COUNT_LOCK();
     if (*servers_waiting < child_config.minspareservers)
     {
-      log_message(LOG_NOTICE,
+      log_message(proxy->log, LOG_NOTICE,
                   "Waiting servers (%d) is less than MinSpareServers (%d). "
                   "Creating new child.",
                   *servers_waiting, child_config.minspareservers);
@@ -596,10 +595,11 @@ void child_main_loop(void)
         if (child_ptr[i].status == T_EMPTY)
         {
           child_ptr[i].status = T_WAITING;
+          child_ptr[i].proxy = proxy;
           child_ptr[i].tid = child_make(&child_ptr[i]);
           if (child_ptr[i].tid < 0)
           {
-            log_message(LOG_NOTICE, "Could not create child");
+            log_message(proxy->log, LOG_NOTICE, "Could not create child");
 
             child_ptr[i].status = T_EMPTY;
             break;
@@ -626,14 +626,14 @@ void child_main_loop(void)
        * Ignore the return value of reload_config for now.
        * This should actually be handled somehow...
        */
-      reload_config();
+      // todo: delete this branch
 
 #ifdef FILTER_ENABLE
       filter_reload();
 #endif /* FILTER_ENABLE */
 
       /* propagate filter reload to all children */
-      child_kill_children(SIGHUP);
+      child_kill_children(proxy, SIGHUP);
 
       received_sighup = FALSE;
     }
@@ -644,7 +644,7 @@ void child_main_loop(void)
 /*
  * Go through all the non-empty children and cancel them.
  */
-void child_kill_children(int sig)
+void child_kill_children(pproxy_t proxy, int sig)
 {
   unsigned int i;
 #ifdef MINGW
@@ -664,7 +664,7 @@ void child_kill_children(int sig)
                          FORMAT_MESSAGE_IGNORE_INSERTS,
                      NULL, GetLastError(), MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
                      (LPSTR)&lpMsgBuf, 0, NULL);
-      log_message(LOG_ERR, "Failed to close child thread: %d", lpMsgBuf);
+      log_message(proxy->log, LOG_ERR, "Failed to close child thread: %d", lpMsgBuf);
       exit(EX_SOFTWARE);
     }
     if (!TerminateThread(hchl, sig))
@@ -673,7 +673,7 @@ void child_kill_children(int sig)
                          FORMAT_MESSAGE_IGNORE_INSERTS,
                      NULL, GetLastError(), MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
                      (LPSTR)&lpMsgBuf, 0, NULL);
-      log_message(LOG_ERR, "Failed to close child thread: %d", lpMsgBuf);
+      log_message(proxy->log, LOG_ERR, "Failed to close child thread: %d", lpMsgBuf);
       exit(EX_SOFTWARE);
     }
 
@@ -687,7 +687,7 @@ void child_kill_children(int sig)
 /**
  * Listen on the various configured interfaces
  */
-int child_listening_sockets(plist_t listen_addrs, uint16_t port)
+int child_listening_sockets(pproxy_t proxy, plist_t listen_addrs, uint16_t port)
 {
   int ret;
   ssize_t i;
@@ -699,8 +699,9 @@ int child_listening_sockets(plist_t listen_addrs, uint16_t port)
     listen_fds = list_create();
     if (listen_fds == NULL)
     {
-      log_message(LOG_ERR, "Could not create the list "
-                           "of listening fds");
+      log_message(proxy->log, LOG_ERR,
+                  "Could not create the list "
+                  "of listening fds");
       return -1;
     }
   }
@@ -711,7 +712,7 @@ int child_listening_sockets(plist_t listen_addrs, uint16_t port)
      * no Listen directive:
      * listen on the wildcard address(es)
      */
-    ret = listen_sock(NULL, port, listen_fds);
+    ret = listen_sock(proxy, NULL, port, listen_fds);
     return ret;
   }
 
@@ -722,11 +723,11 @@ int child_listening_sockets(plist_t listen_addrs, uint16_t port)
     addr = (char *)list_getentry(listen_addrs, i, NULL);
     if (addr == NULL)
     {
-      log_message(LOG_WARNING, "got NULL from listen_addrs - skipping");
+      log_message(proxy->log, LOG_WARNING, "got NULL from listen_addrs - skipping");
       continue;
     }
 
-    ret = listen_sock(addr, port, listen_fds);
+    ret = listen_sock(proxy, addr, port, listen_fds);
     if (ret != 0)
     {
       return ret;

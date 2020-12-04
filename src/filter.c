@@ -24,11 +24,11 @@
 
 #include "main.h"
 
-#include "conf.h"
+#include "config/conf.h"
 #include "filter.h"
-#include "log.h"
 #include "misc/heap.h"
 #include "reqs.h"
+#include "subservice/log.h"
 
 #define FILTER_BUFFER_LEN (512)
 

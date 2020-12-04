@@ -22,6 +22,7 @@
 
 #include "misc/hashmap.h"
 #include "misc/list.h"
+#include "conf_log.h"
 
 typedef struct
 {
@@ -32,8 +33,9 @@ typedef struct
 // main configuration structure
 struct config_s
 {
+  conf_log_t log;
+
   plist_t basicauth_list;
-  char *logf_name;
   char *config_file;
   unsigned int port;
   char *stathost;
@@ -90,7 +92,7 @@ struct config_s
   plist_t add_headers;
 };
 
-extern int reload_config_file(const char *config_fname, struct config_s *conf,
+extern int try_load_config_file(const char *config_fname, struct config_s *conf,
                               struct config_s *defaults);
 
 int config_compile_regex(void);

@@ -27,11 +27,11 @@
 
 #include "main.h"
 
-#include "conf.h"
+#include "config/conf.h"
 #include "html-error.h"
-#include "log.h"
 #include "misc/heap.h"
 #include "stats.h"
+#include "subservice/log.h"
 #include "utils.h"
 
 struct stat_s

@@ -21,9 +21,8 @@
 #ifndef TINYPROXY_LOG_H
 #define TINYPROXY_LOG_H
 
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
+#include "config/conf_log.h"
+#include "log_levels.h"
 
 /*
  * Okay, I have modelled the levels for logging off the syslog() interface.
@@ -86,26 +85,31 @@
 // DEBUG1("There was a major problem");
 // DEBUG2("There was a big problem: %s in connptr %p", "hello", connptr);
 #ifndef NDEBUG
-#define DEBUG1(x)       log_message(LOG_DEBUG, "[%s:%d] " x, __FILE__, __LINE__)
-#define DEBUG2(x, y...) log_message(LOG_DEBUG, "[%s:%d] " x, __FILE__, __LINE__, ##y)
+#define DEBUG1(l, x)       log_message(l, LOG_DEBUG, "[%s:%d] " x, __FILE__, __LINE__)
+#define DEBUG2(l, x, y...) log_message(l, LOG_DEBUG, "[%s:%d] " x, __FILE__, __LINE__, ##y)
 #else
-#define DEBUG1(x)                                                                                  \
+#define DEBUG1(l, x)                                                                               \
   do                                                                                               \
   {                                                                                                \
   } while (0)
-#define DEBUG2(x, y...)                                                                            \
+#define DEBUG2(l, x, y...)                                                                         \
   do                                                                                               \
   {                                                                                                \
   } while (0)
 #endif
 
-extern int open_log_file(const char *file);
-extern void close_log_file(void);
+typedef struct log_s *plog_t;
 
-extern void log_message(int level, const char *fmt, ...);
-extern void set_log_level(int level);
+extern plog_t create_default_log();
+extern plog_t create_log(pconf_log_t conf_log);
+extern void delete_log(plog_t *log);
 
-extern int setup_logging(void);
-extern void shutdown_logging(void);
+extern int open_log_file(plog_t log);
+extern void close_log_file(plog_t log);
+
+extern void log_message(plog_t log, int level, const char *fmt, ...);
+
+extern int activate_logging(plog_t log);
+extern void shutdown_logging(plog_t *pplog);
 
 #endif // TINYPROXY_LOG_H

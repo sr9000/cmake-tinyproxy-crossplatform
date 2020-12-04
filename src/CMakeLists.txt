@@ -21,20 +21,21 @@ set(TINYPROXY_SOURCES
         basicauth.c
         buffer.c
         child.c
-        conf.c
+        config/conf.c
+        config/conf_log.c
         connect-ports.c
         conns.c
         daemon.c
         html-error.c
         http-message.c
-        log.c
+        subservice/log.c
         network.c
         reqs.c
         sock.c
         stats.c
         upstream.c
         utils.c
-        tinyproxy.c ../include/tinyproxy.h)
+        tinyproxy.c)
 
 if (OPT_FILTER_ENABLE)
     list(APPEND TINYPROXY_SOURCES filter.c)

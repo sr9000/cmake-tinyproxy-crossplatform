@@ -34,16 +34,18 @@
 #include "anonymous.h"
 #include "buffer.h"
 #include "child.h"
-#include "conf.h"
+#include "config/conf.h"
+#include "config/conf_log.h"
 #include "daemon.h"
 #include "debugtrace.h"
 #include "filter.h"
-#include "log.h"
 #include "misc/file_api.h"
 #include "misc/heap.h"
 #include "reqs.h"
 #include "sock.h"
 #include "stats.h"
+#include "subservice/log.h"
+#include "tinyproxy.h"
 #include "utils.h"
 
 /*
@@ -210,81 +212,6 @@ static int process_cmdline(int argc, char **argv, struct config_s *conf)
   TRACERETURN(0);
 }
 
-/**
- * change_user:
- * @program: The name of the program. Pass argv[0] here.
- *
- * This function tries to change UID and GID to the ones specified in
- * the config file. This function is typically called during
- * initialization when the effective user is root.
- **/
-#ifndef MINGW
-static void change_user(const char *program)
-{
-  if (config.group && strlen(config.group) > 0)
-  {
-    int gid = get_id(config.group);
-
-    if (gid < 0)
-    {
-      struct group *thisgroup = getgrnam(config.group);
-
-      if (!thisgroup)
-      {
-        fprintf(stderr, "%s: Unable to find group \"%s\".\n", program, config.group);
-        exit(EX_NOUSER);
-      }
-
-      gid = thisgroup->gr_gid;
-    }
-
-    if (setgid(gid) < 0)
-    {
-      fprintf(stderr, "%s: Unable to change to group \"%s\".\n", program, config.group);
-      exit(EX_NOPERM);
-    }
-
-#ifdef HAVE_SETGROUPS
-    /* Drop all supplementary groups, otherwise these are inherited from the
-     * calling process */
-    if (setgroups(0, NULL) < 0)
-    {
-      fprintf(stderr, "%s: Unable to drop supplementary groups.\n", program);
-      exit(EX_NOPERM);
-    }
-#endif
-
-    log_message(LOG_INFO, "Now running as group \"%s\".", config.group);
-  }
-
-  if (config.user && strlen(config.user) > 0)
-  {
-    int uid = get_id(config.user);
-
-    if (uid < 0)
-    {
-      struct passwd *thisuser = getpwnam(config.user);
-
-      if (!thisuser)
-      {
-        fprintf(stderr, "%s: Unable to find user \"%s\".\n", program, config.user);
-        exit(EX_NOUSER);
-      }
-
-      uid = thisuser->pw_uid;
-    }
-
-    if (setuid(uid) < 0)
-    {
-      fprintf(stderr, "%s: Unable to change to user \"%s\".\n", program, config.user);
-      exit(EX_NOPERM);
-    }
-
-    log_message(LOG_INFO, "Now running as user \"%s\".", config.user);
-  }
-}
-#endif /* MINGW */
-
 static int initialize_config_defaults(struct config_s *conf)
 {
   TRACECALLEX(initialize_config_defaults, "config_s *conf = %p", (void *)conf);
@@ -309,32 +236,12 @@ static int initialize_config_defaults(struct config_s *conf)
 
   conf->errorpages = NULL;
   conf->idletimeout = MAX_IDLE_TIME;
-  conf->logf_name = NULL;
   conf->pidpath = NULL;
 
+  // setup log
+  initialize_conf_log_defaults(&conf->log);
+
   TRACERETURN(0);
-}
-
-/**
- * convenience wrapper around reload_config_file
- * that also re-initializes logging.
- */
-int reload_config(void)
-{
-  int ret;
-
-  shutdown_logging();
-
-  ret = reload_config_file(config_defaults.config_file, &config, &config_defaults);
-  if (ret != 0)
-  {
-    goto done;
-  }
-
-  ret = setup_logging();
-
-done:
-  return ret;
 }
 
 #ifdef HAVE_WSOCK32
@@ -355,6 +262,20 @@ int initialize_winsock()
 }
 #endif
 
+int init_proxy_log(pproxy_t proxy, struct config_s *config)
+{
+  assert(proxy != NULL);
+  assert(config != NULL);
+  proxy->log = create_log(&config->log);
+
+  if (proxy->log == NULL)
+  {
+    return -1;
+  }
+
+  return activate_logging(proxy->log);
+}
+
 int main(int argc, char **argv)
 {
   TRACECALLEX(main, "%d, %p", argc, (void *)argv);
@@ -368,8 +289,6 @@ int main(int argc, char **argv)
    * of glibc so that mkstemp() doesn't make us vulnerable.
    */
   umask(0177);
-
-  log_message(LOG_INFO, "Initializing " PACKAGE " ...");
 
   if (config_compile_regex())
   {
@@ -396,12 +315,16 @@ int main(int argc, char **argv)
     }
   }
 
-  if (reload_config_file(config_defaults.config_file, &config, &config_defaults))
+  if (try_load_config_file(config_defaults.config_file, &config, &config_defaults))
   {
     exit(EX_SOFTWARE);
   }
 
-  // todo: init log
+  proxy_t proxy;
+  if (init_proxy_log(&proxy, &config))
+  {
+    exit(EX_SOFTWARE);
+  }
 
   init_stats();
 
@@ -421,9 +344,9 @@ int main(int argc, char **argv)
 #endif /* FILTER_ENABLE */
 
   /* Start listening on the selected port. */
-  if (child_listening_sockets(config.listen_addrs, config.port) < 0)
+  if (child_listening_sockets(&proxy, config.listen_addrs, config.port) < 0)
   {
-    fprintf(stderr, "%s: Could not create listening sockets.\n", argv[0]);
+    log_message(proxy.log, LOG_ERR, "%s: Could not create listening sockets.\n", argv[0]);
     exit(EX_OSERR);
   }
 
@@ -432,84 +355,72 @@ int main(int argc, char **argv)
   {
     if (pidfile_create(config.pidpath) < 0)
     {
-      fprintf(stderr, "%s: Could not create PID file.\n", argv[0]);
+      log_message(proxy.log, LOG_ERR, "%s: Could not create PID file.\n", argv[0]);
       exit(EX_OSERR);
     }
   }
 
-  /* Switch to a different user if we're running as root */
-#ifndef MINGW
-  if (geteuid() == 0)
-    change_user(argv[0]);
-  else
-    log_message(LOG_WARNING, "Not running as root, so not changing UID/GID.");
-#endif /* MINGW */
-
-  /* Create log file after we drop privileges */
-  if (setup_logging())
+  if (child_pool_create(&proxy) < 0)
   {
-    exit(EX_SOFTWARE);
-  }
-
-  if (child_pool_create() < 0)
-  {
-    fprintf(stderr, "%s: Could not create the pool of children.\n", argv[0]);
+    log_message(proxy.log, LOG_ERR, "%s: Could not create the pool of children.\n", argv[0]);
     exit(EX_SOFTWARE);
   }
 
   /* These signals are only for the parent process. */
-  log_message(LOG_INFO, "Setting the various signals.");
+  log_message(proxy.log, LOG_INFO, "Setting the various signals.");
 
   if (set_signal_handler(SIGTERM, takesig) == SIG_ERR)
   {
-    fprintf(stderr, "%s: Could not set the \"SIGTERM\" signal.\n", argv[0]);
+    log_message(proxy.log, LOG_ERR, "%s: Could not set the \"SIGTERM\" signal.\n", argv[0]);
     exit(EX_OSERR);
   }
 
 #ifndef MINGW
   if (set_signal_handler(SIGCHLD, takesig) == SIG_ERR)
   {
-    fprintf(stderr, "%s: Could not set the \"SIGCHLD\" signal.\n", argv[0]);
+    log_message(proxy.log, LOG_ERR, "%s: Could not set the \"SIGCHLD\" signal.\n", argv[0]);
     exit(EX_OSERR);
   }
 
   if (set_signal_handler(SIGHUP, takesig) == SIG_ERR)
   {
-    fprintf(stderr, "%s: Could not set the \"SIGHUP\" signal.\n", argv[0]);
+    log_message(proxy.log, LOG_ERR, "%s: Could not set the \"SIGHUP\" signal.\n", argv[0]);
     exit(EX_OSERR);
   }
 
   if (set_signal_handler(SIGPIPE, SIG_IGN) == SIG_ERR)
   {
-    fprintf(stderr, "%s: Could not set the \"SIGPIPE\" signal.\n", argv[0]);
+    log_message(proxy.log, LOG_ERR, "%s: Could not set the \"SIGPIPE\" signal.\n", argv[0]);
     exit(EX_OSERR);
   }
 #endif /* MINGW */
 
   /* Start the main loop */
-  log_message(LOG_INFO, "Starting main loop. Accepting connections.");
+  log_message(proxy.log, LOG_INFO, "Starting main loop. Accepting connections.");
 
-  child_main_loop();
+  child_main_loop(&proxy);
 
-  log_message(LOG_INFO, "Shutting down.");
+  log_message(proxy.log, LOG_INFO, "Shutting down.");
 
-  child_kill_children(SIGTERM);
+  child_kill_children(proxy, SIGTERM);
 
   child_close_sock();
 
   /* Remove the PID file */
   if (config.pidpath != NULL && unlink(config.pidpath) < 0)
   {
-    log_message(LOG_WARNING, "Could not remove PID file \"%s\": %s.", config.pidpath,
+    log_message(proxy.log, LOG_WARNING, "Could not remove PID file \"%s\": %s.", config.pidpath,
                 strerror(errno));
   }
 
 #ifdef FILTER_ENABLE
   if (config.filter)
+  {
     filter_destroy();
+  }
 #endif /* FILTER_ENABLE */
 
-  shutdown_logging();
+  shutdown_logging(&proxy.log);
 
   return EXIT_SUCCESS;
 }

@@ -26,14 +26,15 @@
 #define MAXLINE         (1024 * 4)
 
 #include "misc/list.h"
+#include "tinyproxy.h"
 
 extern int opensock(const char *host, int port, const char *bind_to);
-extern int listen_sock(const char *addr, uint16_t port, plist_t listen_fds);
+extern int listen_sock(pproxy_t proxy, const char *addr, uint16_t port, plist_t listen_fds);
 
 extern int socket_nonblocking(int sock);
 extern int socket_blocking(int sock);
 
-extern int getsock_ip(int fd, char *ipaddr);
+extern int getsock_ip(pproxy_t proxy, int fd, char *ipaddr);
 extern int getpeer_information(int fd, char *ipaddr, char *string_addr);
 
 #endif // TINYPROXY_SOCK_H

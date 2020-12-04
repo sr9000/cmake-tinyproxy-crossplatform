@@ -22,6 +22,7 @@
 #include <inttypes.h>
 
 #include "misc/list.h"
+#include "tinyproxy.h"
 
 typedef enum
 {
@@ -32,11 +33,11 @@ typedef enum
   CHILD_MAXREQUESTSPERCHILD
 } child_config_t;
 
-extern short int child_pool_create(void);
-extern int child_listening_sockets(plist_t listen_addrs, uint16_t port);
+extern short int child_pool_create(pproxy_t proxy);
+extern int child_listening_sockets(pproxy_t proxy, plist_t listen_addrs, uint16_t port);
 extern void child_close_sock(void);
-extern void child_main_loop(void);
-extern void child_kill_children(int sig);
+extern void child_main_loop(pproxy_t proxy);
+extern void child_kill_children(pproxy_t proxy, int sig);
 
 extern short int child_configure(child_config_t type, unsigned int val);
 

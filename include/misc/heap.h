@@ -24,6 +24,8 @@
 
 // the following is to allow for better memory checking.
 #ifdef NDEBUG
+#include <string.h>
+
 #define safecalloc(x, y)  calloc(x, y)
 #define safemalloc(x)     malloc(x)
 #define saferealloc(x, y) realloc(x, y)

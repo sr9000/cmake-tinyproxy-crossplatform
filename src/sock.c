@@ -26,13 +26,14 @@
  */
 
 #include "main.h"
+#include <child.h>
 
-#include "conf.h"
-#include "log.h"
+#include "config/conf.h"
 #include "misc/heap.h"
 #include "misc/text.h"
 #include "network.h"
 #include "sock.h"
+#include "subservice/log.h"
 
 /*
  * Bind the given socket to the supplied address.  The socket is
@@ -190,7 +191,7 @@ typedef const int *setsockopt_on_t;
  *
  * Return the file descriptor upon success, -1 upon error.
  */
-static int listen_on_one_socket(struct addrinfo *ad)
+static int listen_on_one_socket(pproxy_t proxy, struct addrinfo *ad)
 {
   int listenfd;
   int ret;
@@ -201,11 +202,11 @@ static int listen_on_one_socket(struct addrinfo *ad)
   ret = getnameinfo(ad->ai_addr, ad->ai_addrlen, numerichost, NI_MAXHOST, NULL, 0, flags);
   if (ret != 0)
   {
-    log_message(LOG_ERR, "error calling getnameinfo: %s", gai_strerror(errno));
+    log_message(proxy->log, LOG_ERR, "error calling getnameinfo: %s", gai_strerror(errno));
     return -1;
   }
 
-  log_message(LOG_INFO,
+  log_message(proxy->log, LOG_INFO,
               "trying to listen on host[%s], family[%d], "
               "socktype[%d], proto[%d]",
               numerichost, ad->ai_family, ad->ai_socktype, ad->ai_protocol);
@@ -213,14 +214,14 @@ static int listen_on_one_socket(struct addrinfo *ad)
   listenfd = socket(ad->ai_family, ad->ai_socktype, ad->ai_protocol);
   if (listenfd == -1)
   {
-    log_message(LOG_ERR, "socket() failed: %s", strerror(errno));
+    log_message(proxy->log, LOG_ERR, "socket() failed: %s", strerror(errno));
     return -1;
   }
 
   ret = setsockopt(listenfd, SOL_SOCKET, SO_REUSEADDR, (setsockopt_on_t)&on, sizeof(on));
   if (ret != 0)
   {
-    log_message(LOG_ERR, "setsockopt failed to set SO_REUSEADDR: %s", strerror(errno));
+    log_message(proxy->log, LOG_ERR, "setsockopt failed to set SO_REUSEADDR: %s", strerror(errno));
     closesocket(listenfd);
     return -1;
   }
@@ -230,7 +231,7 @@ static int listen_on_one_socket(struct addrinfo *ad)
     ret = setsockopt(listenfd, IPPROTO_IPV6, IPV6_V6ONLY, (setsockopt_on_t)&on, sizeof(on));
     if (ret != 0)
     {
-      log_message(LOG_ERR, "setsockopt failed to set IPV6_V6ONLY: %s", strerror(errno));
+      log_message(proxy->log, LOG_ERR, "setsockopt failed to set IPV6_V6ONLY: %s", strerror(errno));
       closesocket(listenfd);
       return -1;
     }
@@ -239,7 +240,7 @@ static int listen_on_one_socket(struct addrinfo *ad)
   ret = bind(listenfd, ad->ai_addr, ad->ai_addrlen);
   if (ret != 0)
   {
-    log_message(LOG_ERR, "bind failed: %s", strerror(errno));
+    log_message(proxy->log, LOG_ERR, "bind failed: %s", strerror(errno));
     closesocket(listenfd);
     return -1;
   }
@@ -247,12 +248,12 @@ static int listen_on_one_socket(struct addrinfo *ad)
   ret = listen(listenfd, MAXLISTEN);
   if (ret != 0)
   {
-    log_message(LOG_ERR, "listen failed: %s", strerror(errno));
+    log_message(proxy->log, LOG_ERR, "listen failed: %s", strerror(errno));
     closesocket(listenfd);
     return -1;
   }
 
-  log_message(LOG_INFO, "listening on fd [%d]", listenfd);
+  log_message(proxy->log, LOG_INFO, "listening on fd [%d]", listenfd);
 
   return listenfd;
 }
@@ -267,7 +268,7 @@ static int listen_on_one_socket(struct addrinfo *ad)
  * Upon success, the listen-fds are added to the listen_fds list
  * and 0 is returned. Upon error,  -1 is returned.
  */
-int listen_sock(const char *addr, uint16_t port, plist_t listen_fds)
+int listen_sock(pproxy_t proxy, const char *addr, uint16_t port, plist_t listen_fds)
 {
   struct addrinfo hints, *result, *rp;
   char portstr[6];
@@ -276,7 +277,8 @@ int listen_sock(const char *addr, uint16_t port, plist_t listen_fds)
   assert(port > 0);
   assert(listen_fds != NULL);
 
-  log_message(LOG_INFO, "listen_sock called with addr = '%s'", addr == NULL ? "(NULL)" : addr);
+  log_message(proxy->log, LOG_INFO, "listen_sock called with addr = '%s'",
+              addr == NULL ? "(NULL)" : addr);
 
   memset(&hints, 0, sizeof(struct addrinfo));
   hints.ai_family = AF_UNSPEC;
@@ -287,7 +289,7 @@ int listen_sock(const char *addr, uint16_t port, plist_t listen_fds)
 
   if (getaddrinfo(addr, portstr, &hints, &result) != 0)
   {
-    log_message(LOG_ERR, "Unable to getaddrinfo() because of %s", strerror(errno));
+    log_message(proxy->log, LOG_ERR, "Unable to getaddrinfo() because of %s", strerror(errno));
     return -1;
   }
 
@@ -295,7 +297,7 @@ int listen_sock(const char *addr, uint16_t port, plist_t listen_fds)
   {
     int listenfd;
 
-    listenfd = listen_on_one_socket(rp);
+    listenfd = listen_on_one_socket(proxy, rp);
     if (listenfd == -1)
     {
       continue;
@@ -318,7 +320,7 @@ int listen_sock(const char *addr, uint16_t port, plist_t listen_fds)
 
   if (ret != 0)
   {
-    log_message(LOG_ERR, "Unable to listen on any address.");
+    log_message(proxy->log, LOG_ERR, "Unable to listen on any address.");
   }
 
   freeaddrinfo(result);
@@ -329,7 +331,7 @@ int listen_sock(const char *addr, uint16_t port, plist_t listen_fds)
 /*
  * Takes a socket descriptor and returns the socket's IP address.
  */
-int getsock_ip(int fd, char *ipaddr)
+int getsock_ip(pproxy_t proxy, int fd, char *ipaddr)
 {
   struct sockaddr_storage name;
   socklen_t namelen = sizeof(name);
@@ -338,7 +340,7 @@ int getsock_ip(int fd, char *ipaddr)
 
   if (getsockname(fd, (struct sockaddr *)&name, &namelen) != 0)
   {
-    log_message(LOG_ERR, "getsock_ip: getsockname() error: %s", strerror(errno));
+    log_message(proxy->log, LOG_ERR, "getsock_ip: getsockname() error: %s", strerror(errno));
     return -1;
   }
 

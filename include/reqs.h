@@ -21,6 +21,7 @@
 #define TINYPROXY_REQS_H
 
 #include "common.h"
+#include "tinyproxy.h"
 
 // port constants for HTTP (80) and SSL (443)
 #define HTTP_PORT     80
@@ -38,6 +39,6 @@ struct request_s
   char *path;
 };
 
-extern void handle_connection(int fd);
+extern void handle_connection(pproxy_t proxy, int fd);
 
 #endif // TINYPROXY_REQS_H

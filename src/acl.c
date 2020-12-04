@@ -24,11 +24,11 @@
 #include "main.h"
 
 #include "acl.h"
-#include "log.h"
 #include "misc/heap.h"
 #include "misc/list.h"
 #include "network.h"
 #include "sock.h"
+#include "subservice/log.h"
 
 #include <limits.h>
 
@@ -345,7 +345,7 @@ static int check_numeric_acl(const struct acl_s *acl, const char *ip)
  *     1 if allowed
  *     0 if denied
  */
-int check_acl(const char *ip, const char *host, plist_t access_list)
+int check_acl(pproxy_t proxy, const char *ip, const char *host, plist_t access_list)
 {
   struct acl_s *acl;
   int perm = 0;
@@ -389,7 +389,7 @@ int check_acl(const char *ip, const char *host, plist_t access_list)
   /*
    * Deny all connections by default.
    */
-  log_message(LOG_NOTICE, "Unauthorized connection from \"%s\" [%s].", host, ip);
+  log_message(proxy->log, LOG_NOTICE, "Unauthorized connection from \"%s\" [%s].", host, ip);
   return 0;
 }
 

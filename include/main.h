@@ -30,6 +30,4 @@
 extern struct config_s config;
 extern unsigned int received_sighup; // boolean
 
-extern int reload_config(void);
-
 #endif // TINYPROXY_MAIN_H

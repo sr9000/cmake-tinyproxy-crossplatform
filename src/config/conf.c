@@ -23,7 +23,7 @@
  * add new directives to.  Who knows if I'm right though.
  */
 
-#include "conf.h"
+#include "config/conf.h"
 
 #include "acl.h"
 #include "anonymous.h"
@@ -33,11 +33,11 @@
 #include "debugtrace.h"
 #include "filter.h"
 #include "html-error.h"
-#include "log.h"
 #include "misc/heap.h"
 #include "misc/list.h"
 #include "reqs.h"
 #include "reverse-proxy.h"
+#include "subservice/log.h"
 #include "upstream.h"
 
 /*
@@ -60,19 +60,19 @@
   "("                                                                                              \
   "(([0-9a-f]{1,4}:){1,1}(:[0-9a-f]{1,4}){1,6})|"                                                  \
   "(([0-9a-f]{1,4}:){1,2}(:[0-9a-f]{1,4}){1,5})|"                                                  \
-  "(([0-9a-f]{1,4}:){1,3}(:[0-9a-f]{1,4}){1,4})|"                                                  \
+  "(([0-9a-f]{1,4}:){1,3}(:[0-9a-f]{1,4}){1,4})"                                                   \
   ")"
 #define IPV6p2                                                                                     \
   "("                                                                                              \
   "(([0-9a-f]{1,4}:){1,4}(:[0-9a-f]{1,4}){1,3})|"                                                  \
   "(([0-9a-f]{1,4}:){1,5}(:[0-9a-f]{1,4}){1,2})|"                                                  \
-  "(([0-9a-f]{1,4}:){1,6}(:[0-9a-f]{1,4}){1,1})|"                                                  \
+  "(([0-9a-f]{1,4}:){1,6}(:[0-9a-f]{1,4}){1,1})"                                                   \
   ")"
 #define IPV6p3                                                                                     \
   "("                                                                                              \
   "((([0-9a-f]{1,4}:){1,7}|:):)|"                                                                  \
   "(:(:[0-9a-f]{1,4}){1,7})|"                                                                      \
-  "([0-9a-f]{1,4}(:[0-9a-f]{1,4}){1,7})|"                                                          \
+  "([0-9a-f]{1,4}(:[0-9a-f]{1,4}){1,7})"                                                           \
   ")"
 #define IPV6p4                                                                                     \
   "("                                                                                              \
@@ -81,7 +81,7 @@
   "((([0-9a-f]{1,4}:){5}[0-9a-f]{1,4}:(25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)(\\.("                      \
   "25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)){3}))|"                                                        \
   "(([0-9a-f]{1,4}:){5}:[0-9a-f]{1,4}:(25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)(\\.("                      \
-  "25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)){3})|"                                                         \
+  "25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)){3})"                                                          \
   ")"
 #define IPV6p5                                                                                     \
   "("                                                                                              \
@@ -90,7 +90,7 @@
   "(([0-9a-f]{1,4}:){1,2}(:[0-9a-f]{1,4}){1,3}:(25[0-5]|2[0-4]\\d|[0-1]?\\d?"                      \
   "\\d)(\\.(25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)){3})|"                                                \
   "(([0-9a-f]{1,4}:){1,3}(:[0-9a-f]{1,4}){1,2}:(25[0-5]|2[0-4]\\d|[0-1]?\\d?"                      \
-  "\\d)(\\.(25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)){3})|"                                                \
+  "\\d)(\\.(25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)){3})"                                                 \
   ")"
 #define IPV6p6                                                                                     \
   "("                                                                                              \
@@ -346,7 +346,7 @@ static void free_config(struct config_s *conf)
   TRACECALLEX(free_config, "%p", (void *)conf);
 
   safefree(conf->config_file);
-  safefree(conf->logf_name);
+  safefree(conf->log.logf_name);
   safefree(conf->stathost);
   safefree(conf->user);
   safefree(conf->group);
@@ -517,7 +517,7 @@ static int load_config_file(const char *config_fname, struct config_s *conf)
     conf->fieldname = safestrdup(defaults->fieldname);                                             \
     if (!conf->fieldname)                                                                          \
     {                                                                                              \
-      TRACECALLEX(-1, "conf->%s = %p", #fieldname, (void *)conf->logf_name);                       \
+      TRACECALLEX(-1, "conf->%s = %p", #fieldname, (void *)conf->fieldname);                       \
     }                                                                                              \
   }                                                                                                \
   do                                                                                               \
@@ -529,7 +529,7 @@ static int initialize_with_defaults(struct config_s *conf, struct config_s *defa
   TRACECALLEX(initialize_with_defaults, "&conf = %p, &defaults = %p", (void *)conf,
               (void *)defaults);
 
-  INIT_STRFLD_WITH_DEFAULT(logf_name);
+  INIT_STRFLD_WITH_DEFAULT(log.logf_name);
   INIT_STRFLD_WITH_DEFAULT(config_file);
   INIT_STRFLD_WITH_DEFAULT(stathost);
   INIT_STRFLD_WITH_DEFAULT(user);
@@ -585,9 +585,9 @@ static int initialize_with_defaults(struct config_s *conf, struct config_s *defa
 /**
  * Load the configuration.
  */
-int reload_config_file(const char *config_fname, struct config_s *conf, struct config_s *defaults)
+int try_load_config_file(const char *config_fname, struct config_s *conf, struct config_s *defaults)
 {
-  TRACECALLEX(reload_config_file, "%s, &conf = %p, &defaults = %p", config_fname, (void *)conf,
+  TRACECALLEX(try_load_config_file, "%s, &conf = %p, &defaults = %p", config_fname, (void *)conf,
               (void *)defaults);
 
   int ret;
@@ -718,7 +718,7 @@ static int set_int_arg(unsigned int *var, const char *line, regmatch_t *match)
 
 static HANDLE_FUNC(handle_logfile)
 {
-  return set_string_arg(&conf->logf_name, line, &match[2]);
+  return set_string_arg(&conf->log.logf_name, line, &match[2]);
 }
 
 static HANDLE_FUNC(handle_pidfile)
@@ -995,7 +995,7 @@ static HANDLE_FUNC(handle_loglevel)
   {
     if (!strcasecmp(arg, log_levels[i].string))
     {
-      set_log_level(log_levels[i].level);
+      conf->log.log_level = log_levels[i].level;
       safefree(arg);
       return 0;
     }

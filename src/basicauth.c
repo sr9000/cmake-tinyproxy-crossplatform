@@ -20,12 +20,12 @@
 
 #include "basicauth.h"
 
-#include "conf.h"
+#include "config/conf.h"
 #include "conns.h"
 #include "html-error.h"
-#include "log.h"
 #include "misc/base64.h"
 #include "misc/heap.h"
+#include "subservice/log.h"
 
 /*
  * Create basic-auth token in buf.

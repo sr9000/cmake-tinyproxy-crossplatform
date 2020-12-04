@@ -60,22 +60,12 @@
 #include <signal.h> // mingw +ifdefs +winapi
 
 #ifdef MINGW
-#define LOG_EMERG   0 // <syslog.h>
-#define LOG_ALERT   1 // <syslog.h>
-#define LOG_CRIT    2 // <syslog.h>
-#define LOG_ERR     3 // <syslog.h>
-#define LOG_WARNING 4 // <syslog.h>
-#define LOG_NOTICE  5 // <syslog.h>
-#define LOG_INFO    6 // <syslog.h>
-#define LOG_DEBUG   7 // <syslog.h>
-
 #define MAP_FAILED NULL // <sys/mman.h>
 #else
 #include <grp.h>      // skip group and user check on windows
 #include <pwd.h>      // skip group and user check on windows
 #include <sys/mman.h> // windows threads use common address space
 #include <sys/wait.h> // do not use waitpid on windows
-#include <syslog.h>   // only uses defines LOG_${LEVEL}
 #endif                /* MINGW */
 
 #ifdef HAVE_WSOCK32

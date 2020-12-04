@@ -3,12 +3,15 @@ include(HelpProxyMisc)
 add_subdirectory(misc)
 
 set(HEADERS
-        log.h
+        subservice/log.h
+        subservice/log_levels.h
+        config/conf.h
+        config/conf_log.h
+        tinyproxy.h
         reverse-proxy.h
         daemon.h
         main.h
         html-error.h
-        conf.h
         http-message.h
         custom_sysexits.h
         transparent-proxy.h

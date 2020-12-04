@@ -23,10 +23,10 @@
 #include "main.h"
 
 #include "anonymous.h"
-#include "conf.h"
-#include "log.h"
+#include "config/conf.h"
 #include "misc/hashmap.h"
 #include "misc/heap.h"
+#include "subservice/log.h"
 
 short int is_anonymous_enabled(void)
 {

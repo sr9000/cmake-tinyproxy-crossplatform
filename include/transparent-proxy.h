@@ -26,8 +26,8 @@
 #include "misc/hashmap.h"
 #include "reqs.h"
 
-extern int do_transparent_proxy(struct conn_s *connptr, phashmap_t hashofheaders,
-                                struct request_s *request, struct config_s *config, char **url);
+extern int do_transparent_proxy(pproxy_t proxy, struct conn_s *connptr, phashmap_t hashofheaders,
+                                struct request_s *request, struct config_s *conf, char **url);
 
 #endif // TRANSPARENT_PROXY
 #endif // TINYPROXY_TRANSPARENT_PROXY_H

@@ -27,9 +27,9 @@
 #include "upstream.h"
 
 #include "basicauth.h"
-#include "log.h"
 #include "misc/base64.h"
 #include "misc/heap.h"
+#include "subservice/log.h"
 
 #ifdef UPSTREAM_SUPPORT
 const char *proxy_type_name(proxy_type type)

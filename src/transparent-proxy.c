@@ -25,13 +25,13 @@
 
 #include "transparent-proxy.h"
 
-#include "conf.h"
+#include "config/conf.h"
 #include "conns.h"
 #include "html-error.h"
-#include "log.h"
 #include "misc/heap.h"
 #include "misc/text.h"
 #include "reqs.h"
+#include "subservice/log.h"
 
 /*
  * Build a URL from parts.
@@ -53,8 +53,8 @@ static int build_url(char **url, const char *host, int port, const char *path)
   return snprintf(*url, len, "http://%s:%d%s", host, port, path);
 }
 
-int do_transparent_proxy(struct conn_s *connptr, phashmap_t hashofheaders, struct request_s *request,
-                         struct config_s *conf, char **url)
+int do_transparent_proxy(pproxy_t proxy, struct conn_s *connptr, phashmap_t hashofheaders,
+                         struct request_s *request, struct config_s *conf, char **url)
 {
   socklen_t length;
   char *data;
@@ -68,7 +68,8 @@ int do_transparent_proxy(struct conn_s *connptr, phashmap_t hashofheaders, struc
 
     if (getsockname(connptr->client_fd, (struct sockaddr *)&dest_addr, &length) < 0)
     {
-      log_message(LOG_ERR, "process_request: cannot get destination IP for %d", connptr->client_fd);
+      log_message(proxy->log, LOG_ERR, "process_request: cannot get destination IP for %d",
+                  connptr->client_fd);
       indicate_http_error(connptr, 400, "Bad Request", "detail", "Unknown destination", "url", *url,
                           NULL);
       return 0;
@@ -83,8 +84,8 @@ int do_transparent_proxy(struct conn_s *connptr, phashmap_t hashofheaders, struc
     safe_string_copy(request->path, *url, ulen + 1);
 
     build_url(url, request->host, request->port, request->path);
-    log_message(LOG_INFO, "process_request: trans IP %s %s for %d", request->method, *url,
-                connptr->client_fd);
+    log_message(proxy->log, LOG_INFO, "process_request: trans IP %s %s for %d", request->method,
+                *url, connptr->client_fd);
   }
   else
   {
@@ -99,8 +100,8 @@ int do_transparent_proxy(struct conn_s *connptr, phashmap_t hashofheaders, struc
     safe_string_copy(request->path, *url, ulen + 1);
 
     build_url(url, request->host, request->port, request->path);
-    log_message(LOG_INFO, "process_request: trans Host %s %s for %d", request->method, *url,
-                connptr->client_fd);
+    log_message(proxy->log, LOG_INFO, "process_request: trans Host %s %s for %d", request->method,
+                *url, connptr->client_fd);
   }
 
   if (conf->listen_addrs == NULL)
@@ -116,7 +117,7 @@ int do_transparent_proxy(struct conn_s *connptr, phashmap_t hashofheaders, struc
 
     if (addr && strcmp(request->host, addr) == 0)
     {
-      log_message(LOG_ERR,
+      log_message(proxy->log, LOG_ERR,
                   "transparent: destination IP %s is local "
                   "on socket fd %d",
                   request->host, connptr->client_fd);

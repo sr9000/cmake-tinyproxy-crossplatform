@@ -19,7 +19,9 @@
 #ifndef TINYPROXY_REVERSE_PROXY_H
 #define TINYPROXY_REVERSE_PROXY_H
 
+#include "acl.h"
 #include "conns.h"
+#include "tinyproxy.h"
 
 struct reversepath
 {
@@ -34,6 +36,7 @@ extern void reversepath_add(const char *path, const char *url,
                             struct reversepath **reversepath_list);
 extern struct reversepath *reversepath_get(char *url, struct reversepath *reverse);
 void free_reversepath_list(struct reversepath *reverse);
-extern char *reverse_rewrite_url(struct conn_s *connptr, phashmap_t hashofheaders, char *url);
+extern char *reverse_rewrite_url(pproxy_t proxy, struct conn_s *connptr, phashmap_t hashofheaders,
+                                 char *url);
 
 #endif // TINYPROXY_REVERSE_PROXY_H

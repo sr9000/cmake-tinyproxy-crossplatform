@@ -24,7 +24,7 @@
 
 #include "buffer.h"
 #include "common.h"
-#include "conf.h"
+#include "config/conf.h"
 #include "conns.h"
 #include "html-error.h"
 #include "misc/heap.h"
