@@ -23,17 +23,18 @@
  * format of the log message is standardized.
  */
 
-#include "misc/heap.h"
-
+#include <assert.h>
 #include <stdlib.h>
+#include <string.h>
+
+#include "misc/heap.h"
 
 #ifdef NDEBUG
 // DO NOTHING
 #else
-#include <assert.h>
+
 #include <stddef.h>
 #include <stdio.h>
-#include <string.h>
 
 void *debugging_calloc(size_t nmemb, size_t size, const char *file, unsigned long line)
 {
