@@ -94,48 +94,80 @@ error_exit:
    * If we got here, there was a problem allocating memory
    */
   if (cbuffer)
+  {
     delete_buffer(cbuffer);
+  }
   if (sbuffer)
+  {
     delete_buffer(sbuffer);
+  }
 
   return NULL;
 }
 
-void destroy_conn(struct conn_s *connptr)
+void destroy_conn(pproxy_t proxy, struct conn_s *connptr)
 {
   assert(connptr != NULL);
 
   if (connptr->client_fd != -1)
+  {
     if (closesocket(connptr->client_fd) < 0)
-      log_message(LOG_INFO, "Client (%d) close message: %s", connptr->client_fd, strerror(errno));
+    {
+      log_message(proxy->log, LOG_INFO, "Client (%d) close message: %s", connptr->client_fd,
+                  strerror(errno));
+    }
+  }
   if (connptr->server_fd != -1)
+  {
     if (closesocket(connptr->server_fd) < 0)
-      log_message(LOG_INFO, "Server (%d) close message: %s", connptr->server_fd, strerror(errno));
+    {
+      log_message(proxy->log, LOG_INFO, "Server (%d) close message: %s", connptr->server_fd,
+                  strerror(errno));
+    }
+  }
 
   if (connptr->cbuffer)
+  {
     delete_buffer(connptr->cbuffer);
+  }
   if (connptr->sbuffer)
+  {
     delete_buffer(connptr->sbuffer);
+  }
 
   if (connptr->request_line)
+  {
     safefree(connptr->request_line);
+  }
 
   if (connptr->error_variables)
+  {
     hashmap_delete(connptr->error_variables);
+  }
 
   if (connptr->error_string)
+  {
     safefree(connptr->error_string);
+  }
 
   if (connptr->server_ip_addr)
+  {
     safefree(connptr->server_ip_addr);
+  }
   if (connptr->client_ip_addr)
+  {
     safefree(connptr->client_ip_addr);
+  }
   if (connptr->client_string_addr)
+  {
     safefree(connptr->client_string_addr);
+  }
 
 #ifdef REVERSE_SUPPORT
   if (connptr->reversepath)
+  {
     safefree(connptr->reversepath);
+  }
 #endif
 
   safefree(connptr);

@@ -19,6 +19,8 @@
 #ifndef TINYPROXY_FILTER_H
 #define TINYPROXY_FILTER_H
 
+#include "tinyproxy.h"
+
 typedef enum
 {
   FILTER_DEFAULT_ALLOW,
@@ -27,7 +29,7 @@ typedef enum
 
 extern void filter_init(void);
 extern void filter_destroy(void);
-extern void filter_reload(void);
+extern void filter_reload(pproxy_t proxy);
 extern int filter_domain(const char *host);
 extern int filter_url(const char *url);
 

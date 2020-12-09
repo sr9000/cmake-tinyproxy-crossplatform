@@ -32,7 +32,7 @@ struct reversepath
 
 #define REVERSE_COOKIE "yummy_magical_cookie"
 
-extern void reversepath_add(const char *path, const char *url,
+extern int reversepath_add(const char *path, const char *url,
                             struct reversepath **reversepath_list);
 extern struct reversepath *reversepath_get(char *url, struct reversepath *reverse);
 void free_reversepath_list(struct reversepath *reverse);

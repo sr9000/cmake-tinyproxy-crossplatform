@@ -159,11 +159,11 @@ void filter_destroy(void)
 /**
  * reload the filter file if filtering is enabled
  */
-void filter_reload(void)
+void filter_reload(pproxy_t proxy)
 {
   if (config.filter)
   {
-    log_message(LOG_NOTICE, "Re-reading filter file.");
+    log_message(proxy->log, LOG_NOTICE, "Re-reading filter file.");
     filter_destroy();
     filter_init();
   }

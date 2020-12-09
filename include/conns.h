@@ -78,6 +78,6 @@ struct conn_s
 extern struct conn_s *initialize_conn(int client_fd, const char *ipaddr, const char *string_addr,
                                       const char *sock_ipaddr);
 
-extern void destroy_conn(struct conn_s *connptr);
+extern void destroy_conn(pproxy_t proxy, struct conn_s *connptr);
 
 #endif // TINYPROXY_CONNS_H

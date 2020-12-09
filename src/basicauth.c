@@ -19,6 +19,7 @@
 #include "main.h"
 
 #include "basicauth.h"
+#include "debugtrace.h"
 
 #include "config/conf.h"
 #include "conns.h"
@@ -51,30 +52,29 @@ ssize_t basicauth_string(const char *user, const char *pass, char *buf, size_t b
 /*
  * Add entry to the basicauth list
  */
-void basicauth_add(plist_t authlist, const char *user, const char *pass)
+int basicauth_add(plist_t authlist, const char *user, const char *pass)
 {
+  TRACECALLEX(basicauth_add, "&authlist = %p, user = %s, pass = *****", (void *)authlist, user);
+
   char b[BASE64ENC_BYTES((256 + 2) - 1) + 1];
   ssize_t ret;
 
   ret = basicauth_string(user, pass, b, sizeof b);
   if (ret == -1)
   {
-    log_message(LOG_WARNING, "Illegal basicauth rule: missing user or pass");
-    return;
+    TRACERETURNEX(-1, "%s", "Illegal basicauth rule: missing user or pass");
   }
   else if (ret == 0)
   {
-    log_message(LOG_WARNING, "User / pass in basicauth rule too long");
-    return;
+    TRACERETURNEX(-1, "%s", "User / pass in basicauth rule too long");
   }
 
   if (list_append(authlist, b, ret + 1) == -ENOMEM)
   {
-    log_message(LOG_ERR, "Unable to allocate memory in basicauth_add()");
-    return;
+    TRACERETURNEX(-1, "%s", "Unable to allocate memory in basicauth_add()");
   }
 
-  log_message(LOG_INFO, "Added basic auth user : %s", user);
+  TRACERETURN(0);
 }
 
 /*

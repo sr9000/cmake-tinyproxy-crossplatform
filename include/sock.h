@@ -28,7 +28,7 @@
 #include "misc/list.h"
 #include "tinyproxy.h"
 
-extern int opensock(const char *host, int port, const char *bind_to);
+extern int opensock(pproxy_t proxy, const char *host, int port, const char *bind_to);
 extern int listen_sock(pproxy_t proxy, const char *addr, uint16_t port, plist_t listen_fds);
 
 extern int socket_nonblocking(int sock);

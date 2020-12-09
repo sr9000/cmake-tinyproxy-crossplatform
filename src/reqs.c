@@ -61,10 +61,10 @@
  * enabled.
  */
 #ifdef UPSTREAM_SUPPORT
-#define UPSTREAM_CONFIGURED() (config.upstream_list != NULL)
-#define UPSTREAM_HOST(host)   upstream_get(host, config.upstream_list)
+#define UPSTREAM_CONFIGURED()    (config.upstream_list != NULL)
+#define UPSTREAM_HOST(prx, host) upstream_get((prx), (host), config.upstream_list)
 #define UPSTREAM_IS_HTTP(conn)                                                                     \
-  (conn->upstream_proxy != NULL && conn->upstream_proxy->type == PT_HTTP)
+  ((conn)->upstream_proxy != NULL && (conn)->upstream_proxy->type == PT_HTTP)
 #else
 #define UPSTREAM_CONFIGURED() (0)
 #define UPSTREAM_HOST(host)   (NULL)
@@ -1233,7 +1233,7 @@ static void relay_connection(pproxy_t proxy, struct conn_s *connptr)
 
     if (FD_ISSET(connptr->server_fd, &rset))
     {
-      bytes_received = read_buffer(connptr->server_fd, connptr->sbuffer);
+      bytes_received = read_buffer(proxy, connptr->server_fd, connptr->sbuffer);
       if (bytes_received < 0)
         break;
 
@@ -1242,17 +1242,17 @@ static void relay_connection(pproxy_t proxy, struct conn_s *connptr)
         break;
     }
     if (FD_ISSET(connptr->client_fd, &rset) &&
-        read_buffer(connptr->client_fd, connptr->cbuffer) < 0)
+        read_buffer(proxy, connptr->client_fd, connptr->cbuffer) < 0)
     {
       break;
     }
     if (FD_ISSET(connptr->server_fd, &wset) &&
-        write_buffer(connptr->server_fd, connptr->cbuffer) < 0)
+        write_buffer(proxy, connptr->server_fd, connptr->cbuffer) < 0)
     {
       break;
     }
     if (FD_ISSET(connptr->client_fd, &wset) &&
-        write_buffer(connptr->client_fd, connptr->sbuffer) < 0)
+        write_buffer(proxy, connptr->client_fd, connptr->sbuffer) < 0)
     {
       break;
     }
@@ -1272,7 +1272,7 @@ static void relay_connection(pproxy_t proxy, struct conn_s *connptr)
 
   while (buffer_size(connptr->sbuffer) > 0)
   {
-    if (write_buffer(connptr->client_fd, connptr->sbuffer) < 0)
+    if (write_buffer(proxy, connptr->client_fd, connptr->sbuffer) < 0)
       break;
   }
   shutdown(connptr->client_fd, SHUT_WR);
@@ -1290,7 +1290,7 @@ static void relay_connection(pproxy_t proxy, struct conn_s *connptr)
 
   while (buffer_size(connptr->cbuffer) > 0)
   {
-    if (write_buffer(connptr->server_fd, connptr->cbuffer) < 0)
+    if (write_buffer(proxy, connptr->server_fd, connptr->cbuffer) < 0)
       break;
   }
 
@@ -1448,7 +1448,8 @@ static int connect_to_upstream(pproxy_t proxy, struct conn_s *connptr, struct re
     return -1;
   }
 
-  connptr->server_fd = opensock(cur_upstream->host, cur_upstream->port, connptr->server_ip_addr);
+  connptr->server_fd =
+      opensock(proxy, cur_upstream->host, cur_upstream->port, connptr->server_ip_addr);
 
   if (connptr->server_fd < 0)
   {
@@ -1529,7 +1530,7 @@ static int get_request_entity(pproxy_t proxy, struct conn_s *connptr)
   else if (ret == 1 && FD_ISSET(connptr->client_fd, &rset))
   {
     ssize_t nread;
-    nread = read_buffer(connptr->client_fd, connptr->cbuffer);
+    nread = read_buffer(proxy, connptr->client_fd, connptr->cbuffer);
     if (nread < 0)
     {
       log_message(proxy->log, LOG_ERR, "Error reading readable client_fd %d", connptr->client_fd);
@@ -1690,7 +1691,7 @@ void handle_connection(pproxy_t proxy, int fd)
     goto fail;
   }
 
-  connptr->upstream_proxy = UPSTREAM_HOST(request->host);
+  connptr->upstream_proxy = UPSTREAM_HOST(proxy, request->host);
   if (connptr->upstream_proxy != NULL)
   {
     if (connect_to_upstream(proxy, connptr, request) < 0)
@@ -1700,7 +1701,7 @@ void handle_connection(pproxy_t proxy, int fd)
   }
   else
   {
-    connptr->server_fd = opensock(request->host, request->port, connptr->server_ip_addr);
+    connptr->server_fd = opensock(proxy, request->host, request->port, connptr->server_ip_addr);
     if (connptr->server_fd < 0)
     {
       indicate_http_error(connptr, 500, "Unable to connect", "detail",
@@ -1783,6 +1784,6 @@ fail:
 done:
   free_request_struct(request);
   hashmap_delete(hashofheaders);
-  destroy_conn(connptr);
+  destroy_conn(proxy, connptr);
   return;
 }

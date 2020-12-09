@@ -24,7 +24,7 @@
 #include "common.h"
 #include "misc/list.h"
 
-extern void add_connect_port_allowed(int port, plist_t *connect_ports);
+extern int add_connect_port_allowed(int port, plist_t *connect_ports);
 int check_allowed_connect_ports(int port, plist_t connect_ports);
 void free_connect_ports_list(plist_t connect_ports);
 

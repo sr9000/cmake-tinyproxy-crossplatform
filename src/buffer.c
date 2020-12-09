@@ -227,7 +227,7 @@ int writesocket(SOCKET s, const char *buf, int len, int _ignore)
  * Takes a connection and returns the number of bytes read.
  */
 #define READ_BUFFER_SIZE (1024 * 2)
-ssize_t read_buffer(int fd, struct buffer_s *buffptr)
+ssize_t read_buffer(pproxy_t proxy, int fd, struct buffer_s *buffptr)
 {
   ssize_t bytesin;
   unsigned char *buffer;
@@ -253,7 +253,7 @@ ssize_t read_buffer(int fd, struct buffer_s *buffptr)
   {
     if (add_to_buffer(buffptr, buffer, bytesin) < 0)
     {
-      log_message(LOG_ERR, "readbuff: add_to_buffer() error.");
+      log_message(proxy->log, LOG_ERR, "readbuff: add_to_buffer() error.");
       bytesin = -1;
     }
   }
@@ -277,7 +277,8 @@ ssize_t read_buffer(int fd, struct buffer_s *buffptr)
       bytesin = 0;
       break;
     default:
-      log_message(LOG_ERR, "read_buffer: read() failed on fd %d: %s", fd, strerror(errno));
+      log_message(proxy->log, LOG_ERR, "read_buffer: read() failed on fd %d: %s", fd,
+                  strerror(errno));
       bytesin = -1;
       break;
     }
@@ -291,7 +292,7 @@ ssize_t read_buffer(int fd, struct buffer_s *buffptr)
  * Write the bytes in the buffer to the socket.
  * Takes a connection and returns the number of bytes written.
  */
-ssize_t write_buffer(int fd, struct buffer_s *buffptr)
+ssize_t write_buffer(pproxy_t proxy, int fd, struct buffer_s *buffptr)
 {
   ssize_t bytessent;
   struct bufline_s *line;
@@ -331,14 +332,14 @@ ssize_t write_buffer(int fd, struct buffer_s *buffptr)
       return 0;
     case ENOBUFS:
     case ENOMEM:
-      log_message(LOG_ERR,
+      log_message(proxy->log, LOG_ERR,
                   "writebuff: write() error [NOBUFS/NOMEM] \"%s\" on "
                   "file descriptor %d",
                   strerror(errno), fd);
       return 0;
     default:
-      log_message(LOG_ERR, "writebuff: write() error \"%s\" on file descriptor %d", strerror(errno),
-                  fd);
+      log_message(proxy->log, LOG_ERR, "writebuff: write() error \"%s\" on file descriptor %d",
+                  strerror(errno), fd);
       return -1;
     }
   }

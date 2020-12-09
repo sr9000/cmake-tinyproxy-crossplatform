@@ -19,6 +19,8 @@
 #ifndef TINYPROXY_BUFFER_H
 #define TINYPROXY_BUFFER_H
 
+#include "tinyproxy.h"
+
 struct buffer_s;
 
 extern struct buffer_s *new_buffer(void);
@@ -28,7 +30,7 @@ extern size_t buffer_size(struct buffer_s *buffptr);
 // add a new line to the given buffer. The data IS copied into the structure
 extern int add_to_buffer(struct buffer_s *buffptr, unsigned char *data, size_t length);
 
-extern ssize_t read_buffer(int fd, struct buffer_s *buffptr);
-extern ssize_t write_buffer(int fd, struct buffer_s *buffptr);
+extern ssize_t read_buffer(pproxy_t proxy, int fd, struct buffer_s *buffptr);
+extern ssize_t write_buffer(pproxy_t proxy, int fd, struct buffer_s *buffptr);
 
 #endif // TINYPROXY_BUFFER_H

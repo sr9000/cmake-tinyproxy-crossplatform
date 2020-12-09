@@ -24,6 +24,7 @@
 #define TINYPROXY_UPSTREAM_H
 
 #include "common.h"
+#include "tinyproxy.h"
 
 // even if upstream support is not compiled into tinyproxy, this structure still needs to be defined
 typedef enum proxy_type
@@ -52,9 +53,9 @@ struct upstream
 
 #ifdef UPSTREAM_SUPPORT
 const char *proxy_type_name(proxy_type type);
-extern void upstream_add(const char *host, int port, const char *domain, const char *user,
+extern int upstream_add(const char *host, int port, const char *domain, const char *user,
                          const char *pass, proxy_type type, struct upstream **upstream_list);
-extern struct upstream *upstream_get(char *host, struct upstream *up);
+extern struct upstream *upstream_get(pproxy_t proxy, char *host, struct upstream *up);
 extern void free_upstream_list(struct upstream *up);
 #endif // UPSTREAM_SUPPORT
 

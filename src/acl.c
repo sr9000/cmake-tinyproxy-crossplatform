@@ -29,6 +29,7 @@
 #include "network.h"
 #include "sock.h"
 #include "subservice/log.h"
+#include "debugtrace.h"
 
 #include <limits.h>
 
@@ -122,17 +123,17 @@ static int fill_netmask_array(char *bitmask_string, int v6, unsigned char array[
  */
 static int init_access_list(plist_t *access_list)
 {
+  TRACECALLEX(init_access_list, "&access_list = %p", (void*)access_list);
   if (!*access_list)
   {
     *access_list = list_create();
     if (!*access_list)
     {
-      log_message(LOG_ERR, "Unable to allocate memory for access list");
-      return -1;
+      TRACERETURNEX(-1, "%s", "Unable to allocate memory for access list");
     }
   }
 
-  return 0;
+  TRACERETURN(0);
 }
 
 /*

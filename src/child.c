@@ -629,7 +629,7 @@ void child_main_loop(pproxy_t proxy)
       // todo: delete this branch
 
 #ifdef FILTER_ENABLE
-      filter_reload();
+      filter_reload(proxy);
 #endif /* FILTER_ENABLE */
 
       /* propagate filter reload to all children */

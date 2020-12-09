@@ -77,7 +77,7 @@ int create_file_safely(const char *filename, bool truncate_file)
 #ifdef HAVE_FTRUNCATE
     if (ftruncate(fildes, 0) != 0)
     {
-      log_message(LOG_WARNING, "Unable to truncate file '%s'", filename);
+      // log_message(???, LOG_WARNING, "Unable to truncate file '%s'", filename);
     }
 #else // HAVE_FTRUNCATE
     // On systems which don't support ftruncate() the best we can do is to close the file and

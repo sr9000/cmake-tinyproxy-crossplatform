@@ -24,6 +24,7 @@
 
 #include "config/conf.h"
 #include "conns.h"
+#include "debugtrace.h"
 #include "html-error.h"
 #include "misc/heap.h"
 #include "subservice/log.h"
@@ -31,49 +32,52 @@
 /*
  * Add entry to the reversepath list
  */
-void reversepath_add(const char *path, const char *url, struct reversepath **reversepath_list)
+int reversepath_add(const char *path, const char *url, struct reversepath **reversepath_list)
 {
+  TRACECALLEX(reversepath_add, "path = %s, url = %s, &reversepath = %p", path, url,
+              (void *)reversepath_list);
+
   struct reversepath *reverse;
 
   if (url == NULL)
   {
-    log_message(LOG_WARNING, "Illegal reverse proxy rule: missing url");
-    return;
+    TRACERETURNEX(-1, "%s", "Illegal reverse proxy rule: missing url");
   }
 
   if (!strstr(url, "://"))
   {
-    log_message(LOG_WARNING, "Skipping reverse proxy rule: '%s' is not a valid url", url);
-    return;
+    TRACERETURNEX(-1, "Skipping reverse proxy rule: '%s' is not a valid url", url);
   }
 
   if (path && *path != '/')
   {
-    log_message(LOG_WARNING,
-                "Skipping reverse proxy rule: path '%s' "
-                "doesn't start with a /",
-                path);
-    return;
+    TRACERETURNEX(-1,
+                  "Skipping reverse proxy rule: path '%s' "
+                  "doesn't start with a /",
+                  path);
   }
 
   reverse = (struct reversepath *)safemalloc(sizeof(struct reversepath));
   if (!reverse)
   {
-    log_message(LOG_ERR, "Unable to allocate memory in reversepath_add()");
-    return;
+    TRACERETURNEX(-1, "%s", "Unable to allocate memory in reversepath_add()");
   }
 
   if (!path)
+  {
     reverse->path = safestrdup("/");
+  }
   else
+  {
     reverse->path = safestrdup(path);
+  }
 
   reverse->url = safestrdup(url);
 
   reverse->next = *reversepath_list;
   *reversepath_list = reverse;
 
-  log_message(LOG_INFO, "Added reverse proxy rule: %s -> %s", reverse->path, reverse->url);
+  TRACERETURN(0);
 }
 
 /*

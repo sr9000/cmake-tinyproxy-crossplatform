@@ -76,7 +76,7 @@ static int bind_socket(int sockfd, const char *addr, int family)
  * the getaddrinfo() library function, which allows for a protocol
  * independent implementation (mostly for IPv4 and IPv6 addresses.)
  */
-int opensock(const char *host, int port, const char *bind_to)
+int opensock(pproxy_t proxy, const char *host, int port, const char *bind_to)
 {
   int sockfd, n;
   struct addrinfo hints, *res, *ressave;
@@ -85,7 +85,7 @@ int opensock(const char *host, int port, const char *bind_to)
   assert(host != NULL);
   assert(port > 0);
 
-  log_message(LOG_INFO, "opensock: opening connection to %s:%d", host, port);
+  log_message(proxy->log, LOG_INFO, "opensock: opening connection to %s:%d", host, port);
 
   memset(&hints, 0, sizeof(struct addrinfo));
   hints.ai_family = AF_UNSPEC;
@@ -96,18 +96,20 @@ int opensock(const char *host, int port, const char *bind_to)
   n = getaddrinfo(host, portstr, &hints, &res);
   if (n != 0)
   {
-    log_message(LOG_ERR, "opensock: Could not retrieve info for %s", host);
+    log_message(proxy->log, LOG_ERR, "opensock: Could not retrieve info for %s", host);
     return -1;
   }
 
-  log_message(LOG_INFO, "opensock: getaddrinfo returned for %s:%d", host, port);
+  log_message(proxy->log, LOG_INFO, "opensock: getaddrinfo returned for %s:%d", host, port);
 
   ressave = res;
   do
   {
     sockfd = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
     if (sockfd < 0)
+    {
       continue; /* ignore this one */
+    }
 
     /* Bind to the specified address */
     if (bind_to)
@@ -128,7 +130,9 @@ int opensock(const char *host, int port, const char *bind_to)
     }
 
     if (connect(sockfd, res->ai_addr, res->ai_addrlen) == 0)
+    {
       break; /* success */
+    }
 
     closesocket(sockfd);
   } while ((res = res->ai_next) != NULL);
@@ -136,7 +140,7 @@ int opensock(const char *host, int port, const char *bind_to)
   freeaddrinfo(ressave);
   if (res == NULL)
   {
-    log_message(LOG_ERR, "opensock: Could not establish a connection to %s", host);
+    log_message(proxy->log, LOG_ERR, "opensock: Could not establish a connection to %s", host);
     return -1;
   }
 

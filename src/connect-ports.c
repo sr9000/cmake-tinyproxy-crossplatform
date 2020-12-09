@@ -19,26 +19,28 @@
  */
 
 #include "connect-ports.h"
+
+#include "debugtrace.h"
 #include "subservice/log.h"
 
 /*
  * Now, this routine adds a "port" to the list.  It also creates the list if
  * it hasn't already by done.
  */
-void add_connect_port_allowed(int port, plist_t *connect_ports)
+int add_connect_port_allowed(int port, plist_t *connect_ports)
 {
+  TRACECALLEX(add_connect_port_allowed, "port = %d, &list = %p", port, (void *)connect_ports);
   if (!*connect_ports)
   {
     *connect_ports = list_create();
     if (!*connect_ports)
     {
-      log_message(LOG_WARNING, "Could not create a list of allowed CONNECT ports");
-      return;
+      TRACERETURNEX(-1, "%s", "Could not create a list of allowed CONNECT ports");
     }
   }
 
-  log_message(LOG_INFO, "Adding Port [%d] to the list allowed by CONNECT", port);
   list_append(*connect_ports, &port, sizeof(port));
+  TRACERETURN(0);
 }
 
 /*
