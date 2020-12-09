@@ -57,7 +57,7 @@ struct log_s
   int fd;
 };
 
-void assign_default_values(plog_t log)
+void init_with_default_values(plog_t log)
 {
   initialize_conf_log_defaults(&log->config);
   log->fd = -1;
@@ -73,7 +73,7 @@ plog_t create_default_log()
     TRACERETURNEX(NULL, "%s", "Error when allocating memory for struct log_s");
   }
 
-  assign_default_values(log);
+  init_with_default_values(log);
 
   TRACERETURN(log);
 }

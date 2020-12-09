@@ -931,7 +931,7 @@ static HANDLE_FUNC(handle_listen)
   safefree(arg);
 
   TRACERETURNEX(0, "Added address [%s] to listen addresses.",
-                list_getentry(conf->listen_addrs, list_length(conf->listen_addrs), NULL););
+                (char *)list_getentry(conf->listen_addrs, list_length(conf->listen_addrs), NULL));
 }
 
 static HANDLE_FUNC(handle_errorfile)

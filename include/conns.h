@@ -21,6 +21,7 @@
 
 #include "main.h"
 #include "misc/hashmap.h"
+#include "tinyproxy.h"
 
 // connection Definition
 struct conn_s

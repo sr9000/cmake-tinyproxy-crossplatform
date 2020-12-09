@@ -402,7 +402,7 @@ int main(int argc, char **argv)
 
   log_message(proxy.log, LOG_INFO, "Shutting down.");
 
-  child_kill_children(proxy, SIGTERM);
+  child_kill_children(&proxy, SIGTERM);
 
   child_close_sock();
 

@@ -605,7 +605,7 @@ void child_main_loop(pproxy_t proxy)
             break;
           }
 
-          SERVER_INC();
+          SERVER_INC(proxy->log);
 
           break;
         }
