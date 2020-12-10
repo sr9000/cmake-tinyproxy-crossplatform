@@ -14,6 +14,7 @@ add_compile_definitions(
 )
 
 add_subdirectory(misc)
+add_subdirectory(subservice)
 
 set(TINYPROXY_SOURCES
         acl.c
@@ -28,7 +29,6 @@ set(TINYPROXY_SOURCES
         daemon.c
         html-error.c
         http-message.c
-        subservice/log.c
         network.c
         reqs.c
         sock.c
@@ -62,5 +62,6 @@ target_link_libraries(tinyproxy
         tinyproxy_hashmap
         tinyproxy_text
         tinyproxy_file_api
+        tinyproxy_log
         ${PROXY_LIBRARIES}
         )

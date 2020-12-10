@@ -3,8 +3,6 @@ include(HelpProxyMisc)
 add_subdirectory(misc)
 
 set(HEADERS
-        subservice/log.h
-        subservice/log_levels.h
         config/conf.h
         config/conf_log.h
         tinyproxy.h

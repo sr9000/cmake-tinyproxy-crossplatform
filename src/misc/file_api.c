@@ -11,7 +11,6 @@
 #include <unistd.h>
 
 #include "misc/file_api.h"
-#include "misc/heap.h"
 
 #define FATAL_FILE_ERROR(msg, filename)                                                            \
   fprintf(stderr,                                                                                  \

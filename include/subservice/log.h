@@ -84,10 +84,7 @@
 // Use this for debugging. The format is specific:
 // DEBUG1("There was a major problem");
 // DEBUG2("There was a big problem: %s in connptr %p", "hello", connptr);
-#ifndef NDEBUG
-#define DEBUG1(l, x)       log_message(l, LOG_DEBUG, "[%s:%d] " x, __FILE__, __LINE__)
-#define DEBUG2(l, x, y...) log_message(l, LOG_DEBUG, "[%s:%d] " x, __FILE__, __LINE__, ##y)
-#else
+#ifdef NDEBUG
 #define DEBUG1(l, x)                                                                               \
   do                                                                                               \
   {                                                                                                \
@@ -96,7 +93,10 @@
   do                                                                                               \
   {                                                                                                \
   } while (0)
-#endif
+#else // NDEBUG
+#define DEBUG1(l, x)       log_message(l, LOG_DEBUG, "[%s:%d] " x, __FILE__, __LINE__)
+#define DEBUG2(l, x, y...) log_message(l, LOG_DEBUG, "[%s:%d] " x, __FILE__, __LINE__, ##y)
+#endif // NDEBUG
 
 typedef struct log_s *plog_t;
 

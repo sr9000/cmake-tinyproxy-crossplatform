@@ -731,7 +731,9 @@ static HANDLE_FUNC(handle_anonymous)
   char *arg = get_string_arg(line, &match[2]);
 
   if (!arg)
+  {
     return -1;
+  }
 
   anonymous_insert(arg);
   safefree(arg);

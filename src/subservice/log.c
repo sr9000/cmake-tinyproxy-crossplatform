@@ -22,34 +22,25 @@
  * or the syslog daemon. Not much to it...
  */
 
-#include "main.h"
+#include <assert.h>
+#include <errno.h>
+#include <stdarg.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <time.h>
+#include <unistd.h>
 
-#include "config/conf.h"
+#include "subservice/log.h"
+
 #include "debugtrace.h"
 #include "misc/file_api.h"
 #include "misc/heap.h"
-#include "misc/list.h"
-#include "subservice/log.h"
 
 static const char *syslog_level[] = {NULL,     NULL,   "CRITICAL", "ERROR",  "WARNING",
                                      "NOTICE", "INFO", "DEBUG",    "CONNECT"};
 
 #define TIME_LENGTH   16
 #define STRING_LENGTH 800
-
-/*
- * Global file descriptor for the log file
- */
-int log_file_fd = -1;
-
-/*
- * Store the log level setting.
- */
-static int log_level = LOG_INFO;
-
-// Hold a listing of log messages which need to be sent once the log file has been established.
-// The key is the actual messages (already filled in full), and the value is the log level.
-static plist_t log_message_storage;
 
 struct log_s
 {
@@ -100,8 +91,6 @@ void delete_log(plog_t *pplog)
   *pplog = NULL;
 }
 
-static unsigned int logging_initialized = FALSE; /* boolean */
-
 /*
  * Open the log file and store the file descriptor in a global location.
  */
@@ -113,7 +102,7 @@ int open_log_file(plog_t log)
   }
   else
   {
-    log->fd = create_file_safely(log->config.logf_name, FALSE);
+    log->fd = create_file_safely(log->config.logf_name, false);
   }
   return log->fd;
 }
@@ -195,8 +184,8 @@ void log_message(plog_t log, int level, const char *fmt, ...)
       fprintf(stderr,
               "ERROR: Could not write to log "
               "file %s: %s.",
-              config.log.logf_name, strerror(errno));
-      exit(EX_SOFTWARE);
+              log->config.logf_name, strerror(errno));
+      exit(EXIT_FAILURE);
     }
 
     flush_file_buffer(log->fd);
@@ -218,7 +207,7 @@ int activate_logging(plog_t log)
 
   if (open_log_file(log) < 0)
   {
-    TRACERETURNEX(-1, "ERROR: Could not create log file %s: %s.", config.log.logf_name,
+    TRACERETURNEX(-1, "ERROR: Could not create log file %s: %s.", log->config.logf_name,
                   strerror(errno));
   }
 
