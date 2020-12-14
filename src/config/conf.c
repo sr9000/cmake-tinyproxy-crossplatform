@@ -36,7 +36,7 @@
 #include "misc/list.h"
 #include "reqs.h"
 #include "reverse-proxy.h"
-#include "self_contained/debugtrace.h"
+#include "self_contained/safecall.h"
 #include "subservice/log.h"
 #include "upstream.h"
 
@@ -722,8 +722,10 @@ static int set_int_arg(unsigned int *var, const char *line, regmatch_t *match)
 
 static HANDLE_FUNC(handle_logfile)
 {
+  TRACE_CALL(handle_logfile);
   TRACE_MSG("conf->log = %p", (void*)conf->log);
-  return set_string_arg(&conf->log->logf_name, line, &match[2]);
+  TRACE_SAFE(set_string_arg(&conf->log->logf_name, line, &match[2]));
+  TRACE_SUCCESS;
 }
 
 static HANDLE_FUNC(handle_pidfile)

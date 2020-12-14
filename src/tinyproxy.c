@@ -6,8 +6,8 @@
 
 #include "self_contained/safecall.h"
 
-CREATE_IMPL(pproxy_t, { obj->log = create_plog_t(); })
-DELETE_IMPL(pproxy_t, { delete_plog_t(&obj->log); })
+CREATE_IMPL(pproxy_t, { TRACE_SAFE_R(NULL == (obj->log = create_plog_t()), NULL); })
+DELETE_IMPL(pproxy_t, { TRACE_SAFE(delete_plog_t(&obj->log)); })
 
 int configure_log(pproxy_t proxy, pconf_log_t log_config)
 {

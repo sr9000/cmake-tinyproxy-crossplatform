@@ -49,7 +49,7 @@ struct log_s
 };
 
 CREATE_IMPL(plog_t, {
-  obj->config = create_pconf_log_t();
+  TRACE_SAFE_R(NULL == (obj->config = create_pconf_log_t()), NULL);
   obj->fd = -1;
 })
 
@@ -67,7 +67,10 @@ plog_t create_configured_log(pconf_log_t conf_log)
   TRACE_RETURN(log);
 }
 
-DELETE_IMPL(plog_t, { delete_pconf_log_t(&obj->config); })
+DELETE_IMPL(plog_t, {
+  close_log_file(obj);
+  TRACE_SAFE(delete_pconf_log_t(&obj->config));
+})
 
 /*
  * Open the log file and store the file descriptor in a global location.
@@ -190,12 +193,4 @@ int activate_logging(plog_t log)
   }
 
   TRACE_RETURN(0);
-}
-
-/**
- * Stop the logging subsystem.
- */
-void shutdown_logging(plog_t *pplog)
-{
-  close_log_file(*pplog);
 }

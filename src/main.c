@@ -340,9 +340,9 @@ int main(int argc, char **argv)
 #endif /* FILTER_ENABLE */
 
   /* Start listening on the selected port. */
-  if (child_listening_sockets(&proxy, config.listen_addrs, config.port) < 0)
+  if (child_listening_sockets(proxy, config.listen_addrs, config.port) < 0)
   {
-    log_message(proxy.log, LOG_ERR, "%s: Could not create listening sockets.\n", argv[0]);
+    log_message(proxy->log, LOG_ERR, "%s: Could not create listening sockets.\n", argv[0]);
     exit(EX_OSERR);
   }
 
@@ -351,61 +351,61 @@ int main(int argc, char **argv)
   {
     if (pidfile_create(config.pidpath) < 0)
     {
-      log_message(proxy.log, LOG_ERR, "%s: Could not create PID file.\n", argv[0]);
+      log_message(proxy->log, LOG_ERR, "%s: Could not create PID file.\n", argv[0]);
       exit(EX_OSERR);
     }
   }
 
-  if (child_pool_create(&proxy) < 0)
+  if (child_pool_create(proxy) < 0)
   {
-    log_message(proxy.log, LOG_ERR, "%s: Could not create the pool of children.\n", argv[0]);
+    log_message(proxy->log, LOG_ERR, "%s: Could not create the pool of children.\n", argv[0]);
     exit(EX_SOFTWARE);
   }
 
   /* These signals are only for the parent process. */
-  log_message(proxy.log, LOG_INFO, "Setting the various signals.");
+  log_message(proxy->log, LOG_INFO, "Setting the various signals.");
 
   if (set_signal_handler(SIGTERM, takesig) == SIG_ERR)
   {
-    log_message(proxy.log, LOG_ERR, "%s: Could not set the \"SIGTERM\" signal.\n", argv[0]);
+    log_message(proxy->log, LOG_ERR, "%s: Could not set the \"SIGTERM\" signal.\n", argv[0]);
     exit(EX_OSERR);
   }
 
 #ifndef MINGW
   if (set_signal_handler(SIGCHLD, takesig) == SIG_ERR)
   {
-    log_message(proxy.log, LOG_ERR, "%s: Could not set the \"SIGCHLD\" signal.\n", argv[0]);
+    log_message(proxy->log, LOG_ERR, "%s: Could not set the \"SIGCHLD\" signal.\n", argv[0]);
     exit(EX_OSERR);
   }
 
   if (set_signal_handler(SIGHUP, takesig) == SIG_ERR)
   {
-    log_message(proxy.log, LOG_ERR, "%s: Could not set the \"SIGHUP\" signal.\n", argv[0]);
+    log_message(proxy->log, LOG_ERR, "%s: Could not set the \"SIGHUP\" signal.\n", argv[0]);
     exit(EX_OSERR);
   }
 
   if (set_signal_handler(SIGPIPE, SIG_IGN) == SIG_ERR)
   {
-    log_message(proxy.log, LOG_ERR, "%s: Could not set the \"SIGPIPE\" signal.\n", argv[0]);
+    log_message(proxy->log, LOG_ERR, "%s: Could not set the \"SIGPIPE\" signal.\n", argv[0]);
     exit(EX_OSERR);
   }
 #endif /* MINGW */
 
   /* Start the main loop */
-  log_message(proxy.log, LOG_INFO, "Starting main loop. Accepting connections.");
+  log_message(proxy->log, LOG_INFO, "Starting main loop. Accepting connections.");
 
-  child_main_loop(&proxy);
+  child_main_loop(proxy);
 
-  log_message(proxy.log, LOG_INFO, "Shutting down.");
+  log_message(proxy->log, LOG_INFO, "Shutting down.");
 
-  child_kill_children(&proxy, SIGTERM);
+  child_kill_children(proxy, SIGTERM);
 
   child_close_sock();
 
   /* Remove the PID file */
   if (config.pidpath != NULL && unlink(config.pidpath) < 0)
   {
-    log_message(proxy.log, LOG_WARNING, "Could not remove PID file \"%s\": %s.", config.pidpath,
+    log_message(proxy->log, LOG_WARNING, "Could not remove PID file \"%s\": %s.", config.pidpath,
                 strerror(errno));
   }
 
@@ -416,9 +416,7 @@ int main(int argc, char **argv)
   }
 #endif /* FILTER_ENABLE */
 
-  shutdown_logging(&proxy.log);
-
-  // todo: delete proxy
+  delete_pproxy_t(&proxy);
 
   return EXIT_SUCCESS;
 }

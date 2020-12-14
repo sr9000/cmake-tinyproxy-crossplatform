@@ -113,6 +113,5 @@ extern void close_log_file(plog_t log);
 extern void log_message(plog_t log, int level, const char *fmt, ...);
 
 extern int activate_logging(plog_t log);
-extern void shutdown_logging(plog_t *pplog);
 
 #endif // TINYPROXY_LOG_H
