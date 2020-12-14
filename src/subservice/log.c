@@ -27,14 +27,15 @@
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <string.h>
 #include <time.h>
 #include <unistd.h>
 
 #include "subservice/log.h"
 
-#include "debugtrace.h"
 #include "misc/file_api.h"
 #include "misc/heap.h"
+#include "self_contained/debugtrace.h"
 
 static const char *syslog_level[] = {NULL,     NULL,   "CRITICAL", "ERROR",  "WARNING",
                                      "NOTICE", "INFO", "DEBUG",    "CONNECT"};
@@ -44,13 +45,14 @@ static const char *syslog_level[] = {NULL,     NULL,   "CRITICAL", "ERROR",  "WA
 
 struct log_s
 {
-  conf_log_t config;
+  pconf_log_t config;
   int fd;
 };
 
 void init_with_default_values(plog_t log)
 {
-  initialize_conf_log_defaults(&log->config);
+  // todo: fix free memory
+  log->config = create_pconf_log_t();
   log->fd = -1;
 }
 
@@ -79,7 +81,8 @@ plog_t create_log(pconf_log_t conf_log)
     TRACERETURNEX(NULL, "%s", "Error when creating default struct log_s");
   }
 
-  assign_conf_log(&log->config, conf_log);
+  // todo: fix memory
+  log->config = clone_pconf_log_t(conf_log);
 
   TRACERETURN(log);
 }
@@ -87,6 +90,7 @@ plog_t create_log(pconf_log_t conf_log)
 void delete_log(plog_t *pplog)
 {
   assert(pplog != NULL);
+  delete_pconf_log_t(&(*pplog)->config);
   safefree(*pplog);
   *pplog = NULL;
 }
@@ -96,13 +100,13 @@ void delete_log(plog_t *pplog)
  */
 int open_log_file(plog_t log)
 {
-  if (log->config.logf_name == NULL)
+  if (log->config->logf_name == NULL)
   {
     log->fd = fileno(stdout);
   }
   else
   {
-    log->fd = create_file_safely(log->config.logf_name, false);
+    log->fd = create_file_safely(log->config->logf_name, false);
   }
   return log->fd;
 }
@@ -138,17 +142,17 @@ void log_message(plog_t log, int level, const char *fmt, ...)
   /*
    * Figure out if we should write the message or not.
    */
-  if (log->config.log_level == LOG_CONN)
+  if (log->config->log_level == LOG_CONN)
   {
     if (level == LOG_INFO)
       return;
   }
-  else if (log->config.log_level == LOG_INFO)
+  else if (log->config->log_level == LOG_INFO)
   {
     if (level > LOG_INFO && level != LOG_CONN)
       return;
   }
-  else if (level > log->config.log_level)
+  else if (level > log->config->log_level)
     return;
 #endif
 
@@ -184,7 +188,7 @@ void log_message(plog_t log, int level, const char *fmt, ...)
       fprintf(stderr,
               "ERROR: Could not write to log "
               "file %s: %s.",
-              log->config.logf_name, strerror(errno));
+              log->config->logf_name, strerror(errno));
       exit(EXIT_FAILURE);
     }
 
@@ -207,7 +211,7 @@ int activate_logging(plog_t log)
 
   if (open_log_file(log) < 0)
   {
-    TRACERETURNEX(-1, "ERROR: Could not create log file %s: %s.", log->config.logf_name,
+    TRACERETURNEX(-1, "ERROR: Could not create log file %s: %s.", log->config->logf_name,
                   strerror(errno));
   }
 

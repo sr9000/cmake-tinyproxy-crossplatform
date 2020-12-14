@@ -44,8 +44,10 @@ void *debugging_calloc(size_t nmemb, size_t size, const char *file, unsigned lon
   assert(size > 0);
 
   ptr = calloc(nmemb, size);
-  fprintf(stderr, "MEMORY {calloc: %p:%lu x %lu} %s:%lu\n", ptr, (unsigned long)nmemb,
-          (unsigned long)size, file, line);
+  fprintf(stderr,
+          "MEMORY {calloc: %p:%lu x %lu} "
+          "%s:%lu\n",
+          ptr, (unsigned long)nmemb, (unsigned long)size, file, line);
   return ptr;
 }
 
@@ -56,7 +58,10 @@ void *debugging_malloc(size_t size, const char *file, unsigned long line)
   assert(size > 0);
 
   ptr = malloc(size);
-  fprintf(stderr, "MEMORY {malloc: %p:%lu} %s:%lu\n", ptr, (unsigned long)size, file, line);
+  fprintf(stderr,
+          "MEMORY {malloc: %p:%lu} "
+          "%s:%lu\n",
+          ptr, (unsigned long)size, file, line);
   return ptr;
 }
 
@@ -67,34 +72,38 @@ void *debugging_realloc(void *ptr, size_t size, const char *file, unsigned long 
   assert(size > 0);
 
   newptr = realloc(ptr, size);
-  fprintf(stderr, "MEMORY {realloc: %p -> %p:%lu} %s:%lu\n", ptr, newptr, (unsigned long)size, file,
-          line);
+  fprintf(stderr,
+          "MEMORY {realloc: %p -> %p:%lu} "
+          "%s:%lu\n",
+          ptr, newptr, (unsigned long)size, file, line);
   return newptr;
 }
 
 void debugging_free(void *ptr, const char *file, unsigned long line)
 {
   fprintf(stderr, "MEMORY {free: %p} %s:%lu\n", ptr, file, line);
-
-  if (ptr != NULL)
-    free(ptr);
-  return;
+  free(ptr);
 }
 
 char *debugging_strdup(const char *s, const char *file, unsigned long line)
 {
+  assert(s != NULL);
+
   char *ptr;
   size_t len;
-
-  assert(s != NULL);
 
   len = strlen(s) + 1;
   ptr = (char *)malloc(len);
   if (!ptr)
+  {
     return NULL;
+  }
   memcpy(ptr, s, len);
 
-  fprintf(stderr, "MEMORY {strdup: %p:%lu} %s:%lu\n", ptr, (unsigned long)len, file, line);
+  fprintf(stderr,
+          "MEMORY {strdup: %p:%lu} "
+          "%s:%lu\n",
+          (void *)ptr, (unsigned long)len, file, line);
   return ptr;
 }
 
@@ -119,7 +128,7 @@ void *calloc_shared_memory(size_t nmemb, size_t size)
 {
   return calloc(nmemb, size);
 }
-#else
+#else // MINGW
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -142,11 +151,15 @@ void *malloc_shared_memory(size_t size)
   umask(0177);
 
   if ((fd = mkstemp(buffer)) == -1)
+  {
     return MAP_FAILED;
+  }
   unlink(buffer);
 
   if (ftruncate(fd, size) == -1)
+  {
     return MAP_FAILED;
+  }
   ptr = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
 
   return ptr;
@@ -168,7 +181,9 @@ void *calloc_shared_memory(size_t nmemb, size_t size)
 
   ptr = malloc_shared_memory(length);
   if (ptr == MAP_FAILED)
+  {
     return ptr;
+  }
 
   memset(ptr, 0, length);
 

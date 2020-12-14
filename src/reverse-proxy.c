@@ -24,9 +24,9 @@
 
 #include "config/conf.h"
 #include "conns.h"
-#include "debugtrace.h"
 #include "html-error.h"
 #include "misc/heap.h"
+#include "self_contained/debugtrace.h"
 #include "subservice/log.h"
 
 /*

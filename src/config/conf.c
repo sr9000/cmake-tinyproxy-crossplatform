@@ -30,13 +30,13 @@
 #include "basicauth.h"
 #include "child.h"
 #include "connect-ports.h"
-#include "debugtrace.h"
 #include "filter.h"
 #include "html-error.h"
 #include "misc/heap.h"
 #include "misc/list.h"
 #include "reqs.h"
 #include "reverse-proxy.h"
+#include "self_contained/debugtrace.h"
 #include "subservice/log.h"
 #include "upstream.h"
 
@@ -346,7 +346,7 @@ static void free_config(struct config_s *conf)
   TRACECALLEX(free_config, "%p", (void *)conf);
 
   safefree(conf->config_file);
-  safefree(conf->log.logf_name);
+  delete_pconf_log_t(&conf->log);
   safefree(conf->stathost);
   safefree(conf->user);
   safefree(conf->group);
@@ -458,6 +458,7 @@ static int check_match(struct config_s *conf, const char *line)
     assert(directives[i].cre);
     if (!regexec(directives[i].cre, line, RE_MAX_MATCHES, match, 0))
     {
+      TRACEMSG("handle directive[%d]", i);
       int r = (*directives[i].handler)(conf, line, match);
       TRACERETURNEX(r, "return code = %d for directives[%d].handler", r, i);
     }
@@ -529,7 +530,7 @@ static int initialize_with_defaults(struct config_s *conf, struct config_s *defa
   TRACECALLEX(initialize_with_defaults, "&conf = %p, &defaults = %p", (void *)conf,
               (void *)defaults);
 
-  INIT_STRFLD_WITH_DEFAULT(log.logf_name);
+  conf->log = clone_pconf_log_t(defaults->log);
   INIT_STRFLD_WITH_DEFAULT(config_file);
   INIT_STRFLD_WITH_DEFAULT(stathost);
   INIT_STRFLD_WITH_DEFAULT(user);
@@ -641,10 +642,13 @@ static char *get_string_arg(const char *line, regmatch_t *match)
 
 static int set_string_arg(char **var, const char *line, regmatch_t *match)
 {
+  TRACECALLEX(set_string_arg, "**var = %p, *line = %p, ...", (void*)var, (void *)line);
   char *arg = get_string_arg(line, match);
 
   if (!arg)
-    return -1;
+  {
+    TRACERETURNEX(-1, "get_string_arg = %p", (void *)arg);
+  }
 
   if (*var != NULL)
   {
@@ -653,7 +657,7 @@ static int set_string_arg(char **var, const char *line, regmatch_t *match)
 
   *var = arg;
 
-  return 0;
+  TRACERETURN(0);
 }
 
 static int get_bool_arg(const char *line, regmatch_t *match)
@@ -718,7 +722,8 @@ static int set_int_arg(unsigned int *var, const char *line, regmatch_t *match)
 
 static HANDLE_FUNC(handle_logfile)
 {
-  return set_string_arg(&conf->log.logf_name, line, &match[2]);
+  TRACEMSG("conf->log = %p", (void*)conf->log);
+  return set_string_arg(&conf->log->logf_name, line, &match[2]);
 }
 
 static HANDLE_FUNC(handle_pidfile)
@@ -997,7 +1002,7 @@ static HANDLE_FUNC(handle_loglevel)
   {
     if (!strcasecmp(arg, log_levels[i].string))
     {
-      conf->log.log_level = log_levels[i].level;
+      conf->log->log_level = log_levels[i].level;
       safefree(arg);
       return 0;
     }

@@ -33,7 +33,10 @@ typedef struct
 // main configuration structure
 struct config_s
 {
-  conf_log_t log;
+  pconf_log_t log;
+
+  // map of headers which should be let through when the anonymous feature is turned on
+  phashmap_t anonymous_map;
 
   plist_t basicauth_list;
   char *config_file;
@@ -84,9 +87,6 @@ struct config_s
 
   // store the list of port allowed by CONNECT.
   plist_t connect_ports;
-
-  // map of headers which should be let through when the anonymous feature is turned on
-  phashmap_t anonymous_map;
 
   // extra headers to be added to outgoing HTTP requests
   plist_t add_headers;

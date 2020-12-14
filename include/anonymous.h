@@ -19,6 +19,8 @@
 #ifndef TINYPROXY_ANONYMOUS_H
 #define TINYPROXY_ANONYMOUS_H
 
+typedef struct anonymous_s *panonymous_t;
+
 extern short int is_anonymous_enabled(void);
 extern int anonymous_search(const char *s);
 extern int anonymous_insert(const char *s);

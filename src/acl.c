@@ -27,9 +27,9 @@
 #include "misc/heap.h"
 #include "misc/list.h"
 #include "network.h"
+#include "self_contained/debugtrace.h"
 #include "sock.h"
 #include "subservice/log.h"
-#include "debugtrace.h"
 
 #include <limits.h>
 

@@ -18,6 +18,10 @@
 #define TRACERETVOID                     return
 #define TRACERETURN(res)                 return (res)
 #define TRACERETURNEX(res, fmt, args...) return (res)
+#define TRACEMSG(fmt, args...)                                                                     \
+  do                                                                                               \
+  {                                                                                                \
+  } while (0)
 #else // NDEBUG
 #include <stdio.h>
 
@@ -46,6 +50,9 @@
   fprintf(stderr, "TRACE {leave %s with (%s): " fmt "} [%s:%d]\n", _8BF664F4, #res, ##args,        \
           __FILE__, __LINE__);                                                                     \
   return (res)
+
+#define TRACEMSG(fmt, args...)                                                                     \
+  fprintf(stderr, "TRACE {message: " fmt "} [%s:%d]\n", ##args, __FILE__, __LINE__)
 #endif // NDEBUG
 
 #endif // CMAKE_TINYPROXY_DEBUGTRACE_H

@@ -19,7 +19,7 @@
 #include "main.h"
 
 #include "basicauth.h"
-#include "debugtrace.h"
+#include "self_contained/debugtrace.h"
 
 #include "config/conf.h"
 #include "conns.h"

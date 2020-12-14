@@ -37,11 +37,11 @@
 #include "config/conf.h"
 #include "config/conf_log.h"
 #include "daemon.h"
-#include "debugtrace.h"
 #include "filter.h"
 #include "misc/file_api.h"
 #include "misc/heap.h"
 #include "reqs.h"
+#include "self_contained/debugtrace.h"
 #include "sock.h"
 #include "stats.h"
 #include "subservice/log.h"
@@ -239,7 +239,7 @@ static int initialize_config_defaults(struct config_s *conf)
   conf->pidpath = NULL;
 
   // setup log
-  initialize_conf_log_defaults(&conf->log);
+  conf->log = create_pconf_log_t();
 
   TRACERETURN(0);
 }
@@ -266,7 +266,7 @@ int init_proxy_log(pproxy_t proxy, struct config_s *config)
 {
   assert(proxy != NULL);
   assert(config != NULL);
-  proxy->log = create_log(&config->log);
+  proxy->log = create_log(config->log);
 
   if (proxy->log == NULL)
   {

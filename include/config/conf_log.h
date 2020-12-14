@@ -5,13 +5,16 @@
 #ifndef CMAKE_TINYPROXY_CONF_LOG_H
 #define CMAKE_TINYPROXY_CONF_LOG_H
 
+#include "self_contained/object.h"
+
 typedef struct
 {
   char *logf_name;
   int log_level;
-} conf_log_t, *pconf_log_t;
+} *pconf_log_t;
 
-extern void initialize_conf_log_defaults(pconf_log_t log_config);
-extern int assign_conf_log(pconf_log_t dest, pconf_log_t src);
+CREATE_DECL(pconf_log_t);
+DELETE_DECL(pconf_log_t);
+CLONE_DECL(pconf_log_t);
 
 #endif // CMAKE_TINYPROXY_CONF_LOG_H

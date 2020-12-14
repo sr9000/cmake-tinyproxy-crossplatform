@@ -20,7 +20,7 @@
 
 #include "connect-ports.h"
 
-#include "debugtrace.h"
+#include "self_contained/debugtrace.h"
 #include "subservice/log.h"
 
 /*
