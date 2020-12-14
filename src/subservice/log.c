@@ -34,7 +34,7 @@
 
 #include "misc/file_api.h"
 #include "misc/heap.h"
-#include "self_contained/debugtrace.h"
+#include "self_contained/safecall.h"
 
 static const char *syslog_level[] = {NULL,     NULL,   "CRITICAL", "ERROR",  "WARNING",
                                      "NOTICE", "INFO", "DEBUG",    "CONNECT"};
@@ -55,18 +55,16 @@ CREATE_IMPL(plog_t, {
 
 plog_t create_configured_log(pconf_log_t conf_log)
 {
-  TRACECALL(create_configured_log);
+  TRACE_CALL(create_configured_log);
 
-  plog_t log = create_plog_t();
-  if (log == NULL)
-  {
-    TRACERETURNEX(NULL, "%s", "Error when creating default struct log_s");
-  }
+  plog_t log;
+  TRACE_SAFE_X(NULL == (log = create_plog_t()), NULL, "%s",
+               "Error when creating default struct log_s");
 
-  delete_pconf_log_t(&log->config);
-  log->config = clone_pconf_log_t(conf_log);
+  TRACE_SAFE_R(delete_pconf_log_t(&log->config), NULL);
+  TRACE_SAFE_R(NULL == (log->config = clone_pconf_log_t(conf_log)), NULL);
 
-  TRACERETURN(log);
+  TRACE_RETURN(log);
 }
 
 DELETE_IMPL(plog_t, { delete_pconf_log_t(&obj->config); })
@@ -183,15 +181,15 @@ void log_message(plog_t log, int level, const char *fmt, ...)
  */
 int activate_logging(plog_t log)
 {
-  TRACECALL(activate_logging);
+  TRACE_CALL(activate_logging);
 
   if (open_log_file(log) < 0)
   {
-    TRACERETURNEX(-1, "ERROR: Could not create log file %s: %s.", log->config->logf_name,
-                  strerror(errno));
+    TRACE_RETURN_X(-1, "ERROR: Could not create log file %s: %s.", log->config->logf_name,
+                   strerror(errno));
   }
 
-  TRACERETURN(0);
+  TRACE_RETURN(0);
 }
 
 /**

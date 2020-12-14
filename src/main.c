@@ -41,7 +41,7 @@
 #include "misc/file_api.h"
 #include "misc/heap.h"
 #include "reqs.h"
-#include "self_contained/debugtrace.h"
+#include "self_contained/safecall.h"
 #include "sock.h"
 #include "stats.h"
 #include "subservice/log.h"
@@ -175,7 +175,7 @@ static int get_id(char *str)
  **/
 static int process_cmdline(int argc, char **argv, struct config_s *conf)
 {
-  TRACECALLEX(process_cmdline, "%d, %p, %p", argc, (void *)argv, (void *)conf);
+  TRACE_CALL_X(process_cmdline, "%d, %p, %p", argc, (void *)argv, (void *)conf);
 
   int opt;
 
@@ -185,7 +185,7 @@ static int process_cmdline(int argc, char **argv, struct config_s *conf)
     {
     case 'v':
       display_version();
-      TRACERETURNEX(1, "%s", "-v: display_version");
+      TRACE_RETURN_X(1, "%s", "-v: display_version");
 
     case 'c':
       if (conf->config_file != NULL)
@@ -195,33 +195,33 @@ static int process_cmdline(int argc, char **argv, struct config_s *conf)
       conf->config_file = safestrdup(optarg);
       if (!conf->config_file)
       {
-        TRACERETURNEX(-1, "%s: Could not allocate memory.\n", argv[0]);
+        TRACE_RETURN_X(-1, "%s: Could not allocate memory.\n", argv[0]);
       }
       break;
 
     case 'h':
       display_usage();
-      TRACERETURNEX(1, "%s", "-h: display_usage");
+      TRACE_RETURN_X(1, "%s", "-h: display_usage");
 
     default:
       display_usage();
-      TRACERETURNEX(1, "%s", "unknown argument: display_usage");
+      TRACE_RETURN_X(1, "%s", "unknown argument: display_usage");
     }
   }
 
-  TRACERETURN(0);
+  TRACE_RETURN(0);
 }
 
 static int initialize_config_defaults(struct config_s *conf)
 {
-  TRACECALLEX(initialize_config_defaults, "config_s *conf = %p", (void *)conf);
+  TRACE_CALL_X(initialize_config_defaults, "config_s *conf = %p", (void *)conf);
 
   memset(conf, 0, sizeof(*conf));
 
   conf->config_file = safestrdup("tinyproxy.conf");
   if (!conf->config_file)
   {
-    TRACERETURNEX(-1, "conf->config_file = %p", (void *)conf->config_file);
+    TRACE_RETURN_X(-1, "conf->config_file = %p", (void *)conf->config_file);
   }
 
   /*
@@ -231,7 +231,7 @@ static int initialize_config_defaults(struct config_s *conf)
   conf->stathost = safestrdup(TINYPROXY_STATHOST);
   if (!conf->stathost)
   {
-    TRACERETURNEX(-1, "conf->stathost = %p", (void *)conf->stathost);
+    TRACE_RETURN_X(-1, "conf->stathost = %p", (void *)conf->stathost);
   }
 
   conf->errorpages = NULL;
@@ -241,19 +241,19 @@ static int initialize_config_defaults(struct config_s *conf)
   // setup log
   conf->log = create_pconf_log_t();
 
-  TRACERETURN(0);
+  TRACE_RETURN(0);
 }
 
 #ifdef HAVE_WSOCK32
 WSADATA wsa;
 int initialize_winsock()
 {
-  TRACECALL(initialize_winsock);
+  TRACE_CALL(initialize_winsock);
   if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0)
   {
-    TRACERETURNEX(-1, "Initialising Winsock Failed. Error Code : %d", WSAGetLastError());
+    TRACE_RETURN_X(-1, "Initialising Winsock Failed. Error Code : %d", WSAGetLastError());
   }
-  TRACERETURNEX(0);
+  TRACE_RETURN_X(0);
 }
 #else
 int initialize_winsock()
@@ -264,21 +264,17 @@ int initialize_winsock()
 
 int init_proxy_log(pproxy_t proxy, struct config_s *config)
 {
-  assert(proxy != NULL);
-  assert(config != NULL);
-  proxy->log = create_configured_log(config->log);
+  TRACE_CALL_X(init_proxy_log, "proxy = %p, config = %p", (void *)proxy, (void *)config);
 
-  if (proxy->log == NULL)
-  {
-    return -1;
-  }
+  TRACE_SAFE(configure_log(proxy, config->log));
+  TRACE_SAFE(activate_logging(proxy->log));
 
-  return activate_logging(proxy->log);
+  TRACE_SUCCESS;
 }
 
 int main(int argc, char **argv)
 {
-  TRACECALLEX(main, "%d, %p", argc, (void *)argv);
+  TRACE_CALL_X(main, "%d, %p", argc, (void *)argv);
 
   if (initialize_winsock() != 0)
   {
@@ -320,8 +316,8 @@ int main(int argc, char **argv)
     exit(EX_SOFTWARE);
   }
 
-  proxy_t proxy;
-  if (init_proxy_log(&proxy, &config))
+  pproxy_t proxy = create_pproxy_t();
+  if (init_proxy_log(proxy, &config))
   {
     exit(EX_SOFTWARE);
   }

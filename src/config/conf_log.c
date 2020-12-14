@@ -20,7 +20,7 @@ CLONE_IMPL(pconf_log_t, {
     if (dst->logf_name == NULL)
     {
       delete_pconf_log_t(&dst);
-      TRACERETURNEX(NULL, "Cannot alloc memory to copy src->logf_name (%p)",
+      TRACE_RETURN_X(NULL, "Cannot alloc memory to copy src->logf_name (%p)",
                     (void *)src->logf_name);
     }
   }

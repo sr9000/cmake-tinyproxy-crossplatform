@@ -195,7 +195,7 @@ static void _child_lock_release(void)
  */
 short int child_configure(child_config_t type, unsigned int val)
 {
-  TRACECALLEX(child_configure, "type = %d, val = %u", type, val);
+  TRACE_CALL_X(child_configure, "type = %d, val = %u", type, val);
 
   switch (type)
   {
@@ -215,10 +215,10 @@ short int child_configure(child_config_t type, unsigned int val)
     child_config.maxrequestsperchild = val;
     break;
   default:
-    TRACERETURNEX(-1, "Invalid type (%d)", type);
+    TRACE_RETURN_X(-1, "Invalid type (%d)", type);
   }
 
-  TRACERETURN(0);
+  TRACE_RETURN(0);
 }
 
 /**

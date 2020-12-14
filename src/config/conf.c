@@ -325,7 +325,7 @@ const unsigned int ndirectives = sizeof(directives) / sizeof(directives[0]);
 
 static void free_added_headers(plist_t add_headers)
 {
-  TRACECALLEX(free_added_headers, "&add_headers = %p", add_headers);
+  TRACE_CALL_X(free_added_headers, "&add_headers = %p", add_headers);
 
   ssize_t i;
 
@@ -338,12 +338,12 @@ static void free_added_headers(plist_t add_headers)
   }
 
   list_delete(add_headers);
-  TRACERETVOID;
+  TRACE_RET_VOID;
 }
 
 static void free_config(struct config_s *conf)
 {
-  TRACECALLEX(free_config, "%p", (void *)conf);
+  TRACE_CALL_X(free_config, "%p", (void *)conf);
 
   safefree(conf->config_file);
   delete_pconf_log_t(&conf->log);
@@ -375,7 +375,7 @@ static void free_config(struct config_s *conf)
 
   memset(conf, 0, sizeof(*conf));
 
-  TRACERETVOID;
+  TRACE_RET_VOID;
 }
 
 /*
@@ -386,7 +386,7 @@ static void free_config(struct config_s *conf)
  */
 int config_compile_regex(void)
 {
-  TRACECALL(config_compile_regex);
+  TRACE_CALL(config_compile_regex);
 
   unsigned int i, r;
 
@@ -398,19 +398,19 @@ int config_compile_regex(void)
     directives[i].cre = (regex_t *)safemalloc(sizeof(regex_t));
     if (!directives[i].cre)
     {
-      TRACERETURNEX(-1, "directives[%d]: malloc failed", i);
+      TRACE_RETURN_X(-1, "directives[%d]: malloc failed", i);
     }
 
     r = regcomp(directives[i].cre, directives[i].re, REG_EXTENDED | REG_ICASE | REG_NEWLINE);
     if (r)
     {
-      TRACERETURNEX(r, "directives[%d]: regcomp failed", i);
+      TRACE_RETURN_X(r, "directives[%d]: regcomp failed", i);
     }
   }
 
   atexit(config_free_regex);
 
-  TRACERETURN(0);
+  TRACE_RETURN(0);
 }
 
 /*
@@ -419,7 +419,7 @@ int config_compile_regex(void)
  */
 static void config_free_regex(void)
 {
-  TRACECALL(config_free_regex);
+  TRACE_CALL(config_free_regex);
 
   unsigned int i;
 
@@ -433,7 +433,7 @@ static void config_free_regex(void)
     }
   }
 
-  TRACERETVOID;
+  TRACE_RET_VOID;
 }
 
 /*
@@ -446,7 +446,7 @@ static void config_free_regex(void)
  */
 static int check_match(struct config_s *conf, const char *line)
 {
-  TRACECALLEX(check_match, "&conf = %p, line = ...", (void *)conf);
+  TRACE_CALL_X(check_match, "&conf = %p, line = ...", (void *)conf);
 
   regmatch_t match[RE_MAX_MATCHES];
   unsigned int i;
@@ -458,13 +458,13 @@ static int check_match(struct config_s *conf, const char *line)
     assert(directives[i].cre);
     if (!regexec(directives[i].cre, line, RE_MAX_MATCHES, match, 0))
     {
-      TRACEMSG("handle directive[%d]", i);
+      TRACE_MSG("handle directive[%d]", i);
       int r = (*directives[i].handler)(conf, line, match);
-      TRACERETURNEX(r, "return code = %d for directives[%d].handler", r, i);
+      TRACE_RETURN_X(r, "return code = %d for directives[%d].handler", r, i);
     }
   }
 
-  TRACERETURN(-1);
+  TRACE_RETURN(-1);
 }
 
 /*
@@ -472,7 +472,7 @@ static int check_match(struct config_s *conf, const char *line)
  */
 static int config_parse(struct config_s *conf, FILE *f)
 {
-  TRACECALLEX(config_parse, "&conf = %p, &file = %p", (void *)conf, (void *)f);
+  TRACE_CALL_X(config_parse, "&conf = %p, &file = %p", (void *)conf, (void *)f);
 
   char buffer[1024]; // 1KB lines should be plenty
 
@@ -480,11 +480,11 @@ static int config_parse(struct config_s *conf, FILE *f)
   {
     if (check_match(conf, buffer))
     {
-      TRACERETURNEX(1, "Syntax error on line %ld: %s", lineno, buffer);
+      TRACE_RETURN_X(1, "Syntax error on line %ld: %s", lineno, buffer);
     }
   }
 
-  TRACERETURN(0);
+  TRACE_RETURN(0);
 }
 
 /**
@@ -492,24 +492,24 @@ static int config_parse(struct config_s *conf, FILE *f)
  */
 static int load_config_file(const char *config_fname, struct config_s *conf)
 {
-  TRACECALLEX(load_config_file, "%s, %p", config_fname, (void *)conf);
+  TRACE_CALL_X(load_config_file, "%s, %p", config_fname, (void *)conf);
 
   FILE *fconfig;
 
   fconfig = fopen(config_fname, "r");
   if (!fconfig)
   {
-    TRACERETURNEX(-1, "Could not open config file \"%s\"", config_fname);
+    TRACE_RETURN_X(-1, "Could not open config file \"%s\"", config_fname);
   }
 
   if (config_parse(conf, fconfig))
   {
     fclose(fconfig);
-    TRACERETURNEX(-1, "Unable to parse config file \"%s\"", config_fname);
+    TRACE_RETURN_X(-1, "Unable to parse config file \"%s\"", config_fname);
   }
 
   fclose(fconfig);
-  TRACERETURN(0);
+  TRACE_RETURN(0);
 }
 
 #define INIT_STRFLD_WITH_DEFAULT(fieldname)                                                        \
@@ -518,7 +518,7 @@ static int load_config_file(const char *config_fname, struct config_s *conf)
     conf->fieldname = safestrdup(defaults->fieldname);                                             \
     if (!conf->fieldname)                                                                          \
     {                                                                                              \
-      TRACECALLEX(-1, "conf->%s = %p", #fieldname, (void *)conf->fieldname);                       \
+      TRACE_CALL_X(-1, "conf->%s = %p", #fieldname, (void *)conf->fieldname);                       \
     }                                                                                              \
   }                                                                                                \
   do                                                                                               \
@@ -527,7 +527,7 @@ static int load_config_file(const char *config_fname, struct config_s *conf)
 
 static int initialize_with_defaults(struct config_s *conf, struct config_s *defaults)
 {
-  TRACECALLEX(initialize_with_defaults, "&conf = %p, &defaults = %p", (void *)conf,
+  TRACE_CALL_X(initialize_with_defaults, "&conf = %p, &defaults = %p", (void *)conf,
               (void *)defaults);
 
   conf->log = clone_pconf_log_t(defaults->log);
@@ -580,7 +580,7 @@ static int initialize_with_defaults(struct config_s *conf, struct config_s *defa
   conf->reversemagic = defaults->reversemagic;
 #endif // REVERSE_SUPPORT
 
-  TRACERETURN(0);
+  TRACE_RETURN(0);
 }
 
 /**
@@ -588,7 +588,7 @@ static int initialize_with_defaults(struct config_s *conf, struct config_s *defa
  */
 int try_load_config_file(const char *config_fname, struct config_s *conf, struct config_s *defaults)
 {
-  TRACECALLEX(try_load_config_file, "%s, &conf = %p, &defaults = %p", config_fname, (void *)conf,
+  TRACE_CALL_X(try_load_config_file, "%s, &conf = %p, &defaults = %p", config_fname, (void *)conf,
               (void *)defaults);
 
   int ret;
@@ -596,24 +596,24 @@ int try_load_config_file(const char *config_fname, struct config_s *conf, struct
   free_config(conf);
   if (initialize_with_defaults(conf, defaults))
   {
-    TRACERETURN(-1);
+    TRACE_RETURN(-1);
   }
 
   ret = load_config_file(config_fname, conf);
   if (ret == 0)
   {
-    TRACERETURN(0);
+    TRACE_RETURN(0);
   }
 
   if (conf->port == 0)
   {
-    TRACERETURNEX(-1, "conf->port = %d: You MUST set a Port in the config file.", conf->port);
+    TRACE_RETURN_X(-1, "conf->port = %d: You MUST set a Port in the config file.", conf->port);
   }
 
   // set the default values if they were not set in the config file
   conf->idletimeout = conf->idletimeout ? conf->idletimeout : MAX_IDLE_TIME;
 
-  TRACERETURN(ret);
+  TRACE_RETURN(ret);
 }
 
 /***********************************************************************
@@ -642,12 +642,12 @@ static char *get_string_arg(const char *line, regmatch_t *match)
 
 static int set_string_arg(char **var, const char *line, regmatch_t *match)
 {
-  TRACECALLEX(set_string_arg, "**var = %p, *line = %p, ...", (void*)var, (void *)line);
+  TRACE_CALL_X(set_string_arg, "**var = %p, *line = %p, ...", (void*)var, (void *)line);
   char *arg = get_string_arg(line, match);
 
   if (!arg)
   {
-    TRACERETURNEX(-1, "get_string_arg = %p", (void *)arg);
+    TRACE_RETURN_X(-1, "get_string_arg = %p", (void *)arg);
   }
 
   if (*var != NULL)
@@ -657,7 +657,7 @@ static int set_string_arg(char **var, const char *line, regmatch_t *match)
 
   *var = arg;
 
-  TRACERETURN(0);
+  TRACE_RETURN(0);
 }
 
 static int get_bool_arg(const char *line, regmatch_t *match)
@@ -722,7 +722,7 @@ static int set_int_arg(unsigned int *var, const char *line, regmatch_t *match)
 
 static HANDLE_FUNC(handle_logfile)
 {
-  TRACEMSG("conf->log = %p", (void*)conf->log);
+  TRACE_MSG("conf->log = %p", (void*)conf->log);
   return set_string_arg(&conf->log->logf_name, line, &match[2]);
 }
 
@@ -747,28 +747,28 @@ static HANDLE_FUNC(handle_anonymous)
 
 static HANDLE_FUNC(handle_viaproxyname)
 {
-  TRACECALL(handle_viaproxyname);
+  TRACE_CALL(handle_viaproxyname);
 
   int r = set_string_arg(&conf->via_proxy_name, line, &match[2]);
   if (r)
   {
-    TRACERETURNEX(r, "ret code: %d", r);
+    TRACE_RETURN_X(r, "ret code: %d", r);
   }
 
-  TRACERETURNEX(0, "Setting \"Via\" header to '%s'", conf->via_proxy_name);
+  TRACE_RETURN_X(0, "Setting \"Via\" header to '%s'", conf->via_proxy_name);
 }
 
 static HANDLE_FUNC(handle_disableviaheader)
 {
-  TRACECALL(handle_disableviaheader);
+  TRACE_CALL(handle_disableviaheader);
 
   int r = set_bool_arg(&conf->disable_viaheader, line, &match[2]);
   if (r)
   {
-    TRACERETURNEX(r, "ret code: %d", r);
+    TRACE_RETURN_X(r, "ret code: %d", r);
   }
 
-  TRACERETURNEX(0, "%s", "Disabling transmission of the \"Via\" header.");
+  TRACE_RETURN_X(0, "%s", "Disabling transmission of the \"Via\" header.");
 }
 
 static HANDLE_FUNC(handle_defaulterrorfile)
@@ -783,53 +783,53 @@ static HANDLE_FUNC(handle_statfile)
 
 static HANDLE_FUNC(handle_stathost)
 {
-  TRACECALL(handle_stathost);
+  TRACE_CALL(handle_stathost);
 
   int r = set_string_arg(&conf->stathost, line, &match[2]);
   if (r)
   {
-    TRACERETURNEX(r, "ret code: %d", r);
+    TRACE_RETURN_X(r, "ret code: %d", r);
   }
 
-  TRACERETURNEX(0, "Stathost set to \"%s\"", conf->stathost);
+  TRACE_RETURN_X(0, "Stathost set to \"%s\"", conf->stathost);
 }
 
 static HANDLE_FUNC(handle_xtinyproxy)
 {
-  TRACECALL(handle_xtinyproxy);
+  TRACE_CALL(handle_xtinyproxy);
 
 #ifdef XTINYPROXY_ENABLE
   int r = set_bool_arg(&conf->add_xtinyproxy, line, &match[2]);
-  TRACERETURNEX(r, "ret code: %d", r);
+  TRACE_RETURN_X(r, "ret code: %d", r);
 #else
-  TRACERETURNEX(1, "%s", "XTinyproxy NOT Enabled! Recompile with --enable-xtinyproxy");
+  TRACE_RETURN_X(1, "%s", "XTinyproxy NOT Enabled! Recompile with --enable-xtinyproxy");
 #endif
 }
 
 static HANDLE_FUNC(handle_bindsame)
 {
-  TRACECALL(handle_bindsame);
+  TRACE_CALL(handle_bindsame);
 
   int r = set_bool_arg(&conf->bindsame, line, &match[2]);
   if (r)
   {
-    TRACERETURNEX(r, "ret code: %d", r);
+    TRACE_RETURN_X(r, "ret code: %d", r);
   }
 
-  TRACERETURNEX(0, "%s", "Binding outgoing connection to incoming IP");
+  TRACE_RETURN_X(0, "%s", "Binding outgoing connection to incoming IP");
 }
 
 static HANDLE_FUNC(handle_port)
 {
-  TRACECALL(handle_port);
+  TRACE_CALL(handle_port);
   set_int_arg(&conf->port, line, &match[2]);
 
   if (conf->port > 65535)
   {
-    TRACERETURNEX(1, "Bad port number (%d) supplied for Port.", conf->port);
+    TRACE_RETURN_X(1, "Bad port number (%d) supplied for Port.", conf->port);
   }
 
-  TRACERETURN(0);
+  TRACE_RETURN(0);
 }
 
 static HANDLE_FUNC(handle_maxclients)
@@ -903,25 +903,25 @@ static HANDLE_FUNC(handle_deny)
 
 static HANDLE_FUNC(handle_bind)
 {
-  TRACECALL(handle_bind);
+  TRACE_CALL(handle_bind);
 
   int r = set_string_arg(&conf->bind_address, line, &match[2]);
   if (r)
   {
-    TRACERETURNEX(r, "ret code: %d", r);
+    TRACE_RETURN_X(r, "ret code: %d", r);
   }
 
-  TRACERETURNEX(0, "Outgoing connections bound to IP %s", conf->bind_address);
+  TRACE_RETURN_X(0, "Outgoing connections bound to IP %s", conf->bind_address);
 }
 
 static HANDLE_FUNC(handle_listen)
 {
-  TRACECALL(handle_listen);
+  TRACE_CALL(handle_listen);
 
   char *arg = get_string_arg(line, &match[2]);
   if (arg == NULL)
   {
-    TRACERETURNEX(-1, "%s", "get_string_arg == NULL");
+    TRACE_RETURN_X(-1, "%s", "get_string_arg == NULL");
   }
 
   if (conf->listen_addrs == NULL)
@@ -930,14 +930,14 @@ static HANDLE_FUNC(handle_listen)
     if (conf->listen_addrs == NULL)
     {
       safefree(arg);
-      TRACERETURNEX(-1, "%s", "Could not create a list of listen addresses.");
+      TRACE_RETURN_X(-1, "%s", "Could not create a list of listen addresses.");
     }
   }
 
   list_append(conf->listen_addrs, arg, strlen(arg) + 1);
   safefree(arg);
 
-  TRACERETURNEX(0, "Added address [%s] to listen addresses.",
+  TRACE_RETURN_X(0, "Added address [%s] to listen addresses.",
                 (char *)list_getentry(conf->listen_addrs, list_length(conf->listen_addrs), NULL));
 }
 

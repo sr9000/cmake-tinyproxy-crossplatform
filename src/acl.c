@@ -123,17 +123,17 @@ static int fill_netmask_array(char *bitmask_string, int v6, unsigned char array[
  */
 static int init_access_list(plist_t *access_list)
 {
-  TRACECALLEX(init_access_list, "&access_list = %p", (void*)access_list);
+  TRACE_CALL_X(init_access_list, "&access_list = %p", (void*)access_list);
   if (!*access_list)
   {
     *access_list = list_create();
     if (!*access_list)
     {
-      TRACERETURNEX(-1, "%s", "Unable to allocate memory for access list");
+      TRACE_RETURN_X(-1, "%s", "Unable to allocate memory for access list");
     }
   }
 
-  TRACERETURN(0);
+  TRACE_RETURN(0);
 }
 
 /*

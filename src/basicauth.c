@@ -54,7 +54,7 @@ ssize_t basicauth_string(const char *user, const char *pass, char *buf, size_t b
  */
 int basicauth_add(plist_t authlist, const char *user, const char *pass)
 {
-  TRACECALLEX(basicauth_add, "&authlist = %p, user = %s, pass = *****", (void *)authlist, user);
+  TRACE_CALL_X(basicauth_add, "&authlist = %p, user = %s, pass = *****", (void *)authlist, user);
 
   char b[BASE64ENC_BYTES((256 + 2) - 1) + 1];
   ssize_t ret;
@@ -62,19 +62,19 @@ int basicauth_add(plist_t authlist, const char *user, const char *pass)
   ret = basicauth_string(user, pass, b, sizeof b);
   if (ret == -1)
   {
-    TRACERETURNEX(-1, "%s", "Illegal basicauth rule: missing user or pass");
+    TRACE_RETURN_X(-1, "%s", "Illegal basicauth rule: missing user or pass");
   }
   else if (ret == 0)
   {
-    TRACERETURNEX(-1, "%s", "User / pass in basicauth rule too long");
+    TRACE_RETURN_X(-1, "%s", "User / pass in basicauth rule too long");
   }
 
   if (list_append(authlist, b, ret + 1) == -ENOMEM)
   {
-    TRACERETURNEX(-1, "%s", "Unable to allocate memory in basicauth_add()");
+    TRACE_RETURN_X(-1, "%s", "Unable to allocate memory in basicauth_add()");
   }
 
-  TRACERETURN(0);
+  TRACE_RETURN(0);
 }
 
 /*

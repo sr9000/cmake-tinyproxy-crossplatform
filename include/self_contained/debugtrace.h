@@ -6,19 +6,19 @@
 #define CMAKE_TINYPROXY_DEBUGTRACE_H
 
 #ifdef NDEBUG
-#define TRACECALL(fname)                                                                           \
+#define TRACE_CALL(fname)                                                                          \
   do                                                                                               \
   {                                                                                                \
   } while (0)
-#define TRACECALLEX(fname, fmt, args...)                                                           \
+#define TRACE_CALL_X(fname, fmt, ...)                                                              \
   do                                                                                               \
   {                                                                                                \
   } while (0)
 
-#define TRACERETVOID                     return
-#define TRACERETURN(res)                 return (res)
-#define TRACERETURNEX(res, fmt, args...) return (res)
-#define TRACEMSG(fmt, args...)                                                                     \
+#define TRACE_RET_VOID                return
+#define TRACE_RETURN(res)             return (res)
+#define TRACE_RETURN_X(res, fmt, ...) return (res)
+#define TRACE_MSG(fmt, ...)                                                                        \
   do                                                                                               \
   {                                                                                                \
   } while (0)
@@ -30,29 +30,31 @@
 #pragma GCC system_header
 #endif
 
-#define TRACECALL(fname)                                                                           \
+#define TRACE_CALL(fname)                                                                          \
   fprintf(stderr, "TRACE {enter " #fname "} [%s:%d]\n", __FILE__, __LINE__);                       \
   char _8BF664F4[] = #fname
 
-#define TRACECALLEX(fname, fmt, args...)                                                           \
-  fprintf(stderr, "TRACE {enter " #fname " (" fmt ")} [%s:%d]\n", ##args, __FILE__, __LINE__);     \
+#define TRACE_CALL_X(fname, fmt, ...)                                                              \
+  fprintf(stderr, "TRACE {enter " #fname ": " fmt "} [%s:%d]\n", __VA_ARGS__, __FILE__,           \
+          __LINE__);                                                                               \
   char _8BF664F4[] = #fname
 
-#define TRACERETVOID                                                                               \
+#define TRACE_RET_VOID                                                                             \
   fprintf(stderr, "TRACE {leave %s} [%s:%d]\n", _8BF664F4, __FILE__, __LINE__);                    \
   return
 
-#define TRACERETURN(res)                                                                           \
+#define TRACE_RETURN(res)                                                                          \
   fprintf(stderr, "TRACE {leave %s with (%s)} [%s:%d]\n", _8BF664F4, #res, __FILE__, __LINE__);    \
   return (res)
 
-#define TRACERETURNEX(res, fmt, args...)                                                           \
-  fprintf(stderr, "TRACE {leave %s with (%s): " fmt "} [%s:%d]\n", _8BF664F4, #res, ##args,        \
+#define TRACE_RETURN_X(res, fmt, ...)                                                              \
+  fprintf(stderr, "TRACE {leave %s with (%s): " fmt "} [%s:%d]\n", _8BF664F4, #res, __VA_ARGS__,   \
           __FILE__, __LINE__);                                                                     \
   return (res)
 
-#define TRACEMSG(fmt, args...)                                                                     \
-  fprintf(stderr, "TRACE {message: " fmt "} [%s:%d]\n", ##args, __FILE__, __LINE__)
+#define TRACE_MSG(fmt, ...)                                                                        \
+  fprintf(stderr, "TRACE {message %s: " fmt "} [%s:%d]\n", _8BF664F4, __VA_ARGS__, __FILE__,       \
+          __LINE__)
 #endif // NDEBUG
 
 #endif // CMAKE_TINYPROXY_DEBUGTRACE_H

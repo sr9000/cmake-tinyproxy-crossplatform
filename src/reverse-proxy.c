@@ -34,24 +34,24 @@
  */
 int reversepath_add(const char *path, const char *url, struct reversepath **reversepath_list)
 {
-  TRACECALLEX(reversepath_add, "path = %s, url = %s, &reversepath = %p", path, url,
+  TRACE_CALL_X(reversepath_add, "path = %s, url = %s, &reversepath = %p", path, url,
               (void *)reversepath_list);
 
   struct reversepath *reverse;
 
   if (url == NULL)
   {
-    TRACERETURNEX(-1, "%s", "Illegal reverse proxy rule: missing url");
+    TRACE_RETURN_X(-1, "%s", "Illegal reverse proxy rule: missing url");
   }
 
   if (!strstr(url, "://"))
   {
-    TRACERETURNEX(-1, "Skipping reverse proxy rule: '%s' is not a valid url", url);
+    TRACE_RETURN_X(-1, "Skipping reverse proxy rule: '%s' is not a valid url", url);
   }
 
   if (path && *path != '/')
   {
-    TRACERETURNEX(-1,
+    TRACE_RETURN_X(-1,
                   "Skipping reverse proxy rule: path '%s' "
                   "doesn't start with a /",
                   path);
@@ -60,7 +60,7 @@ int reversepath_add(const char *path, const char *url, struct reversepath **reve
   reverse = (struct reversepath *)safemalloc(sizeof(struct reversepath));
   if (!reverse)
   {
-    TRACERETURNEX(-1, "%s", "Unable to allocate memory in reversepath_add()");
+    TRACE_RETURN_X(-1, "%s", "Unable to allocate memory in reversepath_add()");
   }
 
   if (!path)
@@ -77,7 +77,7 @@ int reversepath_add(const char *path, const char *url, struct reversepath **reve
   reverse->next = *reversepath_list;
   *reversepath_list = reverse;
 
-  TRACERETURN(0);
+  TRACE_RETURN(0);
 }
 
 /*

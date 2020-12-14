@@ -29,18 +29,18 @@
  */
 int add_connect_port_allowed(int port, plist_t *connect_ports)
 {
-  TRACECALLEX(add_connect_port_allowed, "port = %d, &list = %p", port, (void *)connect_ports);
+  TRACE_CALL_X(add_connect_port_allowed, "port = %d, &list = %p", port, (void *)connect_ports);
   if (!*connect_ports)
   {
     *connect_ports = list_create();
     if (!*connect_ports)
     {
-      TRACERETURNEX(-1, "%s", "Could not create a list of allowed CONNECT ports");
+      TRACE_RETURN_X(-1, "%s", "Could not create a list of allowed CONNECT ports");
     }
   }
 
   list_append(*connect_ports, &port, sizeof(port));
-  TRACERETURN(0);
+  TRACE_RETURN(0);
 }
 
 /*

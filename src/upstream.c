@@ -64,7 +64,7 @@ void free_upstream(struct upstream *up)
 static struct upstream *upstream_build(const char *host, int port, const char *domain,
                                        const char *user, const char *pass, proxy_type type)
 {
-  TRACECALLEX(upstream_build,
+  TRACE_CALL_X(upstream_build,
               "host = %s, port = %d, domain = %s, "
               "user = %s, pass = *****, proxy_type = %d (%s)",
               host, port, domain, user, type, proxy_type_name(type));
@@ -74,7 +74,7 @@ static struct upstream *upstream_build(const char *host, int port, const char *d
   up = (struct upstream *)safemalloc(sizeof(struct upstream));
   if (!up)
   {
-    TRACERETURNEX(NULL, "%s", "Unable to allocate memory in upstream_build()");
+    TRACE_RETURN_X(NULL, "%s", "Unable to allocate memory in upstream_build()");
   }
 
   up->type = type;
@@ -89,7 +89,7 @@ static struct upstream *upstream_build(const char *host, int port, const char *d
       ret = basicauth_string(user, pass, b, sizeof b);
       if (ret == 0)
       {
-        TRACERETURNEX(NULL, "%s", "User / pass in upstream config too long");
+        TRACE_RETURN_X(NULL, "%s", "User / pass in upstream config too long");
       }
       up->ua.authstr = safestrdup(b);
     }
@@ -105,7 +105,7 @@ static struct upstream *upstream_build(const char *host, int port, const char *d
     if (!host || host[0] == '\0' || port < 1)
     {
       free_upstream(up);
-      TRACERETURNEX(NULL, "%s", "Nonsense upstream rule: invalid host or port");
+      TRACE_RETURN_X(NULL, "%s", "Nonsense upstream rule: invalid host or port");
     }
 
     up->host = safestrdup(host);
@@ -118,7 +118,7 @@ static struct upstream *upstream_build(const char *host, int port, const char *d
     if (!domain || domain[0] == '\0')
     {
       free_upstream(up);
-      TRACERETURNEX(NULL, "%s", "Nonsense no-upstream rule: empty domain");
+      TRACE_RETURN_X(NULL, "%s", "Nonsense no-upstream rule: empty domain");
     }
 
     ptr = strchr(domain, '/');
@@ -154,7 +154,7 @@ static struct upstream *upstream_build(const char *host, int port, const char *d
     if (!host || host[0] == '\0' || port < 1 || !domain || domain[0] == '\0')
     {
       free_upstream(up);
-      TRACERETURNEX(NULL, "%s", "Nonsense upstream rule: invalid parameters");
+      TRACE_RETURN_X(NULL, "%s", "Nonsense upstream rule: invalid parameters");
     }
 
     up->host = safestrdup(host);
@@ -173,7 +173,7 @@ static struct upstream *upstream_build(const char *host, int port, const char *d
 int upstream_add(const char *host, int port, const char *domain, const char *user, const char *pass,
                  proxy_type type, struct upstream **upstream_list)
 {
-  TRACECALLEX(upstream_add, "(%s, %d, %s, %s, *****, %d (%s), %p)", host, port, domain, user, type,
+  TRACE_CALL_X(upstream_add, "(%s, %d, %s, %s, *****, %d (%s), %p)", host, port, domain, user, type,
               proxy_type_name(type), (void *)upstream_list);
 
   struct upstream *up;
@@ -181,7 +181,7 @@ int upstream_add(const char *host, int port, const char *domain, const char *use
   up = upstream_build(host, port, domain, user, pass, type);
   if (up == NULL)
   {
-    TRACERETURNEX(-1, "%s", "upstream_build == NULL");
+    TRACE_RETURN_X(-1, "%s", "upstream_build == NULL");
   }
 
   if (!up->domain && !up->ip)
@@ -193,7 +193,7 @@ int upstream_add(const char *host, int port, const char *domain, const char *use
       if (!tmp->domain && !tmp->ip)
       {
         free_upstream(up);
-        TRACERETURNEX(-1, "%s", "Duplicate default upstream");
+        TRACE_RETURN_X(-1, "%s", "Duplicate default upstream");
       }
 
       if (!tmp->next)
@@ -209,7 +209,7 @@ int upstream_add(const char *host, int port, const char *domain, const char *use
   up->next = *upstream_list;
   *upstream_list = up;
 
-  TRACERETURN(0);
+  TRACE_RETURN(0);
 }
 
 /*
