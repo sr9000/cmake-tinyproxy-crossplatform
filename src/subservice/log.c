@@ -25,7 +25,6 @@
 #include <assert.h>
 #include <errno.h>
 #include <stdarg.h>
-#include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
@@ -49,51 +48,28 @@ struct log_s
   int fd;
 };
 
-void init_with_default_values(plog_t log)
+CREATE_IMPL(plog_t, {
+  obj->config = create_pconf_log_t();
+  obj->fd = -1;
+})
+
+plog_t create_configured_log(pconf_log_t conf_log)
 {
-  // todo: fix free memory
-  log->config = create_pconf_log_t();
-  log->fd = -1;
-}
+  TRACECALL(create_configured_log);
 
-plog_t create_default_log()
-{
-  TRACECALL(create_default_log);
-
-  plog_t log = safemalloc(sizeof(struct log_s));
-  if (log == NULL)
-  {
-    TRACERETURNEX(NULL, "%s", "Error when allocating memory for struct log_s");
-  }
-
-  init_with_default_values(log);
-
-  TRACERETURN(log);
-}
-
-plog_t create_log(pconf_log_t conf_log)
-{
-  TRACECALL(create_log);
-
-  plog_t log = create_default_log();
+  plog_t log = create_plog_t();
   if (log == NULL)
   {
     TRACERETURNEX(NULL, "%s", "Error when creating default struct log_s");
   }
 
-  // todo: fix memory
+  delete_pconf_log_t(&log->config);
   log->config = clone_pconf_log_t(conf_log);
 
   TRACERETURN(log);
 }
 
-void delete_log(plog_t *pplog)
-{
-  assert(pplog != NULL);
-  delete_pconf_log_t(&(*pplog)->config);
-  safefree(*pplog);
-  *pplog = NULL;
-}
+DELETE_IMPL(plog_t, { delete_pconf_log_t(&obj->config); })
 
 /*
  * Open the log file and store the file descriptor in a global location.
@@ -224,5 +200,4 @@ int activate_logging(plog_t log)
 void shutdown_logging(plog_t *pplog)
 {
   close_log_file(*pplog);
-  delete_log(pplog);
 }

@@ -266,7 +266,7 @@ int init_proxy_log(pproxy_t proxy, struct config_s *config)
 {
   assert(proxy != NULL);
   assert(config != NULL);
-  proxy->log = create_log(config->log);
+  proxy->log = create_configured_log(config->log);
 
   if (proxy->log == NULL)
   {
@@ -421,6 +421,8 @@ int main(int argc, char **argv)
 #endif /* FILTER_ENABLE */
 
   shutdown_logging(&proxy.log);
+
+  // todo: delete proxy
 
   return EXIT_SUCCESS;
 }

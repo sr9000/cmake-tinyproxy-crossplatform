@@ -22,7 +22,9 @@
 #define TINYPROXY_LOG_H
 
 #include "config/conf_log.h"
+
 #include "log_levels.h"
+#include "self_contained/object.h"
 
 /*
  * Okay, I have modelled the levels for logging off the syslog() interface.
@@ -69,7 +71,7 @@
  *                connections, denying due to filtering rules, unable to
  *                connect to remote server, etc.
  *
- * LOG_DEBUG          Don't use this level. :) Use the DEBUG1 or DEBUG2 macros
+ * LOG_DEBUG          Don't use this level. :) Use the DEBUG_LOG or DEBUG_LOG_EX macros
  *                instead since they can remain in the source if needed. (I
  *                don't advocate this, but it could be useful at times.)
  */
@@ -82,27 +84,28 @@
 #endif
 
 // Use this for debugging. The format is specific:
-// DEBUG1("There was a major problem");
-// DEBUG2("There was a big problem: %s in connptr %p", "hello", connptr);
+// DEBUG_LOG("There was a major problem");
+// DEBUG_LOG_EX("There was a big problem: %s in connptr %p", "hello", connptr);
 #ifdef NDEBUG
-#define DEBUG1(l, x)                                                                               \
+#define DEBUG_LOG(l, x)                                                                            \
   do                                                                                               \
   {                                                                                                \
   } while (0)
-#define DEBUG2(l, x, y...)                                                                         \
+#define DEBUG_LOG_EX(l, x, y...)                                                                   \
   do                                                                                               \
   {                                                                                                \
   } while (0)
 #else // NDEBUG
-#define DEBUG1(l, x)       log_message(l, LOG_DEBUG, "[%s:%d] " x, __FILE__, __LINE__)
-#define DEBUG2(l, x, y...) log_message(l, LOG_DEBUG, "[%s:%d] " x, __FILE__, __LINE__, ##y)
+#define DEBUG_LOG(l, x)          log_message(l, LOG_DEBUG, "[%s:%d] " x, __FILE__, __LINE__)
+#define DEBUG_LOG_EX(l, x, y...) log_message(l, LOG_DEBUG, "[%s:%d] " x, __FILE__, __LINE__, ##y)
 #endif // NDEBUG
 
 typedef struct log_s *plog_t;
 
-extern plog_t create_default_log();
-extern plog_t create_log(pconf_log_t conf_log);
-extern void delete_log(plog_t *log);
+CREATE_DECL(plog_t);
+DELETE_DECL(plog_t);
+
+extern plog_t create_configured_log(pconf_log_t conf_log);
 
 extern int open_log_file(plog_t log);
 extern void close_log_file(plog_t log);

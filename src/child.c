@@ -176,7 +176,7 @@ static void _child_lock_release(void)
   {                                                                                                \
     SERVER_COUNT_LOCK();                                                                           \
     ++(*servers_waiting);                                                                          \
-    DEBUG2(l, "INC: servers_waiting: %d", *servers_waiting);                                       \
+    DEBUG_LOG_EX(l, "INC: servers_waiting: %d", *servers_waiting);                                       \
     SERVER_COUNT_UNLOCK();                                                                         \
   } while (0)
 
@@ -186,7 +186,7 @@ static void _child_lock_release(void)
     SERVER_COUNT_LOCK();                                                                           \
     assert(*servers_waiting > 0);                                                                  \
     --(*servers_waiting);                                                                          \
-    DEBUG2(l, "DEC: servers_waiting: %d", *servers_waiting);                                       \
+    DEBUG_LOG_EX(l, "DEC: servers_waiting: %d", *servers_waiting);                                       \
     SERVER_COUNT_UNLOCK();                                                                         \
   } while (0)
 
@@ -384,7 +384,7 @@ static
 
     if (child_config.maxrequestsperchild != 0)
     {
-      DEBUG2(ptr->proxy->log, "%u connections so far...", ptr->connects);
+      DEBUG_LOG_EX(ptr->proxy->log, "%u connections so far...", ptr->connects);
 
       if (ptr->connects == child_config.maxrequestsperchild)
       {
@@ -542,7 +542,7 @@ short int child_pool_create(pproxy_t proxy)
 
   for (i = 0; i != child_config.startservers; i++)
   {
-    DEBUG2(proxy->log, "Trying to create child %d of %d", i + 1, child_config.startservers);
+    DEBUG_LOG_EX(proxy->log, "Trying to create child %d of %d", i + 1, child_config.startservers);
     child_ptr[i].status = T_WAITING;
     child_ptr[i].proxy = proxy;
     child_ptr[i].tid = child_make(&child_ptr[i]);
