@@ -15,36 +15,36 @@
 #define CREATE_IMPL(ptype, ...)                                                                    \
   ptype create_##ptype()                                                                           \
   {                                                                                                \
-    TRACE_CALL(create_##ptype);                                                                     \
+    TRACE_CALL(create_##ptype);                                                                    \
                                                                                                    \
     ptype obj = NULL;                                                                              \
                                                                                                    \
     obj = safemalloc(sizeof(*obj));                                                                \
     if (obj == NULL)                                                                               \
     {                                                                                              \
-      TRACE_RETURN_X(NULL, "%s", "cannot allocate memory.");                                        \
+      TRACE_RETURN_X(NULL, "%s", "cannot allocate memory.");                                       \
     }                                                                                              \
                                                                                                    \
     {                                                                                              \
       __VA_ARGS__;                                                                                 \
     }                                                                                              \
                                                                                                    \
-    TRACE_RETURN(obj);                                                                              \
+    TRACE_RETURN(obj);                                                                             \
   }
 
 #define DELETE_IMPL(ptype, ...)                                                                    \
   int delete_##ptype(ptype *arg)                                                                   \
   {                                                                                                \
-    TRACE_CALL_X(delete_##ptype, #ptype "* = %p", (void *)arg);                                     \
+    TRACE_CALL_X(delete_##ptype, #ptype "* = %p", (void *)arg);                                    \
                                                                                                    \
     if (arg == NULL)                                                                               \
     {                                                                                              \
-      TRACE_RETURN_X(-1, "%s", "no " #ptype " to delete");                                          \
+      TRACE_RETURN_X(-1, "%s", "no " #ptype " to delete");                                         \
     }                                                                                              \
                                                                                                    \
     if (*arg == NULL)                                                                              \
     {                                                                                              \
-      TRACE_RETURN_X(0, "%s", #ptype " had already been deleted");                                  \
+      TRACE_RETURN_X(0, "%s", #ptype " had already been deleted");                                 \
     }                                                                                              \
                                                                                                    \
     {                                                                                              \
@@ -53,26 +53,26 @@
     }                                                                                              \
                                                                                                    \
     safefree(*arg);                                                                                \
-    TRACE_RETURN(0);                                                                                \
+    TRACE_RETURN(0);                                                                               \
   }
 
 #define CLONE_IMPL(ptype, ...)                                                                     \
-  ptype clone_##ptype(ptype src)                                                                    \
+  ptype clone_##ptype(ptype src)                                                                   \
   {                                                                                                \
-    TRACE_CALL_X(clone_##ptype, #ptype " = %p", (void *)src);                                               \
+    TRACE_CALL_X(clone_##ptype, #ptype " = %p", (void *)src);                                      \
                                                                                                    \
     if (src == NULL)                                                                               \
     {                                                                                              \
-      TRACE_RETURN_X(NULL, "%s", "no " #ptype " to clone");                                         \
+      TRACE_RETURN_X(NULL, "%s", "no " #ptype " to clone");                                        \
     }                                                                                              \
                                                                                                    \
-    ptype dst = create_##ptype();                                                            \
+    ptype dst = create_##ptype();                                                                  \
                                                                                                    \
     {                                                                                              \
       __VA_ARGS__;                                                                                 \
     }                                                                                              \
                                                                                                    \
-    TRACE_RETURN(dst);                                                                              \
+    TRACE_RETURN(dst);                                                                             \
   }
 
 #endif // CMAKE_TINYPROXY_OBJECT_H

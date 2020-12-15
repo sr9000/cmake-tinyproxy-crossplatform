@@ -25,7 +25,6 @@
 
 #include "config/conf.h"
 
-#include "acl.h"
 #include "basicauth.h"
 #include "child.h"
 #include "connect-ports.h"
@@ -36,6 +35,7 @@
 #include "reqs.h"
 #include "reverse-proxy.h"
 #include "self_contained/safecall.h"
+#include "subservice/acl.h"
 #include "subservice/anonymous.h"
 #include "subservice/log.h"
 #include "upstream.h"
@@ -348,6 +348,8 @@ static void free_config(struct config_s *conf)
   safefree(conf->config_file);
   delete_pconf_log_t(&conf->log);
   delete_pconf_anon_t(&conf->anon);
+  delete_pconf_acl_t(&conf->acl);
+
   safefree(conf->stathost);
   safefree(conf->user);
   safefree(conf->group);
@@ -370,7 +372,6 @@ static void free_config(struct config_s *conf)
   free_added_headers(conf->add_headers);
   safefree(conf->errorpage_undef);
   safefree(conf->statpage);
-  flush_access_list(conf->access_list);
   free_connect_ports_list(conf->connect_ports);
 
   memset(conf, 0, sizeof(*conf));
@@ -532,6 +533,7 @@ static int initialize_with_defaults(struct config_s *conf, struct config_s *defa
 
   conf->log = clone_pconf_log_t(defaults->log);
   conf->anon = clone_pconf_anon_t(defaults->anon);
+  conf->acl = clone_pconf_acl_t(defaults->acl);
   INIT_STRFLD_WITH_DEFAULT(config_file);
   INIT_STRFLD_WITH_DEFAULT(stathost);
   INIT_STRFLD_WITH_DEFAULT(user);
@@ -598,11 +600,6 @@ int try_load_config_file(const char *config_fname, struct config_s *conf, struct
 
   TRACE_SAFE_X(0 == conf->port, -1, "conf->port = %d: You MUST set a Port in the config file.",
                conf->port);
-
-  if (conf->anon->count > 0)
-  {
-
-  }
 
   // set the default values if they were not set in the config file
   conf->idletimeout = conf->idletimeout ? conf->idletimeout : MAX_IDLE_TIME;
@@ -881,20 +878,24 @@ static HANDLE_FUNC(handle_group)
 
 static HANDLE_FUNC(handle_allow)
 {
-  char *arg = get_string_arg(line, &match[2]);
+  TRACE_CALL(handle_allow);
 
-  insert_acl(arg, ACL_ALLOW, &conf->access_list);
+  char *arg = get_string_arg(line, &match[2]);
+  TRACE_SAFE(add_rule_conf_acl(conf->acl, arg, ACL_ALLOW));
   safefree(arg);
-  return 0;
+
+  TRACE_SUCCESS;
 }
 
 static HANDLE_FUNC(handle_deny)
 {
-  char *arg = get_string_arg(line, &match[2]);
+  TRACE_CALL(handle_deny);
 
-  insert_acl(arg, ACL_DENY, &conf->access_list);
+  char *arg = get_string_arg(line, &match[2]);
+  TRACE_SAFE(add_rule_conf_acl(conf->acl, arg, ACL_DENY));
   safefree(arg);
-  return 0;
+
+  TRACE_SUCCESS;
 }
 
 static HANDLE_FUNC(handle_bind)

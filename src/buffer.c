@@ -219,6 +219,7 @@ int writesocket(SOCKET s, const char *buf, int len, int _ignore)
   return send(s, buf, len, 0);
 }
 #else /* MINGW */
+// todo readsocket == recv?
 #define readsocket  read
 #define writesocket send
 #endif /* MINGW */

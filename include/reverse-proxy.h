@@ -19,8 +19,8 @@
 #ifndef TINYPROXY_REVERSE_PROXY_H
 #define TINYPROXY_REVERSE_PROXY_H
 
-#include "acl.h"
 #include "conns.h"
+#include "subservice/acl.h"
 #include "tinyproxy.h"
 
 struct reversepath

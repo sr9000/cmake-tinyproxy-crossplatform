@@ -18,7 +18,7 @@ add_subdirectory(config)
 add_subdirectory(subservice)
 
 set(TINYPROXY_SOURCES
-        acl.c
+        subservice/acl.c
         basicauth.c
         buffer.c
         child.c

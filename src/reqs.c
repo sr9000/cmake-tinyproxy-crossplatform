@@ -28,7 +28,6 @@
 #include "main.h"
 #include <child.h>
 
-#include "acl.h"
 #include "basicauth.h"
 #include "buffer.h"
 #include "config/conf.h"
@@ -45,6 +44,7 @@
 #include "reverse-proxy.h"
 #include "sock.h"
 #include "stats.h"
+#include "subservice/acl.h"
 #include "subservice/anonymous.h"
 #include "subservice/log.h"
 #include "transparent-proxy.h"
@@ -925,7 +925,7 @@ static int process_client_headers(pproxy_t proxy, struct conn_s *connptr, phashm
     {
       hashmap_return_entry(hashofheaders, iter, &data, (void **)&header);
 
-      if (!is_anonymous_enabled(proxy->anon) || anonymous_search(proxy->anon, data) > 0)
+      if (!is_anonymous_enabled(proxy->anon) || anonymous_search(proxy->log, proxy->anon, data) > 0)
       {
         ret = write_message(connptr->server_fd, "%s: %s\r\n", data, header);
         if (ret < 0)

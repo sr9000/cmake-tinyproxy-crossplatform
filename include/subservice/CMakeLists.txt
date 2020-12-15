@@ -4,3 +4,7 @@ proxy_global_header_absolute_paths(TINYPROXY_LOG_HEADERS
 
 proxy_global_header_absolute_paths(TINYPROXY_ANON_HEADERS
         anonymous.h)
+
+proxy_global_header_absolute_paths(TINYPROXY_ACL_HEADERS
+        acl.h
+        acl_access_type.h)

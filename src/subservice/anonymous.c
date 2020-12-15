@@ -77,6 +77,8 @@ int add_header_anon(panon_t anon, const char *header)
 panon_t create_configured_anon(pconf_anon_t anon_config)
 {
   TRACE_CALL_X(create_configured_anon, "anon_config = %p", (void *)anon_config);
+  TRACE_SAFE_X(NULL == anon_config, NULL, "%s", "there is no anon config");
+
   panon_t obj;
   TRACE_SAFE_R(NULL == (obj = create_panon_t()), NULL);
 
@@ -118,9 +120,16 @@ short int is_anonymous_enabled(panon_t anon)
  * Search for the header.  This function returns a positive value greater than
  * zero if the string was found, zero if it wasn't and negative upon error.
  */
-ssize_t anonymous_search(panon_t anon, const char *s)
+ssize_t anonymous_search(plog_t log, panon_t anon, const char *s)
 {
-  TRACE_CALL_X(anonymous_search, "anon = %p, s = %s", (void *)anon, s);
-  TRACE_SAFE_X(NULL == anon, -1, "%s", "no anon struct to search header");
-  return hashmap_search(anon->headers, s);
+  if (NULL == anon)
+  {
+    log_message(log, LOG_ERR, "%s", "no anon struct to search header");
+    return -1;
+  }
+
+  ssize_t r = hashmap_search(anon->headers, s);
+  log_message(log, LOG_INFO, "search result: %zu", r);
+
+  return r;
 }

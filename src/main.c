@@ -241,6 +241,7 @@ static int initialize_config_defaults(struct config_s *conf)
   // setup log
   conf->log = create_pconf_log_t();
   conf->anon = create_pconf_anon_t();
+  conf->acl = create_pconf_acl_t();
 
   TRACE_RETURN(0);
 }

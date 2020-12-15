@@ -18,7 +18,7 @@ CLONE_IMPL(pconf_log_t, {
   if (src->logf_name != NULL)
   {
     dst->logf_name = safestrdup(src->logf_name);
-    if (dst->logf_name == NULL)
+    if (NULL == dst->logf_name)
     {
       TRACE_MSG("cannot alloc memory to copy src->logf_name (%p)", (void *)src->logf_name);
       delete_pconf_log_t(&dst);

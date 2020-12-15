@@ -21,6 +21,7 @@
 
 #include "self_contained/object.h"
 #include "config/conf_anon.h"
+#include "log.h"
 
 typedef struct anon_s *panon_t;
 
@@ -30,6 +31,6 @@ DELETE_DECL(panon_t);
 extern panon_t create_configured_anon(pconf_anon_t anon_config);
 
 extern short int is_anonymous_enabled(panon_t anon);
-extern ssize_t anonymous_search(panon_t anon, const char *s);
+extern ssize_t anonymous_search(plog_t log, panon_t anon, const char *s);
 
 #endif // TINYPROXY_ANONYMOUS_H

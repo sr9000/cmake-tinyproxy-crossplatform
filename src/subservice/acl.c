@@ -23,12 +23,12 @@
 
 #include "main.h"
 
-#include "acl.h"
 #include "misc/heap.h"
 #include "misc/list.h"
 #include "network.h"
-#include "self_contained/debugtrace.h"
+#include "self_contained/safecall.h"
 #include "sock.h"
+#include "subservice/acl.h"
 #include "subservice/log.h"
 
 #include <limits.h>
@@ -47,7 +47,7 @@ enum acl_type
  * whether it's an ALLOW or DENY entry, and also whether it's a string
  * entry (like a domain name) or an IP entry.
  */
-struct acl_s
+struct acl_rule_s
 {
   acl_access_t access;
   enum acl_type type;
@@ -61,6 +61,35 @@ struct acl_s
     } ip;
   } address;
 };
+
+struct acl_s
+{
+  plist_t rules;
+};
+
+CREATE_IMPL(pacl_t, {
+  obj->rules = NULL;
+  TRACE_SAFE_FIN(NULL == (obj->rules = list_create()), NULL, delete_pacl_t(&obj));
+})
+
+DELETE_IMPL(pacl_t, { TRACE_SAFE(delete_pacl_t(&obj)); })
+
+int insert_acl(char *location, acl_access_t access_type, plist_t access_list);
+
+pacl_t create_configured_acl(pconf_acl_t acl_config)
+{
+  TRACE_CALL_X(create_configured_acl, "acl_config = %p", (void*)acl_config);
+  TRACE_SAFE_X(NULL == acl_config, NULL, "%s", "there is no acl config");
+
+  pacl_t obj;
+  TRACE_SAFE_R(NULL == (obj = create_pacl_t()), NULL);
+
+  for (size_t i = 0; i < acl_config->count; ++i) {
+    insert_acl(acl_config->rules[i].location, acl_config->rules[i].access, obj->rules);
+  }
+
+  TRACE_RETURN(obj);
+}
 
 /*
  * Fills in the netmask array given a numeric value.
@@ -82,7 +111,9 @@ static int fill_netmask_array(char *bitmask_string, int v6, unsigned char array[
   /* check for various conversion errors */
   if ((errno == ERANGE && mask == ULONG_MAX) || (errno != 0 && mask == 0) ||
       (endptr == bitmask_string))
+  {
     return -1;
+  }
 
   if (v6 == 0)
   {
@@ -123,7 +154,7 @@ static int fill_netmask_array(char *bitmask_string, int v6, unsigned char array[
  */
 static int init_access_list(plist_t *access_list)
 {
-  TRACE_CALL_X(init_access_list, "&access_list = %p", (void*)access_list);
+  TRACE_CALL_X(init_access_list, "&access_list = %p", (void *)access_list);
   if (!*access_list)
   {
     *access_list = list_create();
@@ -135,7 +166,6 @@ static int init_access_list(plist_t *access_list)
 
   TRACE_RETURN(0);
 }
-
 /*
  * Inserts a new access control into the list. The function will figure out
  * whether the location is an IP address (with optional netmask) or a
@@ -145,29 +175,17 @@ static int init_access_list(plist_t *access_list)
  *    -1 on failure
  *     0 otherwise.
  */
-int insert_acl(char *location, acl_access_t access_type, plist_t *access_list)
+int insert_acl(char *location, acl_access_t access_type, plist_t access_list)
 {
-  struct acl_s acl;
+  struct acl_rule_s acl;
   int ret;
   char *p, ip_dst[IPV6_LEN];
 
-  assert(location != NULL);
-
-  ret = init_access_list(access_list);
-  if (ret != 0)
-  {
-    return -1;
-  }
-
-  /*
-   * Start populating the access control structure.
-   */
-  memset(&acl, 0, sizeof(struct acl_s));
+  // start populating the access control structure
+  memset(&acl, 0, sizeof(struct acl_rule_s));
   acl.access = access_type;
 
-  /*
-   * Check for a valid IP address (the simplest case) first.
-   */
+  // check for a valid IP address (the simplest case) first
   if (full_inet_pton(location, ip_dst) > 0)
   {
     acl.type = ACL_NUMERIC;
@@ -178,53 +196,57 @@ int insert_acl(char *location, acl_access_t access_type, plist_t *access_list)
   {
     int i;
 
-    /*
-     * At this point we're either a hostname or an
-     * IP address with a slash.
-     */
+    // at this point we're either a hostname or an IP address with a slash
     p = strchr(location, '/');
     if (p != NULL)
     {
       char dst[sizeof(struct in6_addr)];
       int v6;
 
-      /*
-       * We have a slash, so it's intended to be an
-       * IP address with mask
-       */
+      // we have a slash, so it's intended to be an IP address with mask
       *p = '\0';
       if (full_inet_pton(location, ip_dst) <= 0)
+      {
         return -1;
+      }
 
       acl.type = ACL_NUMERIC;
 
-      /* Check if the IP address before the netmask is
-       * an IPv6 address */
+      // check if the IP address before the netmask is an IPv6 address
       if (inet_pton(AF_INET6, location, dst) > 0)
+      {
         v6 = 1;
+      }
       else
+      {
         v6 = 0;
+      }
 
       if (fill_netmask_array(p + 1, v6, &(acl.address.ip.mask[0]), IPV6_LEN) < 0)
+      {
         return -1;
+      }
 
       for (i = 0; i < IPV6_LEN; i++)
+      {
         acl.address.ip.network[i] = ip_dst[i] & acl.address.ip.mask[i];
+      }
     }
     else
     {
-      /* In all likelihood a string */
+      // in all likelihood a string
       acl.type = ACL_STRING;
       acl.address.string = safestrdup(location);
       if (!acl.address.string)
+      {
         return -1;
+      }
     }
   }
 
-  ret = list_append(*access_list, &acl, sizeof(struct acl_s));
+  ret = list_append(access_list, &acl, sizeof(struct acl_rule_s));
   return ret;
 }
-
 /*
  * This function is called whenever a "string" access control is found in
  * the ACL.  From here we do both a text based string comparison, along with
@@ -234,7 +256,7 @@ int insert_acl(char *location, acl_access_t access_type, plist_t *access_list)
  *         1 if host is allowed
  *        -1 if no tests match, so skip
  */
-static int acl_string_processing(struct acl_s *acl, const char *ip_address,
+static int acl_string_processing(struct acl_rule_s *acl, const char *ip_address,
                                  const char *string_address)
 {
   int match;
@@ -314,7 +336,7 @@ STRING_TEST:
  *   0  IP address is denied
  *  -1  neither allowed nor denied.
  */
-static int check_numeric_acl(const struct acl_s *acl, const char *ip)
+static int check_numeric_acl(const struct acl_rule_s *acl, const char *ip)
 {
   uint8_t addr[IPV6_LEN], x, y;
   int i;
@@ -348,7 +370,7 @@ static int check_numeric_acl(const struct acl_s *acl, const char *ip)
  */
 int check_acl(pproxy_t proxy, const char *ip, const char *host, plist_t access_list)
 {
-  struct acl_s *acl;
+  struct acl_rule_s *acl;
   int perm = 0;
   size_t i;
 
@@ -363,7 +385,7 @@ int check_acl(pproxy_t proxy, const char *ip, const char *host, plist_t access_l
 
   for (i = 0; i != (size_t)list_length(access_list); ++i)
   {
-    acl = (struct acl_s *)list_getentry(access_list, i, NULL);
+    acl = (struct acl_rule_s *)list_getentry(access_list, i, NULL);
     switch (acl->type)
     {
     case ACL_STRING:
@@ -396,7 +418,7 @@ int check_acl(pproxy_t proxy, const char *ip, const char *host, plist_t access_l
 
 void flush_access_list(plist_t access_list)
 {
-  struct acl_s *acl;
+  struct acl_rule_s *acl;
   size_t i;
 
   if (!access_list)
@@ -411,7 +433,7 @@ void flush_access_list(plist_t access_list)
    */
   for (i = 0; i != (size_t)list_length(access_list); ++i)
   {
-    acl = (struct acl_s *)list_getentry(access_list, i, NULL);
+    acl = (struct acl_rule_s *)list_getentry(access_list, i, NULL);
     if (acl->type == ACL_STRING)
     {
       safefree(acl->address.string);

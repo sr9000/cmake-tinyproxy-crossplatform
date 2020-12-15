@@ -30,7 +30,11 @@ CLONE_IMPL(pconf_anon_t, {
     }
   }
 
-  TRACE_SAFE_FIN(dst->count < src->count, NULL, { delete_pconf_anon_t(&dst); });
+  if (dst->count < src->count)
+  {
+    delete_pconf_anon_t(&dst);
+    TRACE_NULL;
+  }
 })
 
 int add_header_conf_anon(pconf_anon_t anon_config, const char *header)

@@ -12,7 +12,7 @@ set(HEADERS
         http-message.h
         custom_sysexits.h
         transparent-proxy.h
-        acl.h
+        subservice/acl.h
         upstream.h
         sock.h
         common.h

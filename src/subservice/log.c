@@ -57,6 +57,7 @@ CREATE_IMPL(plog_t, {
 plog_t create_configured_log(pconf_log_t conf_log)
 {
   TRACE_CALL(create_configured_log);
+  TRACE_SAFE_X(NULL == conf_log, NULL, "%s", "there is no log config");
 
   plog_t log;
   TRACE_SAFE_X(NULL == (log = create_plog_t()), NULL, "%s",
@@ -108,6 +109,11 @@ void close_log_file(plog_t log)
  */
 void log_message(plog_t log, int level, const char *fmt, ...)
 {
+  if (log == NULL)
+  {
+    return;
+  }
+
   va_list args;
   time_t nowtime;
 

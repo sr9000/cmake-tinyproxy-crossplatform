@@ -20,6 +20,7 @@
 #ifndef TINYPROXY_CONF_H
 #define TINYPROXY_CONF_H
 
+#include "conf_acl.h"
 #include "conf_anon.h"
 #include "conf_log.h"
 #include "misc/hashmap.h"
@@ -35,10 +36,14 @@ typedef struct
 struct config_s
 {
   pconf_log_t log;
-  pconf_anon_t anon;
 
   // map of headers which should be let through when the anonymous feature is turned on
-  phashmap_t anonymous_map;
+  pconf_anon_t anon;
+
+  // acl rules
+  pconf_acl_t acl;
+
+  plist_t access_list;
 
   plist_t basicauth_list;
   char *config_file;
@@ -84,8 +89,6 @@ struct config_s
 
   // the HTML statistics page
   char *statpage;
-
-  plist_t access_list;
 
   // store the list of port allowed by CONNECT.
   plist_t connect_ports;

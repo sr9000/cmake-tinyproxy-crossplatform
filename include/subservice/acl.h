@@ -19,17 +19,19 @@
 #ifndef TINYPROXY_ACL_H
 #define TINYPROXY_ACL_H
 
-#include "child.h"
-#include "misc/list.h"
+#include "config/conf_acl.h"
+#include "log.h"
+#include "self_contained/object.h"
+#include "subservice/acl_access_type.h"
 
-typedef enum
-{
-  ACL_ALLOW,
-  ACL_DENY
-} acl_access_t;
+typedef struct acl_s *pacl_t;
 
-extern int insert_acl(char *location, acl_access_t access_type, plist_t *access_list);
-extern int check_acl(pproxy_t proxy, const char *ip, const char *host, plist_t access_list);
+CREATE_DECL(pacl_t);
+DELETE_DECL(pacl_t);
+
+extern pacl_t create_configured_acl(pconf_acl_t acl_config);
+
+extern int check_acl(plog_t plog, pacl_t acl, const char *ip, const char *host);
 extern void flush_access_list(plist_t access_list);
 
 #endif // TINYPROXY_ACL_H
