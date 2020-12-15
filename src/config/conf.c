@@ -26,7 +26,6 @@
 #include "config/conf.h"
 
 #include "acl.h"
-#include "anonymous.h"
 #include "basicauth.h"
 #include "child.h"
 #include "connect-ports.h"
@@ -37,6 +36,7 @@
 #include "reqs.h"
 #include "reverse-proxy.h"
 #include "self_contained/safecall.h"
+#include "subservice/anonymous.h"
 #include "subservice/log.h"
 #include "upstream.h"
 
@@ -347,6 +347,7 @@ static void free_config(struct config_s *conf)
 
   safefree(conf->config_file);
   delete_pconf_log_t(&conf->log);
+  delete_pconf_anon_t(&conf->anon);
   safefree(conf->stathost);
   safefree(conf->user);
   safefree(conf->group);
@@ -371,7 +372,6 @@ static void free_config(struct config_s *conf)
   safefree(conf->statpage);
   flush_access_list(conf->access_list);
   free_connect_ports_list(conf->connect_ports);
-  hashmap_delete(conf->anonymous_map);
 
   memset(conf, 0, sizeof(*conf));
 
@@ -518,7 +518,7 @@ static int load_config_file(const char *config_fname, struct config_s *conf)
     conf->fieldname = safestrdup(defaults->fieldname);                                             \
     if (!conf->fieldname)                                                                          \
     {                                                                                              \
-      TRACE_CALL_X(-1, "conf->%s = %p", #fieldname, (void *)conf->fieldname);                       \
+      TRACE_CALL_X(-1, "conf->%s = %p", #fieldname, (void *)conf->fieldname);                      \
     }                                                                                              \
   }                                                                                                \
   do                                                                                               \
@@ -528,9 +528,10 @@ static int load_config_file(const char *config_fname, struct config_s *conf)
 static int initialize_with_defaults(struct config_s *conf, struct config_s *defaults)
 {
   TRACE_CALL_X(initialize_with_defaults, "&conf = %p, &defaults = %p", (void *)conf,
-              (void *)defaults);
+               (void *)defaults);
 
   conf->log = clone_pconf_log_t(defaults->log);
+  conf->anon = clone_pconf_anon_t(defaults->anon);
   INIT_STRFLD_WITH_DEFAULT(config_file);
   INIT_STRFLD_WITH_DEFAULT(stathost);
   INIT_STRFLD_WITH_DEFAULT(user);
@@ -580,7 +581,7 @@ static int initialize_with_defaults(struct config_s *conf, struct config_s *defa
   conf->reversemagic = defaults->reversemagic;
 #endif // REVERSE_SUPPORT
 
-  TRACE_RETURN(0);
+  TRACE_SUCCESS;
 }
 
 /**
@@ -589,31 +590,24 @@ static int initialize_with_defaults(struct config_s *conf, struct config_s *defa
 int try_load_config_file(const char *config_fname, struct config_s *conf, struct config_s *defaults)
 {
   TRACE_CALL_X(try_load_config_file, "%s, &conf = %p, &defaults = %p", config_fname, (void *)conf,
-              (void *)defaults);
-
-  int ret;
+               (void *)defaults);
 
   free_config(conf);
-  if (initialize_with_defaults(conf, defaults))
-  {
-    TRACE_RETURN(-1);
-  }
+  TRACE_SAFE(initialize_with_defaults(conf, defaults));
+  TRACE_SAFE(load_config_file(config_fname, conf));
 
-  ret = load_config_file(config_fname, conf);
-  if (ret == 0)
-  {
-    TRACE_RETURN(0);
-  }
+  TRACE_SAFE_X(0 == conf->port, -1, "conf->port = %d: You MUST set a Port in the config file.",
+               conf->port);
 
-  if (conf->port == 0)
+  if (conf->anon->count > 0)
   {
-    TRACE_RETURN_X(-1, "conf->port = %d: You MUST set a Port in the config file.", conf->port);
+
   }
 
   // set the default values if they were not set in the config file
   conf->idletimeout = conf->idletimeout ? conf->idletimeout : MAX_IDLE_TIME;
 
-  TRACE_RETURN(ret);
+  TRACE_SUCCESS;
 }
 
 /***********************************************************************
@@ -642,7 +636,7 @@ static char *get_string_arg(const char *line, regmatch_t *match)
 
 static int set_string_arg(char **var, const char *line, regmatch_t *match)
 {
-  TRACE_CALL_X(set_string_arg, "**var = %p, *line = %p, ...", (void*)var, (void *)line);
+  TRACE_CALL_X(set_string_arg, "**var = %p, *line = %p, ...", (void *)var, (void *)line);
   char *arg = get_string_arg(line, match);
 
   if (!arg)
@@ -723,7 +717,7 @@ static int set_int_arg(unsigned int *var, const char *line, regmatch_t *match)
 static HANDLE_FUNC(handle_logfile)
 {
   TRACE_CALL(handle_logfile);
-  TRACE_MSG("conf->log = %p", (void*)conf->log);
+  TRACE_MSG("conf->log = %p", (void *)conf->log);
   TRACE_SAFE(set_string_arg(&conf->log->logf_name, line, &match[2]));
   TRACE_SUCCESS;
 }
@@ -742,7 +736,7 @@ static HANDLE_FUNC(handle_anonymous)
     return -1;
   }
 
-  anonymous_insert(arg);
+  add_header_conf_anon(conf->anon, arg);
   safefree(arg);
   return 0;
 }
@@ -940,7 +934,7 @@ static HANDLE_FUNC(handle_listen)
   safefree(arg);
 
   TRACE_RETURN_X(0, "Added address [%s] to listen addresses.",
-                (char *)list_getentry(conf->listen_addrs, list_length(conf->listen_addrs), NULL));
+                 (char *)list_getentry(conf->listen_addrs, list_length(conf->listen_addrs), NULL));
 }
 
 static HANDLE_FUNC(handle_errorfile)

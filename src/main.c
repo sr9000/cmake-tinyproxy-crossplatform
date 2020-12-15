@@ -31,7 +31,6 @@
 
 #include "main.h"
 
-#include "anonymous.h"
 #include "buffer.h"
 #include "child.h"
 #include "config/conf.h"
@@ -44,6 +43,7 @@
 #include "self_contained/safecall.h"
 #include "sock.h"
 #include "stats.h"
+#include "subservice/anonymous.h"
 #include "subservice/log.h"
 #include "tinyproxy.h"
 #include "utils.h"
@@ -240,6 +240,7 @@ static int initialize_config_defaults(struct config_s *conf)
 
   // setup log
   conf->log = create_pconf_log_t();
+  conf->anon = create_pconf_anon_t();
 
   TRACE_RETURN(0);
 }
@@ -266,7 +267,7 @@ int init_proxy_log(pproxy_t proxy, struct config_s *config)
 {
   TRACE_CALL_X(init_proxy_log, "proxy = %p, config = %p", (void *)proxy, (void *)config);
 
-  TRACE_SAFE(configure_log(proxy, config->log));
+  TRACE_SAFE(configure_proxy(proxy, config->log, config->anon));
   TRACE_SAFE(activate_logging(proxy->log));
 
   TRACE_SUCCESS;
@@ -323,16 +324,6 @@ int main(int argc, char **argv)
   }
 
   init_stats();
-
-  /* If ANONYMOUS is turned on, make sure that Content-Length is
-   * in the list of allowed headers, since it is required in a
-   * HTTP/1.0 request. Also add the Content-Type header since it
-   * goes hand in hand with Content-Length. */
-  if (is_anonymous_enabled())
-  {
-    anonymous_insert("Content-Length");
-    anonymous_insert("Content-Type");
-  }
 
 #ifdef FILTER_ENABLE
   if (config.filter)

@@ -20,9 +20,10 @@
 #ifndef TINYPROXY_CONF_H
 #define TINYPROXY_CONF_H
 
+#include "conf_anon.h"
+#include "conf_log.h"
 #include "misc/hashmap.h"
 #include "misc/list.h"
-#include "conf_log.h"
 
 typedef struct
 {
@@ -34,6 +35,7 @@ typedef struct
 struct config_s
 {
   pconf_log_t log;
+  pconf_anon_t anon;
 
   // map of headers which should be let through when the anonymous feature is turned on
   phashmap_t anonymous_map;
@@ -93,7 +95,7 @@ struct config_s
 };
 
 extern int try_load_config_file(const char *config_fname, struct config_s *conf,
-                              struct config_s *defaults);
+                                struct config_s *defaults);
 
 int config_compile_regex(void);
 

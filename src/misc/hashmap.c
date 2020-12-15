@@ -97,11 +97,15 @@ phashmap_t hashmap_create(unsigned int nbuckets)
   struct hashmap_s *ptr;
 
   if (nbuckets == 0)
+  {
     return NULL;
+  }
 
   ptr = (struct hashmap_s *)safecalloc(1, sizeof(struct hashmap_s));
   if (!ptr)
+  {
     return NULL;
+  }
 
   ptr->seed = (uint32_t)rand();
   ptr->size = nbuckets;
@@ -154,7 +158,9 @@ int hashmap_delete(phashmap_t map)
   unsigned int i;
 
   if (map == NULL)
+  {
     return -EINVAL;
+  }
 
   for (i = 0; i != map->size; i++)
   {
@@ -362,11 +368,15 @@ ssize_t hashmap_search(phashmap_t map, const char *key)
   ssize_t count = 0;
 
   if (map == NULL || key == NULL)
+  {
     return -EINVAL;
+  }
 
   hash = hashfunc(key, map->size, map->seed);
   if (hash < 0)
+  {
     return hash;
+  }
 
   ptr = map->buckets[hash].head;
 

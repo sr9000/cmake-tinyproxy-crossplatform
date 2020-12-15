@@ -4,6 +4,7 @@
 
 #include "config/conf_log.h"
 
+#include "self_contained/safecall.h"
 #include "subservice/log_levels.h"
 
 CREATE_IMPL(pconf_log_t, {
@@ -19,9 +20,9 @@ CLONE_IMPL(pconf_log_t, {
     dst->logf_name = safestrdup(src->logf_name);
     if (dst->logf_name == NULL)
     {
+      TRACE_MSG("cannot alloc memory to copy src->logf_name (%p)", (void *)src->logf_name);
       delete_pconf_log_t(&dst);
-      TRACE_RETURN_X(NULL, "Cannot alloc memory to copy src->logf_name (%p)",
-                    (void *)src->logf_name);
+      TRACE_NULL;
     }
   }
 

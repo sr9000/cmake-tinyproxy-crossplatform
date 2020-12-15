@@ -4,7 +4,6 @@ add_subdirectory(misc)
 
 set(HEADERS
         config/conf.h
-        config/conf_log.h
         tinyproxy.h
         reverse-proxy.h
         daemon.h
@@ -18,7 +17,6 @@ set(HEADERS
         sock.h
         common.h
         child.h
-        anonymous.h
         stats.h
         conns.h
         buffer.h

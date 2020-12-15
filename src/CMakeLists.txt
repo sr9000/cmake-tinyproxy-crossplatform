@@ -14,16 +14,15 @@ add_compile_definitions(
 )
 
 add_subdirectory(misc)
+add_subdirectory(config)
 add_subdirectory(subservice)
 
 set(TINYPROXY_SOURCES
         acl.c
-        anonymous.c
         basicauth.c
         buffer.c
         child.c
         config/conf.c
-        config/conf_log.c
         connect-ports.c
         conns.c
         daemon.c
@@ -62,6 +61,8 @@ target_link_libraries(tinyproxy
         tinyproxy_hashmap
         tinyproxy_text
         tinyproxy_file_api
+        tinyproxy_conf_help
         tinyproxy_log
+        tinyproxy_anon
         ${PROXY_LIBRARIES}
         )

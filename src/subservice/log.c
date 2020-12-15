@@ -49,8 +49,9 @@ struct log_s
 };
 
 CREATE_IMPL(plog_t, {
-  TRACE_SAFE_R(NULL == (obj->config = create_pconf_log_t()), NULL);
   obj->fd = -1;
+  obj->config = create_pconf_log_t();
+  TRACE_SAFE_FIN(NULL == obj->config, NULL, { delete_plog_t(&obj); });
 })
 
 plog_t create_configured_log(pconf_log_t conf_log)

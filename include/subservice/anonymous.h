@@ -19,10 +19,17 @@
 #ifndef TINYPROXY_ANONYMOUS_H
 #define TINYPROXY_ANONYMOUS_H
 
-typedef struct anonymous_s *panonymous_t;
+#include "self_contained/object.h"
+#include "config/conf_anon.h"
 
-extern short int is_anonymous_enabled(void);
-extern int anonymous_search(const char *s);
-extern int anonymous_insert(const char *s);
+typedef struct anon_s *panon_t;
+
+CREATE_DECL(panon_t);
+DELETE_DECL(panon_t);
+
+extern panon_t create_configured_anon(pconf_anon_t anon_config);
+
+extern short int is_anonymous_enabled(panon_t anon);
+extern ssize_t anonymous_search(panon_t anon, const char *s);
 
 #endif // TINYPROXY_ANONYMOUS_H

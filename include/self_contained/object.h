@@ -22,7 +22,7 @@
     obj = safemalloc(sizeof(*obj));                                                                \
     if (obj == NULL)                                                                               \
     {                                                                                              \
-      TRACE_RETURN_X(NULL, "%s", "Cannot allocate memory.");                                        \
+      TRACE_RETURN_X(NULL, "%s", "cannot allocate memory.");                                        \
     }                                                                                              \
                                                                                                    \
     {                                                                                              \
@@ -39,7 +39,7 @@
                                                                                                    \
     if (arg == NULL)                                                                               \
     {                                                                                              \
-      TRACE_RETURN_X(-1, "%s", "No " #ptype " to delete");                                          \
+      TRACE_RETURN_X(-1, "%s", "no " #ptype " to delete");                                          \
     }                                                                                              \
                                                                                                    \
     if (*arg == NULL)                                                                              \
@@ -63,10 +63,10 @@
                                                                                                    \
     if (src == NULL)                                                                               \
     {                                                                                              \
-      TRACE_RETURN_X(NULL, "%s", "No " #ptype " to clone");                                         \
+      TRACE_RETURN_X(NULL, "%s", "no " #ptype " to clone");                                         \
     }                                                                                              \
                                                                                                    \
-    pconf_log_t dst = create_##ptype();                                                            \
+    ptype dst = create_##ptype();                                                            \
                                                                                                    \
     {                                                                                              \
       __VA_ARGS__;                                                                                 \
