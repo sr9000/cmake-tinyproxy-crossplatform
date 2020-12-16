@@ -28,7 +28,7 @@ set(TINYPROXY_SOURCES
         daemon.c
         html-error.c
         http-message.c
-        network.c
+        subservice/network.c
         reqs.c
         sock.c
         stats.c

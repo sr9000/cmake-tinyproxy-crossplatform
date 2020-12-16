@@ -168,9 +168,13 @@ int add_to_buffer(struct buffer_s *buffptr, unsigned char *data, size_t length)
    * have a size greater than zero, and vice-versa.
    */
   if (BUFFER_HEAD(buffptr) == NULL)
+  {
     assert(buffptr->size == 0);
+  }
   else
+  {
     assert(buffptr->size > 0);
+  }
 
   /*
    * Make a new line so we can add it to the buffer.

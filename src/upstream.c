@@ -237,7 +237,7 @@ struct upstream *upstream_get(pproxy_t proxy, char *host, struct upstream *up)
           break; /* local host matches "." */
         }
 
-        while (dot && strcasecmp(dot, up->domain))
+        while (dot && strcasecmp(dot, up->domain) != 0)
         {
           dot = strchr(dot + 1, '.');
         }

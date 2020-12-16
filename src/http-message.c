@@ -22,7 +22,7 @@
 
 #include "http-message.h"
 #include "misc/heap.h"
-#include "network.h"
+#include "subservice/network.h"
 
 /*
  * Package up an HTTP message into a nice little structure.  As you can

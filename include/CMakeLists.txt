@@ -23,7 +23,7 @@ set(HEADERS
         connect-ports.h
         filter.h
         reqs.h
-        network.h
+        subservice/network.h
         utils.h
         basicauth.h)
 

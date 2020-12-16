@@ -25,11 +25,11 @@
 
 #include "misc/heap.h"
 #include "misc/list.h"
-#include "network.h"
 #include "self_contained/safecall.h"
 #include "sock.h"
 #include "subservice/acl.h"
 #include "subservice/log.h"
+#include "subservice/network.h"
 
 #include <limits.h>
 

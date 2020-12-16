@@ -246,23 +246,7 @@ static int initialize_config_defaults(struct config_s *conf)
   TRACE_RETURN(0);
 }
 
-#ifdef HAVE_WSOCK32
-WSADATA wsa;
-int initialize_winsock()
-{
-  TRACE_CALL(initialize_winsock);
-  if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0)
-  {
-    TRACE_RETURN_X(-1, "Initialising Winsock Failed. Error Code : %d", WSAGetLastError());
-  }
-  TRACE_RETURN_X(0);
-}
-#else
-int initialize_winsock()
-{
-  return 0;
-}
-#endif
+
 
 int init_proxy_log(pproxy_t proxy, struct config_s *config)
 {

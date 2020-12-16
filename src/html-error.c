@@ -28,7 +28,7 @@
 #include "conns.h"
 #include "html-error.h"
 #include "misc/heap.h"
-#include "network.h"
+#include "subservice/network.h"
 #include "utils.h"
 
 /*

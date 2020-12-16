@@ -31,9 +31,9 @@
 #include "config/conf.h"
 #include "misc/heap.h"
 #include "misc/text.h"
-#include "network.h"
 #include "sock.h"
 #include "subservice/log.h"
+#include "subservice/network.h"
 
 /*
  * Bind the given socket to the supplied address.  The socket is

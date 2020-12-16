@@ -7,8 +7,12 @@ target_link_libraries(tinyproxy_anon
         tinyproxy_log
         tinyproxy_conf_help)
 
+add_library(tinyproxy_net network.c "${TINYPROXY_NET_HEADERS}")
+target_link_libraries(tinyproxy_net tinyproxy_heap)
+
 add_library(tinyproxy_acl acl.c "${TINYPROXY_ACL_HEADERS}")
 target_link_libraries(tinyproxy_acl
         tinyproxy_log
         tinyproxy_conf_help
-        tinyproxy_list)
+        tinyproxy_list
+        tinyproxy_net)
