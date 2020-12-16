@@ -67,6 +67,22 @@ extern int mingw_inet_pton(int af, const char *src, struct in_addr *dst);
 
 #endif /* MINGW */
 
+/*
+ * If MSG_NOSIGNAL is not defined, define it to be zero so that it doesn't
+ * cause any problems.
+ */
+#ifndef MSG_NOSIGNAL
+#define MSG_NOSIGNAL (0)
+#endif
+
+#ifndef SHUT_RD /* these three Posix.1g names are quite new */
+#define SHUT_RD   0 /* shutdown for reading */
+#define SHUT_WR   1 /* shutdown for writing */
+#define SHUT_RDWR 2 /* shutdown for reading and writing */
+#endif
+
+#define MAXLISTEN 1024 /* Max number of connections */
+
 extern int initialize_winsock();
 extern ssize_t safe_write(int fd, const void *buf, size_t count);
 extern ssize_t safe_read(int fd, void *buf, size_t count);

@@ -21,17 +21,19 @@
  * which is then used to compare incoming connections.
  */
 
-#include "main.h"
+#include <assert.h>
+#include <errno.h>
+#include <limits.h>
+#include <stdbool.h>
+#include <string.h>
+
+#include "subservice/acl.h"
 
 #include "misc/heap.h"
 #include "misc/list.h"
 #include "self_contained/safecall.h"
-#include "sock.h"
-#include "subservice/acl.h"
 #include "subservice/log.h"
 #include "subservice/network.h"
-
-#include <limits.h>
 
 /* Define how long an IPv6 address is in bytes (128 bits, 16 bytes) */
 #define IPV6_LEN 16
@@ -72,19 +74,21 @@ CREATE_IMPL(pacl_t, {
   TRACE_SAFE_FIN(NULL == (obj->rules = list_create()), NULL, delete_pacl_t(&obj));
 })
 
-DELETE_IMPL(pacl_t, { TRACE_SAFE(delete_pacl_t(&obj)); })
+void flush_access_list(plist_t access_list);
+DELETE_IMPL(pacl_t, { flush_access_list(obj->rules); })
 
 int insert_acl(char *location, acl_access_t access_type, plist_t access_list);
 
 pacl_t create_configured_acl(pconf_acl_t acl_config)
 {
-  TRACE_CALL_X(create_configured_acl, "acl_config = %p", (void*)acl_config);
+  TRACE_CALL_X(create_configured_acl, "acl_config = %p", (void *)acl_config);
   TRACE_SAFE_X(NULL == acl_config, NULL, "%s", "there is no acl config");
 
   pacl_t obj;
   TRACE_SAFE_R(NULL == (obj = create_pacl_t()), NULL);
 
-  for (size_t i = 0; i < acl_config->count; ++i) {
+  for (size_t i = 0; i < acl_config->count; ++i)
+  {
     insert_acl(acl_config->rules[i].location, acl_config->rules[i].access, obj->rules);
   }
 
@@ -149,23 +153,6 @@ static int fill_netmask_array(char *bitmask_string, int v6, unsigned char array[
   return 0;
 }
 
-/**
- * If the access list has not been set up, create it.
- */
-static int init_access_list(plist_t *access_list)
-{
-  TRACE_CALL_X(init_access_list, "&access_list = %p", (void *)access_list);
-  if (!*access_list)
-  {
-    *access_list = list_create();
-    if (!*access_list)
-    {
-      TRACE_RETURN_X(-1, "%s", "Unable to allocate memory for access list");
-    }
-  }
-
-  TRACE_RETURN(0);
-}
 /*
  * Inserts a new access control into the list. The function will figure out
  * whether the location is an IP address (with optional netmask) or a
@@ -259,7 +246,7 @@ int insert_acl(char *location, acl_access_t access_type, plist_t access_list)
 static int acl_string_processing(struct acl_rule_s *acl, const char *ip_address,
                                  const char *string_address)
 {
-  int match;
+  bool match;
   struct addrinfo hints, *res, *ressave;
   size_t test_length, match_length;
   char ipbuf[512];
@@ -283,13 +270,13 @@ static int acl_string_processing(struct acl_rule_s *acl, const char *ip_address,
 
     ressave = res;
 
-    match = FALSE;
+    match = false;
     do
     {
       get_ip_string(res->ai_addr, ipbuf, sizeof(ipbuf));
       if (strcmp(ip_address, ipbuf) == 0)
       {
-        match = TRUE;
+        match = true;
         break;
       }
     } while ((res = res->ai_next) != NULL);
@@ -368,7 +355,14 @@ static int check_numeric_acl(const struct acl_rule_s *acl, const char *ip)
  *     1 if allowed
  *     0 if denied
  */
-int check_acl(pproxy_t proxy, const char *ip, const char *host, plist_t access_list)
+int internal_check_acl(plog_t log, const char *ip, const char *host, plist_t access_list);
+
+int check_acl(plog_t log, pacl_t acl, const char *ip, const char *host)
+{
+  return internal_check_acl(log, ip, host, acl->rules);
+}
+
+int internal_check_acl(plog_t log, const char *ip, const char *host, plist_t access_list)
 {
   struct acl_rule_s *acl;
   int perm = 0;
@@ -380,8 +374,10 @@ int check_acl(pproxy_t proxy, const char *ip, const char *host, plist_t access_l
   /*
    * If there is no access list allow everything.
    */
-  if (!access_list)
+  if (list_length(access_list) == 0)
+  {
     return 1;
+  }
 
   for (i = 0; i != (size_t)list_length(access_list); ++i)
   {
@@ -412,7 +408,7 @@ int check_acl(pproxy_t proxy, const char *ip, const char *host, plist_t access_l
   /*
    * Deny all connections by default.
    */
-  log_message(proxy->log, LOG_NOTICE, "Unauthorized connection from \"%s\" [%s].", host, ip);
+  log_message(log, LOG_NOTICE, "Unauthorized connection from \"%s\" [%s].", host, ip);
   return 0;
 }
 

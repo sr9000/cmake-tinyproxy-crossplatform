@@ -9,20 +9,26 @@
 CREATE_IMPL(pproxy_t, {
   obj->log = NULL;
   obj->anon = NULL;
+  obj->acl = NULL;
 
   obj->log = create_plog_t();
   TRACE_SAFE_FIN(NULL == obj->log, NULL, delete_pproxy_t(&obj));
 
   obj->anon = create_panon_t();
   TRACE_SAFE_FIN(NULL == obj->anon, NULL, delete_pproxy_t(&obj));
+
+  obj->acl = create_pacl_t();
+  TRACE_SAFE_FIN(NULL == obj->anon, NULL, delete_pproxy_t(&obj));
 })
 
 DELETE_IMPL(pproxy_t, {
   TRACE_SAFE(delete_plog_t(&obj->log));
   TRACE_SAFE(delete_panon_t(&obj->anon));
+  TRACE_SAFE(delete_pacl_t(&obj->acl));
 })
 
-int configure_proxy(pproxy_t proxy, pconf_log_t log_config, pconf_anon_t anon_config)
+int configure_proxy(pproxy_t proxy, pconf_log_t log_config, pconf_anon_t anon_config,
+                    pconf_acl_t acl_config)
 {
   TRACE_CALL_X(configure_proxy, "proxy = %p, log_config = %p", (void *)proxy, (void *)log_config);
 
@@ -37,6 +43,9 @@ int configure_proxy(pproxy_t proxy, pconf_log_t log_config, pconf_anon_t anon_co
 
   TRACE_SAFE(delete_panon_t(&proxy->anon));
   TRACE_SAFE(NULL == (proxy->anon = create_configured_anon(anon_config)));
+
+  TRACE_SAFE(delete_pacl_t(&proxy->acl));
+  TRACE_SAFE(NULL == (proxy->acl = create_configured_acl(acl_config)));
 
   TRACE_SUCCESS;
 }

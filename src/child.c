@@ -31,6 +31,7 @@
 #include "self_contained/debugtrace.h"
 #include "sock.h"
 #include "subservice/log.h"
+#include "subservice/network.h"
 #include "utils.h"
 
 static plist_t listen_fds;
@@ -176,7 +177,7 @@ static void _child_lock_release(void)
   {                                                                                                \
     SERVER_COUNT_LOCK();                                                                           \
     ++(*servers_waiting);                                                                          \
-    DEBUG_LOG_EX(l, "INC: servers_waiting: %d", *servers_waiting);                                       \
+    DEBUG_LOG_EX(l, "INC: servers_waiting: %d", *servers_waiting);                                 \
     SERVER_COUNT_UNLOCK();                                                                         \
   } while (0)
 
@@ -186,7 +187,7 @@ static void _child_lock_release(void)
     SERVER_COUNT_LOCK();                                                                           \
     assert(*servers_waiting > 0);                                                                  \
     --(*servers_waiting);                                                                          \
-    DEBUG_LOG_EX(l, "DEC: servers_waiting: %d", *servers_waiting);                                       \
+    DEBUG_LOG_EX(l, "DEC: servers_waiting: %d", *servers_waiting);                                 \
     SERVER_COUNT_UNLOCK();                                                                         \
   } while (0)
 

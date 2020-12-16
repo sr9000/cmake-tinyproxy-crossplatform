@@ -30,6 +30,7 @@
 #include "buffer.h"
 #include "misc/heap.h"
 #include "subservice/log.h"
+#include "subservice/network.h"
 
 #define BUFFER_HEAD(x) (x)->head
 #define BUFFER_TAIL(x) (x)->tail

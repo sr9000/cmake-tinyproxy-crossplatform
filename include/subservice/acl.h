@@ -31,7 +31,6 @@ DELETE_DECL(pacl_t);
 
 extern pacl_t create_configured_acl(pconf_acl_t acl_config);
 
-extern int check_acl(plog_t plog, pacl_t acl, const char *ip, const char *host);
-extern void flush_access_list(plist_t access_list);
+extern int check_acl(plog_t log, pacl_t acl, const char *ip, const char *host);
 
 #endif // TINYPROXY_ACL_H

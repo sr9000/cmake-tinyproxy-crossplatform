@@ -45,6 +45,7 @@
 #include "stats.h"
 #include "subservice/anonymous.h"
 #include "subservice/log.h"
+#include "subservice/network.h"
 #include "tinyproxy.h"
 #include "utils.h"
 
@@ -246,13 +247,11 @@ static int initialize_config_defaults(struct config_s *conf)
   TRACE_RETURN(0);
 }
 
-
-
 int init_proxy_log(pproxy_t proxy, struct config_s *config)
 {
   TRACE_CALL_X(init_proxy_log, "proxy = %p, config = %p", (void *)proxy, (void *)config);
 
-  TRACE_SAFE(configure_proxy(proxy, config->log, config->anon));
+  TRACE_SAFE(configure_proxy(proxy, config->log, config->anon, config->acl));
   TRACE_SAFE(activate_logging(proxy->log));
 
   TRACE_SUCCESS;

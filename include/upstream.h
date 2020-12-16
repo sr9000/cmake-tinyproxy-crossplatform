@@ -24,7 +24,9 @@
 #define TINYPROXY_UPSTREAM_H
 
 #include "common.h"
+
 #include "tinyproxy.h"
+#include "subservice/network.h"
 
 // even if upstream support is not compiled into tinyproxy, this structure still needs to be defined
 typedef enum proxy_type

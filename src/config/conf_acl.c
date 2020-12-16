@@ -5,6 +5,22 @@
 #include "config/conf_acl.h"
 #include "self_contained/safecall.h"
 
+static char s_acl_allow[] = "acl-allow";
+static char s_acl_deny[] = "acl-deny";
+
+char* acl_access_t2char(acl_access_t t)
+{
+  switch (t)
+  {
+  case ACL_ALLOW:
+    return s_acl_allow;
+  case ACL_DENY:
+    return s_acl_deny;
+  default:
+    return NULL;
+  }
+}
+
 int init_acl_rule_t(conf_acl_rule_t *rule, const char *location, acl_access_t access)
 {
   TRACE_CALL(init_acl_rule_t);

@@ -32,6 +32,7 @@
 #include "misc/text.h"
 #include "reqs.h"
 #include "subservice/log.h"
+#include "subservice/network.h"
 
 /*
  * Build a URL from parts.

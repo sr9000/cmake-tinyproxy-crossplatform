@@ -64,5 +64,7 @@ target_link_libraries(tinyproxy
         tinyproxy_conf_help
         tinyproxy_log
         tinyproxy_anon
+        tinyproxy_net
+        tinyproxy_acl
         ${PROXY_LIBRARIES}
         )

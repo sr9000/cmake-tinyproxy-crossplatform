@@ -43,8 +43,6 @@ struct config_s
   // acl rules
   pconf_acl_t acl;
 
-  plist_t access_list;
-
   plist_t basicauth_list;
   char *config_file;
   unsigned int port;
