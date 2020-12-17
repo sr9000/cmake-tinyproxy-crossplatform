@@ -47,6 +47,7 @@
 #include "subservice/log.h"
 #include "subservice/network.h"
 #include "tinyproxy.h"
+#include "tinyproxy_lib.h"
 #include "utils.h"
 
 /*
@@ -395,3 +396,185 @@ int main(int argc, char **argv)
 
   return EXIT_SUCCESS;
 }
+
+int run_proxy(void *nothing)
+{
+  int argc = 0;
+  char empty[] = "";
+  char *pempty = empty;
+  char **argv = &pempty;
+  TRACE_CALL_X(main, "%d, %p", argc, (void *)argv);
+
+  if (initialize_winsock() != 0)
+  {
+    exit(EX_SOFTWARE);
+  }
+
+  /* Only allow u+rw bits. This may be required for some versions
+   * of glibc so that mkstemp() doesn't make us vulnerable.
+   */
+  umask(0177);
+
+  if (config_compile_regex())
+  {
+    exit(EX_SOFTWARE);
+  }
+
+  if (initialize_config_defaults(&config_defaults))
+  {
+    exit(EX_SOFTWARE);
+  }
+
+  {
+    int r = process_cmdline(argc, argv, &config_defaults);
+    switch (r)
+    {
+    case 0:
+      break;
+    case 1:
+      exit(EX_OK);
+      break;
+    default:
+      exit(EX_SOFTWARE);
+      break;
+    }
+  }
+
+  if (try_load_config_file(config_defaults.config_file, &config, &config_defaults))
+  {
+    exit(EX_SOFTWARE);
+  }
+
+  pproxy_t proxy = create_pproxy_t();
+  if (init_proxy_log(proxy, &config))
+  {
+    exit(EX_SOFTWARE);
+  }
+
+  init_stats();
+
+#ifdef FILTER_ENABLE
+  if (config.filter)
+    filter_init();
+#endif /* FILTER_ENABLE */
+
+  /* Start listening on the selected port. */
+  if (child_listening_sockets(proxy, config.listen_addrs, config.port) < 0)
+  {
+    log_message(proxy->log, LOG_ERR, "%s: Could not create listening sockets.\n", argv[0]);
+    exit(EX_OSERR);
+  }
+
+  /* Create pid file before we drop privileges */
+  if (config.pidpath)
+  {
+    if (pidfile_create(config.pidpath) < 0)
+    {
+      log_message(proxy->log, LOG_ERR, "%s: Could not create PID file.\n", argv[0]);
+      exit(EX_OSERR);
+    }
+  }
+
+  if (child_pool_create(proxy) < 0)
+  {
+    log_message(proxy->log, LOG_ERR, "%s: Could not create the pool of children.\n", argv[0]);
+    exit(EX_SOFTWARE);
+  }
+
+  /* These signals are only for the parent process. */
+  log_message(proxy->log, LOG_INFO, "Setting the various signals.");
+
+  if (set_signal_handler(SIGTERM, takesig) == SIG_ERR)
+  {
+    log_message(proxy->log, LOG_ERR, "%s: Could not set the \"SIGTERM\" signal.\n", argv[0]);
+    exit(EX_OSERR);
+  }
+
+#ifndef MINGW
+  if (set_signal_handler(SIGCHLD, takesig) == SIG_ERR)
+  {
+    log_message(proxy->log, LOG_ERR, "%s: Could not set the \"SIGCHLD\" signal.\n", argv[0]);
+    exit(EX_OSERR);
+  }
+
+  if (set_signal_handler(SIGHUP, takesig) == SIG_ERR)
+  {
+    log_message(proxy->log, LOG_ERR, "%s: Could not set the \"SIGHUP\" signal.\n", argv[0]);
+    exit(EX_OSERR);
+  }
+
+  if (set_signal_handler(SIGPIPE, SIG_IGN) == SIG_ERR)
+  {
+    log_message(proxy->log, LOG_ERR, "%s: Could not set the \"SIGPIPE\" signal.\n", argv[0]);
+    exit(EX_OSERR);
+  }
+#endif /* MINGW */
+
+  /* Start the main loop */
+  log_message(proxy->log, LOG_INFO, "Starting main loop. Accepting connections.");
+
+  child_main_loop(proxy);
+
+  log_message(proxy->log, LOG_INFO, "Shutting down.");
+
+  child_kill_children(proxy, SIGTERM);
+
+  child_close_sock();
+
+  /* Remove the PID file */
+  if (config.pidpath != NULL && unlink(config.pidpath) < 0)
+  {
+    log_message(proxy->log, LOG_WARNING, "Could not remove PID file \"%s\": %s.", config.pidpath,
+                strerror(errno));
+  }
+
+#ifdef FILTER_ENABLE
+  if (config.filter)
+  {
+    filter_destroy();
+  }
+#endif /* FILTER_ENABLE */
+
+  delete_pproxy_t(&proxy);
+
+  return EXIT_SUCCESS;
+}
+
+#ifdef MINGW
+DWORD WINAPI mingw_run_proxy(void *nothing)
+{
+  return run_proxy(nothing);
+}
+
+DWORD spawn_proxy(void *nothing)
+{
+  HANDLE hThread;
+  DWORD dwThreadId;
+  hThread = CreateThread(NULL,            // default security attributes
+                         0,               // use default stack size
+                         mingw_run_proxy, // thread function name
+                         nothing,         // argument to thread function
+                         0,               // use default creation flags
+                         &dwThreadId);    // returns the thread identifier
+
+  if (hThread == NULL)
+  {
+    fprintf(stderr, "Could not create main proxy process.\n");
+    exit(EX_SOFTWARE);
+  }
+  CloseHandle(hThread);
+
+  return dwThreadId;
+}
+#else
+pid_t spawn_proxy(void *nothing)
+{
+  pid_t pid;
+
+  if ((pid = fork()) > 0)
+    return pid; /* parent */
+
+  run_proxy(nothing); /* never returns */
+  return -1;
+}
+#endif /* MINGW */

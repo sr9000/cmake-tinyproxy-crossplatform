@@ -68,3 +68,24 @@ target_link_libraries(tinyproxy
         tinyproxy_acl
         ${PROXY_LIBRARIES}
         )
+
+add_library(tinyproxy_lib
+        main.c
+        ${TINYPROXY_SOURCES}
+        "${TINYPROXY_HEADERS}"
+        )
+
+target_link_libraries(tinyproxy_lib
+        tinyproxy_base64
+        tinyproxy_heap
+        tinyproxy_list
+        tinyproxy_hashmap
+        tinyproxy_text
+        tinyproxy_file_api
+        tinyproxy_conf_help
+        tinyproxy_log
+        tinyproxy_anon
+        tinyproxy_net
+        tinyproxy_acl
+        ${PROXY_LIBRARIES}
+        )

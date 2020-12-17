@@ -5,6 +5,7 @@ add_subdirectory(misc)
 set(HEADERS
         config/conf.h
         tinyproxy.h
+        tinyproxy_lib.h
         reverse-proxy.h
         daemon.h
         main.h
@@ -12,7 +13,6 @@ set(HEADERS
         http-message.h
         custom_sysexits.h
         transparent-proxy.h
-        subservice/acl.h
         upstream.h
         sock.h
         common.h
@@ -23,7 +23,6 @@ set(HEADERS
         connect-ports.h
         filter.h
         reqs.h
-        subservice/network.h
         utils.h
         basicauth.h)
 
