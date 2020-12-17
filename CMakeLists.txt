@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.17)
 project(cmake_tinyproxy C)
 
 set(CMAKE_C_STANDARD 11)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 add_compile_options(-Wall -Wextra -pedantic)
 
 

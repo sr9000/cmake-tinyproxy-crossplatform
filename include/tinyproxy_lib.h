@@ -5,12 +5,6 @@
 #ifndef CMAKE_TINYPROXY_TINYPROXY_LIB_H
 #define CMAKE_TINYPROXY_TINYPROXY_LIB_H
 
-extern int run_proxy(void *nothing);
-
-#ifdef MINGW
-extern DWORD spawn_proxy(void *nothing);
-#else // MINGW
-extern pid_t spawn_proxy(void *nothing);
-#endif // MINGW
+extern void start_proxy();
 
 #endif // CMAKE_TINYPROXY_TINYPROXY_LIB_H

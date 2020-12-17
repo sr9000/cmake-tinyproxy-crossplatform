@@ -258,7 +258,7 @@ int init_proxy_log(pproxy_t proxy, struct config_s *config)
   TRACE_SUCCESS;
 }
 
-int main(int argc, char **argv)
+int main1(int argc, char **argv)
 {
   TRACE_CALL_X(main, "%d, %p", argc, (void *)argv);
 
@@ -572,9 +572,16 @@ pid_t spawn_proxy(void *nothing)
   pid_t pid;
 
   if ((pid = fork()) > 0)
+  {
     return pid; /* parent */
+  }
 
   run_proxy(nothing); /* never returns */
   return -1;
 }
 #endif /* MINGW */
+
+void start_proxy()
+{
+  spawn_proxy(NULL);
+}
