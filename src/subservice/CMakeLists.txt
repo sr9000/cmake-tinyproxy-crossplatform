@@ -16,3 +16,10 @@ target_link_libraries(tinyproxy_acl
         tinyproxy_conf_help
         tinyproxy_list
         tinyproxy_net)
+
+install(TARGETS
+        tinyproxy_log
+        tinyproxy_anon
+        tinyproxy_net
+        tinyproxy_acl
+        EXPORT Tinyproxy)

@@ -12,3 +12,12 @@ target_link_libraries(tinyproxy_hashmap tinyproxy_heap)
 add_library(tinyproxy_text text.c "${TINYPROXY_TEXT_HEADERS}")
 
 add_library(tinyproxy_file_api file_api.c "${TINYPROXY_FILE_API_HEADERS}")
+
+install(TARGETS
+        tinyproxy_base64
+        tinyproxy_heap
+        tinyproxy_list
+        tinyproxy_hashmap
+        tinyproxy_text
+        tinyproxy_file_api
+        EXPORT Tinyproxy)

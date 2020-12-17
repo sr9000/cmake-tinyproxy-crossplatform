@@ -89,3 +89,40 @@ target_link_libraries(tinyproxy_lib
         tinyproxy_acl
         ${PROXY_LIBRARIES}
         )
+
+set_target_properties(tinyproxy_lib PROPERTIES PUBLIC_HEADER ../include/tinyproxy_lib.h)
+install(TARGETS tinyproxy_lib EXPORT Tinyproxy PUBLIC_HEADER)
+
+include(CMakePackageConfigHelpers)
+write_basic_package_version_file(
+        "${CMAKE_CURRENT_BINARY_DIR}/Tinyproxy/TinyproxyConfigVersion.cmake"
+        VERSION 1.0.0
+        COMPATIBILITY AnyNewerVersion
+)
+
+export(EXPORT Tinyproxy
+        FILE "${CMAKE_CURRENT_BINARY_DIR}/Tinyproxy/TinyproxyTargets.cmake"
+        )
+
+configure_file(cmake/TinyproxyConfig.cmake
+        "${CMAKE_CURRENT_BINARY_DIR}/Tinyproxy/TinyproxyConfig.cmake"
+        COPYONLY
+        )
+
+set(ConfigPackageLocation lib/cmake/Tinyproxy)
+install(EXPORT Tinyproxy
+        FILE TinyproxyTargets.cmake
+        DESTINATION ${ConfigPackageLocation})
+install(FILES
+        cmake/TinyproxyConfig.cmake
+        "${CMAKE_CURRENT_BINARY_DIR}/Tinyproxy/TinyproxyConfigVersion.cmake"
+        DESTINATION ${ConfigPackageLocation}
+        COMPONENT Devel
+)
+
+add_custom_target(fake_install
+        ALL
+        "${CMAKE_COMMAND}"
+        -D CMAKE_INSTALL_PREFIX:string=${CMAKE_BINARY_DIR}/installed/tinyproxy-1
+        -P "${CMAKE_CURRENT_BINARY_DIR}/cmake_install.cmake"
+        DEPENDS tinyproxy_lib)
