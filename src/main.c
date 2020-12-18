@@ -587,8 +587,8 @@ void start_proxy()
   spawn_proxy(NULL);
 }
 
-int main(int argc, char*argv[])
-{
-  run_proxy(NULL);
-  return 0;
-}
+//int main(int argc, char*argv[])
+//{
+//  run_proxy(NULL);
+//  return 0;
+//}

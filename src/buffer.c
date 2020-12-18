@@ -443,14 +443,15 @@ ssize_t read_ws_buffer(pproxy_t proxy, struct buffer_s *buffptr, unsigned char *
   while (len > 0)
   {
     // todo bug Don't allow the buffer to grow larger than MAXBUFFSIZE
-    buffer = (unsigned char *)safemalloc(READ_BUFFER_SIZE);
+    bytesin = min(len, READ_BUFFER_SIZE);
+    buffer = (unsigned char *)safemalloc(bytesin);
     if (!buffer)
     {
       log_message(proxy->log, LOG_ERR, "%s {buffer == NULL} %s:%d", __func__, __FILE__, __LINE__);
       return -ENOMEM;
     }
 
-    bytesin = min(len, READ_BUFFER_SIZE);
+
     memcpy(buffer, data + (saved_len - len), bytesin);
 
     if (bytesin > 0)
