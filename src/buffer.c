@@ -353,8 +353,16 @@ ssize_t write_websocket_buffer(pproxy_t proxy, struct lws *wsi, struct buffer_s 
   assert(BUFFER_HEAD(buffptr) != NULL);
   line = BUFFER_HEAD(buffptr);
 
-  bytessent = lws_write(wsi, ((unsigned char *)(line->string + line->pos)),
+  // todo allocate new
+  size_t nc = line->length - line->pos + LWS_PRE;
+  unsigned char * bmem = safemalloc(nc);
+  memset(bmem, 0, nc);
+  memcpy(bmem + LWS_PRE, line->string + line->pos,line->length - line->pos);
+
+  bytessent = lws_write(wsi, bmem,
                         line->length - line->pos, LWS_WRITE_BINARY);
+
+  safefree(bmem);
 
   if (bytessent == ((ssize_t)(line->length - line->pos)))
   {

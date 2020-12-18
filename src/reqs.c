@@ -1354,12 +1354,8 @@ static int callback_minimal(struct lws *wsi, enum lws_callback_reasons reason, v
     }
     break;
 
-  case LWS_CALLBACK_CLIENT_ESTABLISHED:
-    break;
-
   default:
-    mco->is_stopped = true;
-    return -1;
+    break;
   }
 
   return 0;
@@ -1367,7 +1363,7 @@ static int callback_minimal(struct lws *wsi, enum lws_callback_reasons reason, v
 
 static const struct lws_protocols protocols[] = {
     {
-        "lws-minimal-client",
+        "binary",
         callback_minimal,
         0,
         0,
@@ -1430,21 +1426,24 @@ static void relay_websocket_connection(pproxy_t proxy, struct conn_s *connptr)
   memset(&i, 0, sizeof(i));
   i.context = context;
   i.port = 7777;
-  i.address = "127.0.0.1";
+  i.address = "localhost";
   i.path = "/";
-  i.host = "127.0.0.1";
-  i.origin = "127.0.0.1";
+  i.host = i.address;
+  i.origin = NULL;
   i.ssl_connection = 0;
-  i.protocol = "lws-minimal-client";
+  i.protocol = "binary";
   i.userdata = &mco;
 
-  mco.wsi = lws_client_connect_via_info(&i);
-  if (NULL == mco.wsi)
+  lwsl_notice("### connecting ws client\n");
+  struct lws* wsi = lws_client_connect_via_info(&i);
+  if (NULL == wsi)
   {
+    lwsl_err("### wsi == %p\n", (void*)wsi);
     lws_context_destroy(context);
     return;
   }
 
+  mco.wsi = wsi;
   last_access = time(NULL);
 
   int loop_var = 0;
