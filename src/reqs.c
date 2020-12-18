@@ -57,10 +57,9 @@
 struct my_ws_conn
 {
   struct lws *wsi;          // any wsi
-  int clfd;                 // client fd
-  fd_set *wset;             // wset
   bool is_stopped;          // stop client loop
   struct buffer_s *cbuffer; // buffer data
+  struct buffer_s *sbuffer; // buffer data
   pproxy_t proxy;           // proxy
 };
 
@@ -1323,34 +1322,28 @@ static int callback_minimal(struct lws *wsi, enum lws_callback_reasons reason, v
   case LWS_CALLBACK_CLIENT_CONNECTION_ERROR:
     lwsl_err("CLIENT_CONNECTION_ERROR: %s\n", in ? (char *)in : "(null)");
     mco->is_stopped = true;
-    return -1;
+    break;
 
   case LWS_CALLBACK_CLIENT_RECEIVE:
-    FD_ZERO(mco->wset);
-    FD_SET(mco->clfd, mco->wset);
-    m = select(mco->clfd + 1, NULL, mco->wset, NULL, &tv);
+    m = read_ws_buffer(mco->proxy, mco->sbuffer, in, len);
     if (m < 0)
     {
-      lwsl_err("ERROR %d selecting fd descriptor\n", m);
-      mco->is_stopped = true;
-      return -1;
-    }
-    m = writesocket(mco->clfd, in, len, MSG_NOSIGNAL);
-    if (m < 0)
-    {
-      lwsl_err("ERROR %d writing to fd descriptor\n", m);
+      lwsl_err("ERROR %d writing to buffer\n", m);
       mco->is_stopped = true;
       return -1;
     }
     break;
 
   case LWS_CALLBACK_CLIENT_WRITEABLE:
-    m = write_websocket_buffer(mco->proxy, wsi, mco->cbuffer);
-    if (m < 0)
+    if (buffer_size(mco->cbuffer) > 0)
     {
-      lwsl_err("ERROR %d writing to ws socket\n", m);
-      mco->is_stopped = true;
-      return -1;
+      m = write_websocket_buffer(mco->proxy, mco->wsi, mco->cbuffer);
+      if (m < 0)
+      {
+        lwsl_err("ERROR %d writing to ws socket\n", m);
+        mco->is_stopped = true;
+        return -1;
+      }
     }
     break;
 
@@ -1384,6 +1377,8 @@ static void relay_websocket_connection(pproxy_t proxy, struct conn_s *connptr)
 {
   fd_set rset, wset;
   struct timeval tv;
+  memset(&tv, 0, sizeof(tv));
+
   time_t last_access;
   int ret;
   double tdiff;
@@ -1417,9 +1412,8 @@ static void relay_websocket_connection(pproxy_t proxy, struct conn_s *connptr)
 
   struct my_ws_conn mco;
   mco.is_stopped = false;
-  mco.clfd = connptr->client_fd;
-  mco.wset = &wset;
   mco.cbuffer = connptr->cbuffer;
+  mco.sbuffer = connptr->sbuffer;
   mco.proxy = proxy;
 
   struct lws_client_connect_info i;
@@ -1428,17 +1422,17 @@ static void relay_websocket_connection(pproxy_t proxy, struct conn_s *connptr)
   i.port = 7777;
   i.address = "localhost";
   i.path = "/";
-  i.host = i.address;
+  i.host = "localhost:7777";
   i.origin = NULL;
   i.ssl_connection = 0;
   i.protocol = "binary";
   i.userdata = &mco;
 
   lwsl_notice("### connecting ws client\n");
-  struct lws* wsi = lws_client_connect_via_info(&i);
+  struct lws *wsi = lws_client_connect_via_info(&i);
   if (NULL == wsi)
   {
-    lwsl_err("### wsi == %p\n", (void*)wsi);
+    lwsl_err("### wsi == %p\n", (void *)wsi);
     lws_context_destroy(context);
     return;
   }
@@ -1449,7 +1443,27 @@ static void relay_websocket_connection(pproxy_t proxy, struct conn_s *connptr)
   int loop_var = 0;
   while (loop_var >= 0 && !mco.is_stopped)
   {
+    loop_var = lws_service(context, 0);
+    if (loop_var < 0)
+    {
+      lwsl_err("bad loop_var\n");
+      break;
+    }
+    loop_var = lws_service(context, 0);
+    if (loop_var < 0)
+    {
+      lwsl_err("bad loop_var\n");
+      break;
+    }
+    loop_var = lws_service(context, 0);
+    if (loop_var < 0)
+    {
+      lwsl_err("bad loop_var\n");
+      break;
+    }
+
     FD_ZERO(&rset);
+    FD_ZERO(&wset);
     //    FD_ZERO(&wset);
 
     //    tv.tv_sec = config.idletimeout - difftime(time(NULL), last_access);
@@ -1466,10 +1480,15 @@ static void relay_websocket_connection(pproxy_t proxy, struct conn_s *connptr)
     {
       FD_SET(connptr->client_fd, &rset);
     }
+    if (buffer_size(connptr->sbuffer) > 0)
+    {
+      FD_SET(connptr->client_fd, &wset);
+    }
 
-    ret = select(maxfd, &rset, NULL, NULL, &tv);
+    ret = select(connptr->client_fd + 1, &rset, &wset, NULL, &tv);
     if (ret < 0)
     {
+      lwsl_err("bad select (%d)\n", ret);
       break;
     }
 
@@ -1513,23 +1532,25 @@ static void relay_websocket_connection(pproxy_t proxy, struct conn_s *connptr)
     //      if (connptr->content_length.server == 0)
     //        break;
     //    }
+
     if (FD_ISSET(connptr->client_fd, &rset) &&
         read_buffer(proxy, connptr->client_fd, connptr->cbuffer) < 0)
     {
-      lws_callback_on_writable(mco.wsi);
+      lwsl_err("bad read_buffer\n");
+      break;
     }
-    //    if (FD_ISSET(connptr->server_fd, &wset) &&
-    //        write_buffer(proxy, connptr->server_fd, connptr->cbuffer) < 0)
-    //    {
-    //      break;
-    //    }
+    if (FD_ISSET(connptr->client_fd, &wset) &&
+        write_buffer(proxy, connptr->client_fd, connptr->sbuffer) < 0)
+    {
+      lwsl_err("bad write_buffer\n");
+      break;
+    }
     //    if (FD_ISSET(connptr->client_fd, &wset) &&
     //        write_buffer(proxy, connptr->client_fd, connptr->sbuffer) < 0)
     //    {
     //      break;
     //    }
-
-    loop_var = lws_service(context, 0);
+    lws_callback_on_writable(mco.wsi);
   }
 
   lws_context_destroy(context);

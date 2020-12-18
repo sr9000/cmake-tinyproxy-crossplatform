@@ -36,6 +36,7 @@ extern int add_to_buffer(struct buffer_s *buffptr, unsigned char *data, size_t l
 
 extern ssize_t read_buffer(pproxy_t proxy, int fd, struct buffer_s *buffptr);
 extern ssize_t write_buffer(pproxy_t proxy, int fd, struct buffer_s *buffptr);
-extern ssize_t write_websocket_buffer(pproxy_t proxy, struct lws* wsi, struct buffer_s *buffptr);
-
+extern ssize_t write_websocket_buffer(pproxy_t proxy, struct lws *wsi, struct buffer_s *buffptr);
+extern ssize_t read_ws_buffer(pproxy_t proxy, struct buffer_s *buffptr, unsigned char *data,
+                              size_t len);
 #endif // TINYPROXY_BUFFER_H

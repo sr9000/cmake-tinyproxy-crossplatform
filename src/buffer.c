@@ -214,7 +214,6 @@ static struct bufline_s *remove_from_buffer(struct buffer_s *buffptr)
   return line;
 }
 
-
 /*
  * Reads the bytes from the socket, and adds them to the buffer.
  * Takes a connection and returns the number of bytes read.
@@ -224,6 +223,8 @@ ssize_t read_buffer(pproxy_t proxy, int fd, struct buffer_s *buffptr)
 {
   ssize_t bytesin;
   unsigned char *buffer;
+
+  log_message(proxy->log, LOG_INFO, "%s %s:%d", __func__, __FILE__, __LINE__);
 
   assert(fd >= 0);
   assert(buffptr != NULL);
@@ -290,6 +291,8 @@ ssize_t write_buffer(pproxy_t proxy, int fd, struct buffer_s *buffptr)
   ssize_t bytessent;
   struct bufline_s *line;
 
+  log_message(proxy->log, LOG_INFO, "%s %s:%d", __func__, __FILE__, __LINE__);
+
   assert(fd >= 0);
   assert(buffptr != NULL);
 
@@ -343,6 +346,8 @@ ssize_t write_websocket_buffer(pproxy_t proxy, struct lws *wsi, struct buffer_s 
   ssize_t bytessent;
   struct bufline_s *line;
 
+  log_message(proxy->log, LOG_INFO, "%s %s:%d", __func__, __FILE__, __LINE__);
+
   assert(wsi != NULL);
   assert(buffptr != NULL);
 
@@ -354,15 +359,21 @@ ssize_t write_websocket_buffer(pproxy_t proxy, struct lws *wsi, struct buffer_s 
   line = BUFFER_HEAD(buffptr);
 
   // todo allocate new
-  size_t nc = line->length - line->pos + LWS_PRE;
-  unsigned char * bmem = safemalloc(nc);
-  memset(bmem, 0, nc);
-  memcpy(bmem + LWS_PRE, line->string + line->pos,line->length - line->pos);
+  if (line->length - line->pos > 0)
+  {
+    size_t nc = line->length - line->pos + LWS_PRE + LWS_SEND_BUFFER_POST_PADDING;
+    unsigned char *bmem = safemalloc(nc);
+    memset(bmem, 0, nc);
+    memcpy(bmem + LWS_PRE, line->string + line->pos, line->length - line->pos);
 
-  bytessent = lws_write(wsi, bmem,
-                        line->length - line->pos, LWS_WRITE_BINARY);
+    bytessent = lws_write(wsi, bmem + LWS_PRE, line->length - line->pos, LWS_WRITE_BINARY);
 
-  safefree(bmem);
+    safefree(bmem);
+  }
+  else
+  {
+    bytessent = 0;
+  }
 
   if (bytessent == ((ssize_t)(line->length - line->pos)))
   {
@@ -398,4 +409,92 @@ ssize_t write_websocket_buffer(pproxy_t proxy, struct lws *wsi, struct buffer_s 
       return -1;
     }
   }
+}
+
+ssize_t read_ws_buffer(pproxy_t proxy, struct buffer_s *buffptr, unsigned char *data, size_t len)
+{
+  ssize_t bytesin;
+  unsigned char *buffer;
+
+  log_message(proxy->log, LOG_INFO, "%s %s:%d", __func__, __FILE__, __LINE__);
+
+  if (len == 0)
+  {
+    log_message(proxy->log, LOG_WARNING, "%s {len == 0} %s:%d", __func__, __FILE__, __LINE__);
+    return 0;
+  }
+
+  assert(data != NULL);
+  assert(buffptr != NULL);
+
+  log_message(proxy->log, LOG_INFO, "%s {pass asserts} %s:%d", __func__, __FILE__, __LINE__);
+
+  /*
+   * Don't allow the buffer to grow larger than MAXBUFFSIZE
+   */
+  if (buffptr->size >= MAXBUFFSIZE)
+  {
+    log_message(proxy->log, LOG_WARNING, "%s {buffptr->size >= MAXBUFFSIZE} %s:%d", __func__,
+                __FILE__, __LINE__);
+    return 0;
+  }
+
+  size_t saved_len = len;
+  while (len > 0)
+  {
+    // todo bug Don't allow the buffer to grow larger than MAXBUFFSIZE
+    buffer = (unsigned char *)safemalloc(READ_BUFFER_SIZE);
+    if (!buffer)
+    {
+      log_message(proxy->log, LOG_ERR, "%s {buffer == NULL} %s:%d", __func__, __FILE__, __LINE__);
+      return -ENOMEM;
+    }
+
+    bytesin = min(len, READ_BUFFER_SIZE);
+    memcpy(buffer, data + (saved_len - len), bytesin);
+
+    if (bytesin > 0)
+    {
+      if (add_to_buffer(buffptr, buffer, bytesin) < 0)
+      {
+        log_message(proxy->log, LOG_ERR, "readbuff: add_to_buffer() error.");
+        bytesin = -1;
+      }
+      len -= bytesin;
+      bytesin = saved_len - len;
+    }
+    else if (bytesin == 0)
+    {
+      /* connection was closed by client */
+      bytesin = -1;
+    }
+    else
+    {
+      log_message(proxy->log, LOG_ERR, "%s {bytesin == %d} %s:%d", __func__, bytesin, __FILE__,
+                  __LINE__);
+      switch (errno)
+      {
+#ifdef EWOULDBLOCK
+      case EWOULDBLOCK:
+#else
+#ifdef EAGAIN
+      case EAGAIN:
+#endif
+#endif
+      case EINTR:
+        bytesin = 0;
+        break;
+      default:
+        log_message(proxy->log, LOG_ERR, "read_buffer: read() failed on websocket: %s",
+                    strerror(errno));
+        bytesin = -1;
+        break;
+      }
+    }
+
+    safefree(buffer);
+  }
+  log_message(proxy->log, LOG_INFO, "%s {bytesin == %d} %s:%d", __func__, bytesin, __FILE__,
+              __LINE__);
+  return bytesin;
 }
