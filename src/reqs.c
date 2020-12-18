@@ -26,7 +26,10 @@
  */
 
 #include "main.h"
+
 #include <child.h>
+#include <libwebsockets.h>
+#include <stdbool.h>
 
 #include "basicauth.h"
 #include "buffer.h"
@@ -50,6 +53,16 @@
 #include "transparent-proxy.h"
 #include "upstream.h"
 #include "utils.h"
+
+struct my_ws_conn
+{
+  struct lws *wsi;          // any wsi
+  int clfd;                 // client fd
+  fd_set *wset;             // wset
+  bool is_stopped;          // stop client loop
+  struct buffer_s *cbuffer; // buffer data
+  pproxy_t proxy;           // proxy
+};
 
 /*
  * Maximum length of a HTTP line
@@ -1297,6 +1310,270 @@ static void relay_connection(pproxy_t proxy, struct conn_s *connptr)
   return;
 }
 
+static int callback_minimal(struct lws *wsi, enum lws_callback_reasons reason, void *user, void *in,
+                            size_t len)
+{
+  struct my_ws_conn *mco = (struct my_ws_conn *)user;
+  struct timeval tv;
+  int m;
+
+  switch (reason)
+  {
+
+  case LWS_CALLBACK_CLIENT_CONNECTION_ERROR:
+    lwsl_err("CLIENT_CONNECTION_ERROR: %s\n", in ? (char *)in : "(null)");
+    mco->is_stopped = true;
+    return -1;
+
+  case LWS_CALLBACK_CLIENT_RECEIVE:
+    FD_ZERO(mco->wset);
+    FD_SET(mco->clfd, mco->wset);
+    m = select(mco->clfd + 1, NULL, mco->wset, NULL, &tv);
+    if (m < 0)
+    {
+      lwsl_err("ERROR %d selecting fd descriptor\n", m);
+      mco->is_stopped = true;
+      return -1;
+    }
+    m = writesocket(mco->clfd, in, len, MSG_NOSIGNAL);
+    if (m < 0)
+    {
+      lwsl_err("ERROR %d writing to fd descriptor\n", m);
+      mco->is_stopped = true;
+      return -1;
+    }
+    break;
+
+  case LWS_CALLBACK_CLIENT_WRITEABLE:
+    m = write_websocket_buffer(mco->proxy, wsi, mco->cbuffer);
+    if (m < 0)
+    {
+      lwsl_err("ERROR %d writing to ws socket\n", m);
+      mco->is_stopped = true;
+      return -1;
+    }
+    break;
+
+  case LWS_CALLBACK_CLIENT_ESTABLISHED:
+    break;
+
+  default:
+    mco->is_stopped = true;
+    return -1;
+  }
+
+  return 0;
+}
+
+static const struct lws_protocols protocols[] = {
+    {
+        "lws-minimal-client",
+        callback_minimal,
+        0,
+        0,
+        0,
+        NULL,
+    },
+    {
+        NULL,
+        NULL,
+        0,
+        0,
+        0,
+        NULL,
+    },
+};
+
+static void relay_websocket_connection(pproxy_t proxy, struct conn_s *connptr)
+{
+  fd_set rset, wset;
+  struct timeval tv;
+  time_t last_access;
+  int ret;
+  double tdiff;
+  int maxfd = connptr->client_fd + 1;
+  ssize_t bytes_received;
+
+  ret = socket_nonblocking(connptr->client_fd);
+  if (ret != 0)
+  {
+    log_message(proxy->log, LOG_ERR,
+                "Failed to set the client socket "
+                "to non-blocking: %s",
+                strerror(errno));
+    return;
+  }
+
+  // init lws
+  struct lws_context_creation_info info;
+  memset(&info, 0, sizeof info);
+  info.port = CONTEXT_PORT_NO_LISTEN; /* we do not run any server */
+  info.protocols = protocols;
+  info.fd_limit_per_thread = 1 + 1 + 1;
+
+  struct lws_context *context;
+  context = lws_create_context(&info);
+  if (NULL == context)
+  {
+    lwsl_err("lws init failed\n");
+    return;
+  }
+
+  struct my_ws_conn mco;
+  mco.is_stopped = false;
+  mco.clfd = connptr->client_fd;
+  mco.wset = &wset;
+  mco.cbuffer = connptr->cbuffer;
+  mco.proxy = proxy;
+
+  struct lws_client_connect_info i;
+  memset(&i, 0, sizeof(i));
+  i.context = context;
+  i.port = 7777;
+  i.address = "127.0.0.1";
+  i.path = "/";
+  i.host = "127.0.0.1";
+  i.origin = "127.0.0.1";
+  i.ssl_connection = 0;
+  i.protocol = "lws-minimal-client";
+  i.userdata = &mco;
+
+  mco.wsi = lws_client_connect_via_info(&i);
+  if (NULL == mco.wsi)
+  {
+    lws_context_destroy(context);
+    return;
+  }
+
+  last_access = time(NULL);
+
+  int loop_var = 0;
+  while (loop_var >= 0 && !mco.is_stopped)
+  {
+    FD_ZERO(&rset);
+    //    FD_ZERO(&wset);
+
+    //    tv.tv_sec = config.idletimeout - difftime(time(NULL), last_access);
+    //    tv.tv_usec = 0;
+
+    //    if (buffer_size(connptr->sbuffer) > 0)
+    //      FD_SET(connptr->client_fd, &wset);
+    //    if (buffer_size(connptr->sbuffer) < MAXBUFFSIZE)
+    //      FD_SET(connptr->server_fd, &rset);
+
+    //    if (buffer_size(connptr->cbuffer) > 0)
+    //      FD_SET(connptr->server_fd, &wset);
+    if (buffer_size(connptr->cbuffer) < MAXBUFFSIZE)
+    {
+      FD_SET(connptr->client_fd, &rset);
+    }
+
+    ret = select(maxfd, &rset, NULL, NULL, &tv);
+    if (ret < 0)
+    {
+      break;
+    }
+
+    //    if (ret == 0)
+    //    {
+    //      tdiff = difftime(time(NULL), last_access);
+    //      if (tdiff > config.idletimeout)
+    //      {
+    //        log_message(proxy->log, LOG_INFO, "Idle Timeout (after select) as %g > %u.", tdiff,
+    //                    config.idletimeout);
+    //        return;
+    //      }
+    //      else
+    //      {
+    //        continue;
+    //      }
+    //    }
+    //    else if (ret < 0)
+    //    {
+    //      log_message(proxy->log, LOG_ERR,
+    //                  "relay_connection: select() error \"%s\". "
+    //                  "Closing connection (client_fd:%d, server_fd:%d)",
+    //                  strerror(errno), connptr->client_fd, connptr->server_fd);
+    //      return;
+    //    }
+    //    else
+    //    {
+    //      /*
+    //       * All right, something was actually selected so mark it.
+    //       */
+    //      last_access = time(NULL);
+    //    }
+
+    //    if (FD_ISSET(connptr->server_fd, &rset))
+    //    {
+    //      bytes_received = read_buffer(proxy, connptr->server_fd, connptr->sbuffer);
+    //      if (bytes_received < 0)
+    //        break;
+    //
+    //      connptr->content_length.server -= bytes_received;
+    //      if (connptr->content_length.server == 0)
+    //        break;
+    //    }
+    if (FD_ISSET(connptr->client_fd, &rset) &&
+        read_buffer(proxy, connptr->client_fd, connptr->cbuffer) < 0)
+    {
+      lws_callback_on_writable(mco.wsi);
+    }
+    //    if (FD_ISSET(connptr->server_fd, &wset) &&
+    //        write_buffer(proxy, connptr->server_fd, connptr->cbuffer) < 0)
+    //    {
+    //      break;
+    //    }
+    //    if (FD_ISSET(connptr->client_fd, &wset) &&
+    //        write_buffer(proxy, connptr->client_fd, connptr->sbuffer) < 0)
+    //    {
+    //      break;
+    //    }
+
+    loop_var = lws_service(context, 0);
+  }
+
+  lws_context_destroy(context);
+
+  /*
+   * Here the server has closed the connection... write the
+   * remainder to the client and then exit.
+   */
+  ret = socket_blocking(connptr->client_fd);
+  if (ret != 0)
+  {
+    log_message(proxy->log, LOG_ERR, "Failed to set client socket to blocking: %s",
+                strerror(errno));
+    return;
+  }
+
+  //  while (buffer_size(connptr->sbuffer) > 0)
+  //  {
+  //    if (write_buffer(proxy, connptr->client_fd, connptr->sbuffer) < 0)
+  //      break;
+  //  }
+  shutdown(connptr->client_fd, SHUT_WR);
+
+  /*
+   * Try to send any remaining data to the server if we can.
+   */
+  //  ret = socket_blocking(connptr->server_fd);
+  //  if (ret != 0)
+  //  {
+  //    log_message(proxy->log, LOG_ERR, "Failed to set server socket to blocking: %s",
+  //                strerror(errno));
+  //    return;
+  //  }
+  //
+  //  while (buffer_size(connptr->cbuffer) > 0)
+  //  {
+  //    if (write_buffer(proxy, connptr->server_fd, connptr->cbuffer) < 0)
+  //      break;
+  //  }
+
+  return;
+}
+
 static int connect_to_upstream_proxy(pproxy_t proxy, struct conn_s *connptr,
                                      struct request_s *request)
 {
@@ -1747,6 +2024,87 @@ void handle_connection(pproxy_t proxy, int fd)
   }
 
   relay_connection(proxy, connptr);
+
+  log_message(proxy->log, LOG_INFO,
+              "Closed connection between local client (fd:%d) "
+              "and remote client (fd:%d)",
+              connptr->client_fd, connptr->server_fd);
+
+  goto done;
+
+fail:
+  /*
+   * First, get the body if there is one.
+   * If we don't read all there is from the socket first,
+   * it is still marked for reading and we won't be able
+   * to send our data properly.
+   */
+  if (get_request_entity(proxy, connptr) < 0)
+  {
+    log_message(proxy->log, LOG_WARNING, "Could not retrieve request entity");
+    indicate_http_error(connptr, 400, "Bad Request", "detail",
+                        "Could not retrieve the request entity "
+                        "the client.",
+                        NULL);
+    update_stats(STAT_BADCONN);
+  }
+
+  if (connptr->error_variables)
+  {
+    send_http_error_message(connptr);
+  }
+  else if (connptr->show_stats)
+  {
+    showstats(connptr);
+  }
+
+done:
+  free_request_struct(request);
+  hashmap_delete(hashofheaders);
+  destroy_conn(proxy, connptr);
+  return;
+}
+
+void handle_websocket_connection(pproxy_t proxy, int fd)
+{
+  // todo: put libwebsocket here
+  ssize_t i;
+  struct conn_s *connptr;
+  struct request_s *request = NULL;
+  phashmap_t hashofheaders = NULL;
+
+  char sock_ipaddr[IP_LENGTH];
+  char peer_ipaddr[IP_LENGTH];
+  char peer_string[HOSTNAME_LENGTH];
+
+  getpeer_information(fd, peer_ipaddr, peer_string);
+
+  if (config.bindsame)
+    getsock_ip(proxy, fd, sock_ipaddr);
+
+  log_message(proxy->log, LOG_CONN,
+              config.bindsame ? "Connect (file descriptor %d): %s [%s] at [%s]"
+                              : "Connect (file descriptor %d): %s [%s]",
+              fd, peer_string, peer_ipaddr, sock_ipaddr);
+
+  connptr = initialize_conn(fd, peer_ipaddr, peer_string, config.bindsame ? sock_ipaddr : NULL);
+  if (!connptr)
+  {
+    closesocket(fd);
+    return;
+  }
+
+  if (check_acl(proxy->log, proxy->acl, peer_ipaddr, peer_string) <= 0)
+  {
+    update_stats(STAT_DENIED);
+    indicate_http_error(connptr, 403, "Access denied", "detail",
+                        "The administrator of this proxy has not configured "
+                        "it to service requests from your host.",
+                        NULL);
+    goto fail;
+  }
+
+  relay_websocket_connection(proxy, connptr);
 
   log_message(proxy->log, LOG_INFO,
               "Closed connection between local client (fd:%d) "

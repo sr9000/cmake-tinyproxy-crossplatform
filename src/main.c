@@ -29,11 +29,12 @@
  * elsewhere.
  */
 
+
 #include "main.h"
 
-#include "buffer.h"
-#include "child.h"
 #include "config/conf.h"
+#include "child.h"
+#include "buffer.h"
 #include "config/conf_log.h"
 #include "daemon.h"
 #include "filter.h"

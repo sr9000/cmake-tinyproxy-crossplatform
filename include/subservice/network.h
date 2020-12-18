@@ -81,6 +81,21 @@ extern int mingw_inet_pton(int af, const char *src, struct in_addr *dst);
 #define SHUT_RDWR 2 /* shutdown for reading and writing */
 #endif
 
+#ifdef MINGW
+int readsocket(SOCKET s, char *buf, int len)
+{
+  return recv(s, buf, len, 0);
+}
+int writesocket(SOCKET s, const char *buf, int len, int _ignore)
+{
+  return send(s, buf, len, 0);
+}
+#else /* MINGW */
+// todo readsocket == recv?
+#define readsocket  read
+#define writesocket send
+#endif /* MINGW */
+
 #define MAXLISTEN 1024 /* Max number of connections */
 
 extern int initialize_winsock();

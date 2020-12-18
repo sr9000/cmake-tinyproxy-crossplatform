@@ -214,20 +214,7 @@ static struct bufline_s *remove_from_buffer(struct buffer_s *buffptr)
   return line;
 }
 
-#ifdef MINGW
-int readsocket(SOCKET s, char *buf, int len)
-{
-  return recv(s, buf, len, 0);
-}
-int writesocket(SOCKET s, const char *buf, int len, int _ignore)
-{
-  return send(s, buf, len, 0);
-}
-#else /* MINGW */
-// todo readsocket == recv?
-#define readsocket  read
-#define writesocket send
-#endif /* MINGW */
+
 /*
  * Reads the bytes from the socket, and adds them to the buffer.
  * Takes a connection and returns the number of bytes read.
@@ -346,6 +333,60 @@ ssize_t write_buffer(pproxy_t proxy, int fd, struct buffer_s *buffptr)
     default:
       log_message(proxy->log, LOG_ERR, "writebuff: write() error \"%s\" on file descriptor %d",
                   strerror(errno), fd);
+      return -1;
+    }
+  }
+}
+
+ssize_t write_websocket_buffer(pproxy_t proxy, struct lws *wsi, struct buffer_s *buffptr)
+{
+  ssize_t bytessent;
+  struct bufline_s *line;
+
+  assert(wsi != NULL);
+  assert(buffptr != NULL);
+
+  if (buffptr->size == 0)
+    return 0;
+
+  /* Sanity check. It would be bad to be using a NULL pointer! */
+  assert(BUFFER_HEAD(buffptr) != NULL);
+  line = BUFFER_HEAD(buffptr);
+
+  bytessent = lws_write(wsi, ((unsigned char *)(line->string + line->pos)),
+                        line->length - line->pos, LWS_WRITE_BINARY);
+
+  if (bytessent == ((ssize_t)(line->length - line->pos)))
+  {
+    /* bytes sent, adjust buffer */
+    line->pos += bytessent;
+    if (line->pos == line->length)
+      free_line(remove_from_buffer(buffptr));
+    return bytessent;
+  }
+  else
+  {
+    switch (errno)
+    {
+#ifdef EWOULDBLOCK
+    case EWOULDBLOCK:
+#else
+#ifdef EAGAIN
+    case EAGAIN:
+#endif
+#endif
+    case EINTR:
+      return 0;
+    case ENOBUFS:
+    case ENOMEM:
+      log_message(proxy->log, LOG_ERR,
+                  "writebuff: write() error [NOBUFS/NOMEM] \"%s\" on "
+                  "websocket descriptor",
+                  strerror(errno));
+      return 0;
+    default:
+      log_message(proxy->log, LOG_ERR, "writebuff: write() error \"%s\" on websocket descriptor",
+                  strerror(errno));
       return -1;
     }
   }

@@ -40,5 +40,6 @@ struct request_s
 };
 
 extern void handle_connection(pproxy_t proxy, int fd);
+extern void handle_websocket_connection(pproxy_t proxy, int fd);
 
 #endif // TINYPROXY_REQS_H

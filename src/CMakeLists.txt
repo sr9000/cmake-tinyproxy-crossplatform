@@ -28,7 +28,6 @@ set(TINYPROXY_SOURCES
         daemon.c
         html-error.c
         http-message.c
-        subservice/network.c
         reqs.c
         sock.c
         stats.c
@@ -76,6 +75,7 @@ add_library(tinyproxy_lib
         )
 
 target_link_libraries(tinyproxy_lib
+        websockets
         tinyproxy_base64
         tinyproxy_heap
         tinyproxy_list

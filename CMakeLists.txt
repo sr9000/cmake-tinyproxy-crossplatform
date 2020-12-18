@@ -16,6 +16,8 @@ set(REAL_VERSION ${MAJOR_VERSION}.${MINOR_VERSION}.${MICRO_VERSION})
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 include(HelpProxyMisc)
 
+#find_package(libwebsockets CONFIG REQUIRED)
+
 global_proxy_list(PROXY_DEFINITIONS)
 global_proxy_list(PROXY_LIBRARIES)
 
@@ -25,6 +27,7 @@ if (MINGW)
     proxy_require_lib_with_func(inet_addr ws2_32 HAVE_WS2_32 PROXY_LIBRARIES PROXY_DEFINITIONS)
     proxy_require_lib_with_func(regcomp systre HAVE_SYSTRE PROXY_LIBRARIES PROXY_DEFINITIONS)
 else (MINGW)
+#    proxy_require_lib_with_func(lws_service websockets HAVE_LIBWEBSOCKETS PROXY_LIBRARIES PROXY_DEFINITIONS)
     proxy_require_lib_with_func(inet_aton resolv HAVE_LIBRESOLV PROXY_LIBRARIES PROXY_DEFINITIONS)
     proxy_require_lib_with_func(gethostbyname nsl HAVE_LIBNSL PROXY_LIBRARIES PROXY_DEFINITIONS)
 endif (MINGW)

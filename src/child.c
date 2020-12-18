@@ -380,7 +380,7 @@ static
 
     SERVER_DEC(ptr->proxy->log);
 
-    handle_connection(ptr->proxy, connfd);
+    handle_websocket_connection(ptr->proxy, connfd);
     ptr->connects++;
 
     if (child_config.maxrequestsperchild != 0)
