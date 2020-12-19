@@ -25,7 +25,6 @@
 
 #include "config/conf.h"
 
-#include "basicauth.h"
 #include "child.h"
 #include "connect-ports.h"
 #include "filter.h"
@@ -37,6 +36,7 @@
 #include "self_contained/safecall.h"
 #include "subservice/acl.h"
 #include "subservice/anonymous.h"
+#include "subservice/basicauth.h"
 #include "subservice/log.h"
 #include "upstream.h"
 
@@ -349,12 +349,12 @@ static void free_config(struct config_s *conf)
   delete_pconf_log_t(&conf->log);
   delete_pconf_anon_t(&conf->anon);
   delete_pconf_acl_t(&conf->acl);
+  delete_pconf_auth_t(&conf->auth);
 
   safefree(conf->stathost);
   safefree(conf->user);
   safefree(conf->group);
   list_delete(conf->listen_addrs);
-  list_delete(conf->basicauth_list);
 #ifdef FILTER_ENABLE
   safefree(conf->filter);
 #endif /* FILTER_ENABLE */
@@ -534,6 +534,7 @@ static int initialize_with_defaults(struct config_s *conf, struct config_s *defa
   conf->log = clone_pconf_log_t(defaults->log);
   conf->anon = clone_pconf_anon_t(defaults->anon);
   conf->acl = clone_pconf_acl_t(defaults->acl);
+  conf->auth = clone_pconf_auth_t(defaults->auth);
   INIT_STRFLD_WITH_DEFAULT(config_file);
   INIT_STRFLD_WITH_DEFAULT(stathost);
   INIT_STRFLD_WITH_DEFAULT(user);
@@ -1011,25 +1012,26 @@ static HANDLE_FUNC(handle_loglevel)
 
 static HANDLE_FUNC(handle_basicauth)
 {
-  char *user, *pass;
-  user = get_string_arg(line, &match[2]);
-  if (!user)
-    return -1;
-  pass = get_string_arg(line, &match[3]);
-  if (!pass)
-  {
-    safefree(user);
-    return -1;
-  }
-  if (!conf->basicauth_list)
-  {
-    conf->basicauth_list = list_create();
-  }
+  TRACE_CALL(handle_basicauth);
 
-  basicauth_add(conf->basicauth_list, user, pass);
-  safefree(user);
-  safefree(pass);
-  return 0;
+  char *user = NULL, *pass = NULL;
+
+  TRACE_SAFE_FIN(NULL == (user = get_string_arg(line, &match[2])), -1, {
+    safefree(user);
+    safefree(pass);
+  });
+
+  TRACE_SAFE_FIN(NULL == (pass = get_string_arg(line, &match[3])), -1, {
+    safefree(user);
+    safefree(pass);
+  });
+
+  TRACE_SAFE_FIN(add_cred_conf_auth(conf->auth, user, pass), -1, {
+    safefree(user);
+    safefree(pass);
+  });
+
+  TRACE_SUCCESS;
 }
 
 #ifdef FILTER_ENABLE

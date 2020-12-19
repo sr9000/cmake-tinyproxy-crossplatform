@@ -22,6 +22,7 @@
 
 #include "conf_acl.h"
 #include "conf_anon.h"
+#include "conf_auth.h"
 #include "conf_log.h"
 #include "misc/hashmap.h"
 #include "misc/list.h"
@@ -35,6 +36,8 @@ typedef struct
 // main configuration structure
 struct config_s
 {
+  char *config_file;
+
   pconf_log_t log;
 
   // map of headers which should be let through when the anonymous feature is turned on
@@ -43,8 +46,9 @@ struct config_s
   // acl rules
   pconf_acl_t acl;
 
-  plist_t basicauth_list;
-  char *config_file;
+  // basicauth
+  pconf_auth_t auth;
+
   unsigned int port;
   char *stathost;
   unsigned int quit; // boolean

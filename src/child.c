@@ -380,7 +380,8 @@ static
 
     SERVER_DEC(ptr->proxy->log);
 
-    handle_websocket_connection(ptr->proxy, connfd);
+    //    handle_websocket_connection(ptr->proxy, connfd);
+    handle_connection(ptr->proxy, connfd);
     ptr->connects++;
 
     if (child_config.maxrequestsperchild != 0)
@@ -641,8 +642,6 @@ void child_main_loop(pproxy_t proxy)
 #endif /* MINGW */
   }
 }
-
-
 
 /*
  * Go through all the non-empty children and cancel them.

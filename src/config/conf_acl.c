@@ -8,7 +8,7 @@
 static char s_acl_allow[] = "acl-allow";
 static char s_acl_deny[] = "acl-deny";
 
-char* acl_access_t2char(acl_access_t t)
+char *acl_access_t2char(acl_access_t t)
 {
   switch (t)
   {
@@ -35,7 +35,6 @@ int clean_acl_rule_t(conf_acl_rule_t *rule)
   TRACE_CALL(clean_acl_rule_t);
   TRACE_SAFE_X(NULL == rule, -1, "%s", "there is no rule to init");
   safefree(rule->location);
-  rule->location = NULL;
   TRACE_SUCCESS;
 }
 
@@ -72,21 +71,12 @@ CLONE_IMPL(pconf_acl_t, {
 
   if (dst->count < src->count)
   {
-    for (size_t i = 0; i < dst->count; ++i)
-    {
-      if (clean_acl_rule_t(dst->rules + i))
-      {
-        // (1 + i) cause 1-based value in message
-        TRACE_MSG("failed at cleaning %zu(-th) rule of %zu", 1 + i, dst->count);
-        break;
-      }
-    }
     delete_pconf_acl_t(&dst);
     TRACE_NULL;
   }
 })
 
-int add_rule_conf_acl(pconf_acl_t acl_config, char *location, acl_access_t access_type)
+int add_rule_conf_acl(pconf_acl_t acl_config, const char *location, acl_access_t access_type)
 {
   TRACE_CALL_X(add_rule_conf_acl, "acl_config = %p, location = %s, access_type = %s",
                (void *)acl_config, location, acl_access_t2char(access_type));

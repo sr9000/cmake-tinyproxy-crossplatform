@@ -31,7 +31,6 @@
 #include <libwebsockets.h>
 #include <stdbool.h>
 
-#include "basicauth.h"
 #include "buffer.h"
 #include "config/conf.h"
 #include "connect-ports.h"
@@ -48,6 +47,7 @@
 #include "stats.h"
 #include "subservice/acl.h"
 #include "subservice/anonymous.h"
+#include "subservice/basicauth.h"
 #include "subservice/log.h"
 #include "subservice/network.h"
 #include "transparent-proxy.h"
@@ -1443,27 +1443,17 @@ static void relay_websocket_connection(pproxy_t proxy, struct conn_s *connptr)
   int loop_var = 0;
   while (loop_var >= 0 && !mco.is_stopped)
   {
-    loop_var = lws_service(context, 0);
-    if (loop_var < 0)
+    for (int ij = 0; ij < 30; ++ij)
     {
-      lwsl_err("bad loop_var\n");
-      break;
-    }
-    loop_var = lws_service(context, 0);
-    if (loop_var < 0)
-    {
-      lwsl_err("bad loop_var\n");
-      break;
-    }
-    loop_var = lws_service(context, 0);
-    if (loop_var < 0)
-    {
-      lwsl_err("bad loop_var\n");
-      break;
+      loop_var = lws_service(context, 0);
+      if (loop_var < 0)
+      {
+        lwsl_err("bad loop_var\n");
+        break;
+      }
     }
 
-    FD_ZERO(&rset);
-    FD_ZERO(&wset);
+
     //    FD_ZERO(&wset);
 
     //    tv.tv_sec = config.idletimeout - difftime(time(NULL), last_access);
@@ -1476,81 +1466,89 @@ static void relay_websocket_connection(pproxy_t proxy, struct conn_s *connptr)
 
     //    if (buffer_size(connptr->cbuffer) > 0)
     //      FD_SET(connptr->server_fd, &wset);
-    if (buffer_size(connptr->cbuffer) < MAXBUFFSIZE)
+    for (int ij = 0; ij < 10; ++ij)
     {
-      FD_SET(connptr->client_fd, &rset);
-    }
-    if (buffer_size(connptr->sbuffer) > 0)
-    {
-      FD_SET(connptr->client_fd, &wset);
-    }
+      FD_ZERO(&rset);
+      FD_ZERO(&wset);
+      if (buffer_size(connptr->cbuffer) < MAXBUFFSIZE)
+      {
+        FD_SET(connptr->client_fd, &rset);
+      }
+      if (buffer_size(connptr->sbuffer) > 0)
+      {
+        FD_SET(connptr->client_fd, &wset);
+      }
 
-    ret = select(connptr->client_fd + 1, &rset, &wset, NULL, &tv);
-    if (ret < 0)
-    {
-      lwsl_err("bad select (%d)\n", ret);
-      break;
-    }
+      ret = select(connptr->client_fd + 1, &rset, &wset, NULL, &tv);
+      if (ret < 0)
+      {
+        lwsl_err("bad select (%d)\n", ret);
+        break;
+      }
 
-    //    if (ret == 0)
-    //    {
-    //      tdiff = difftime(time(NULL), last_access);
-    //      if (tdiff > config.idletimeout)
-    //      {
-    //        log_message(proxy->log, LOG_INFO, "Idle Timeout (after select) as %g > %u.", tdiff,
-    //                    config.idletimeout);
-    //        return;
-    //      }
-    //      else
-    //      {
-    //        continue;
-    //      }
-    //    }
-    //    else if (ret < 0)
-    //    {
-    //      log_message(proxy->log, LOG_ERR,
-    //                  "relay_connection: select() error \"%s\". "
-    //                  "Closing connection (client_fd:%d, server_fd:%d)",
-    //                  strerror(errno), connptr->client_fd, connptr->server_fd);
-    //      return;
-    //    }
-    //    else
-    //    {
-    //      /*
-    //       * All right, something was actually selected so mark it.
-    //       */
-    //      last_access = time(NULL);
-    //    }
+      //    if (ret == 0)
+      //    {
+      //      tdiff = difftime(time(NULL), last_access);
+      //      if (tdiff > config.idletimeout)
+      //      {
+      //        log_message(proxy->log, LOG_INFO, "Idle Timeout (after select) as %g > %u.", tdiff,
+      //                    config.idletimeout);
+      //        return;
+      //      }
+      //      else
+      //      {
+      //        continue;
+      //      }
+      //    }
+      //    else if (ret < 0)
+      //    {
+      //      log_message(proxy->log, LOG_ERR,
+      //                  "relay_connection: select() error \"%s\". "
+      //                  "Closing connection (client_fd:%d, server_fd:%d)",
+      //                  strerror(errno), connptr->client_fd, connptr->server_fd);
+      //      return;
+      //    }
+      //    else
+      //    {
+      //      /*
+      //       * All right, something was actually selected so mark it.
+      //       */
+      //      last_access = time(NULL);
+      //    }
 
-    //    if (FD_ISSET(connptr->server_fd, &rset))
-    //    {
-    //      bytes_received = read_buffer(proxy, connptr->server_fd, connptr->sbuffer);
-    //      if (bytes_received < 0)
-    //        break;
-    //
-    //      connptr->content_length.server -= bytes_received;
-    //      if (connptr->content_length.server == 0)
-    //        break;
-    //    }
+      //    if (FD_ISSET(connptr->server_fd, &rset))
+      //    {
+      //      bytes_received = read_buffer(proxy, connptr->server_fd, connptr->sbuffer);
+      //      if (bytes_received < 0)
+      //        break;
+      //
+      //      connptr->content_length.server -= bytes_received;
+      //      if (connptr->content_length.server == 0)
+      //        break;
+      //    }
 
-    if (FD_ISSET(connptr->client_fd, &rset) &&
-        read_buffer(proxy, connptr->client_fd, connptr->cbuffer) < 0)
-    {
-      lwsl_err("bad read_buffer\n");
-      break;
-    }
-    if (FD_ISSET(connptr->client_fd, &wset) &&
-        write_buffer(proxy, connptr->client_fd, connptr->sbuffer) < 0)
-    {
-      lwsl_err("bad write_buffer\n");
-      break;
+      if (FD_ISSET(connptr->client_fd, &rset) &&
+          read_buffer(proxy, connptr->client_fd, connptr->cbuffer) < 0)
+      {
+        lwsl_err("bad read_buffer\n");
+        break;
+      }
+      if (FD_ISSET(connptr->client_fd, &wset) &&
+          write_buffer(proxy, connptr->client_fd, connptr->sbuffer) < 0)
+      {
+        lwsl_err("bad write_buffer\n");
+        break;
+      }
     }
     //    if (FD_ISSET(connptr->client_fd, &wset) &&
     //        write_buffer(proxy, connptr->client_fd, connptr->sbuffer) < 0)
     //    {
     //      break;
     //    }
-    lws_callback_on_writable(mco.wsi);
+    for (int ij = 0; ij < 20; ++ij)
+    {
+      lws_callback_on_writable(mco.wsi);
+    }
   }
 
   lws_context_destroy(context);
@@ -1937,7 +1935,7 @@ void handle_connection(pproxy_t proxy, int fd)
     goto fail;
   }
 
-  if (config.basicauth_list != NULL)
+  if (is_basicauth_required(proxy->auth))
   {
     ssize_t len;
     char *authstring;
@@ -1951,10 +1949,13 @@ void handle_connection(pproxy_t proxy, int fd)
                           "This proxy requires authentication.", NULL);
       goto fail;
     }
-    if (/* currently only "basic" auth supported */
-        (strncmp(authstring, "Basic ", 6) == 0 || strncmp(authstring, "basic ", 6) == 0) &&
-        basicauth_check(config.basicauth_list, authstring + 6) == 1)
+    // currently only "basic" auth supported
+    if ((strncmp(authstring, "Basic ", 6) == 0 || strncmp(authstring, "basic ", 6) == 0) &&
+        does_pass_auth_chek(proxy->log, proxy->auth, authstring + 6))
+    {
       failure = 0;
+    }
+
     if (failure)
     {
       update_stats(STAT_DENIED);

@@ -11,3 +11,6 @@ proxy_global_header_absolute_paths(TINYPROXY_ACL_HEADERS
 
 proxy_global_header_absolute_paths(TINYPROXY_NET_HEADERS
         network.h)
+
+proxy_global_header_absolute_paths(TINYPROXY_AUTH_HEADERS
+        basicauth.h)

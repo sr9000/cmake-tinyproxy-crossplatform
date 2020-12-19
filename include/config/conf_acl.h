@@ -7,8 +7,8 @@
 
 #include <stddef.h>
 
-#include "subservice/acl_access_type.h"
 #include "self_contained/object.h"
+#include "subservice/acl_access_type.h"
 
 typedef struct
 {
@@ -16,7 +16,7 @@ typedef struct
   acl_access_t access;
 } conf_acl_rule_t;
 
-#define MAX_ACL_RULES 1000
+#define MAX_ACL_RULES ((size_t) 1000)
 
 typedef struct
 {
@@ -28,6 +28,6 @@ CREATE_DECL(pconf_acl_t);
 DELETE_DECL(pconf_acl_t);
 CLONE_DECL(pconf_acl_t);
 
-extern int add_rule_conf_acl(pconf_acl_t acl_config, char *location, acl_access_t access_type);
+extern int add_rule_conf_acl(pconf_acl_t acl_config, const char *location, acl_access_t access_type);
 
 #endif // CMAKE_TINYPROXY_CONF_ACL_H

@@ -20,11 +20,22 @@
 #define TINYPROXY_BASICAUTH_H
 
 #include <stddef.h>
+#include <stdbool.h>
 
+#include "config/conf_auth.h"
 #include "misc/list.h"
+#include "self_contained/object.h"
+#include "subservice/log.h"
 
-extern ssize_t basicauth_string(const char *user, const char *pass, char *buf, size_t bufsize);
-extern int basicauth_add(plist_t authlist, const char *user, const char *pass);
-extern int basicauth_check(plist_t authlist, const char *authstring);
+typedef struct auth_s *pauth_t;
+
+CREATE_DECL(pauth_t);
+DELETE_DECL(pauth_t);
+
+extern pauth_t create_configured_auth(pconf_auth_t auth_config);
+
+extern int make_auth_string(char *buf, size_t bufsize, const char *user, const char *pass);
+extern bool does_pass_auth_chek(plog_t log, pauth_t auth, const char *authstring);
+extern bool is_basicauth_required(pauth_t auth);
 
 #endif // TINYPROXY_BASICAUTH_H

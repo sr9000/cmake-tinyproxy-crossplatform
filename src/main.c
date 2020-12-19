@@ -245,21 +245,22 @@ static int initialize_config_defaults(struct config_s *conf)
   conf->log = create_pconf_log_t();
   conf->anon = create_pconf_anon_t();
   conf->acl = create_pconf_acl_t();
+  conf->auth = create_pconf_auth_t();
 
-  TRACE_RETURN(0);
+  TRACE_SUCCESS;
 }
 
 int init_proxy_log(pproxy_t proxy, struct config_s *config)
 {
   TRACE_CALL_X(init_proxy_log, "proxy = %p, config = %p", (void *)proxy, (void *)config);
 
-  TRACE_SAFE(configure_proxy(proxy, config->log, config->anon, config->acl));
+  TRACE_SAFE(configure_proxy(proxy, config->log, config->anon, config->acl, config->auth));
   TRACE_SAFE(activate_logging(proxy->log));
 
   TRACE_SUCCESS;
 }
 
-int main1(int argc, char **argv)
+int main(int argc, char **argv)
 {
   TRACE_CALL_X(main, "%d, %p", argc, (void *)argv);
 

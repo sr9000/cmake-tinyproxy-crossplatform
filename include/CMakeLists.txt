@@ -24,6 +24,6 @@ set(HEADERS
         filter.h
         reqs.h
         utils.h
-        basicauth.h)
+        subservice/basicauth.h)
 
 proxy_global_header_absolute_paths(TINYPROXY_HEADERS "${HEADERS}")

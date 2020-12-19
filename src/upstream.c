@@ -26,12 +26,11 @@
 
 #include "upstream.h"
 
-#include "basicauth.h"
 #include "misc/base64.h"
 #include "misc/heap.h"
 #include "self_contained/debugtrace.h"
+#include "subservice/basicauth.h"
 #include "subservice/log.h"
-
 
 #ifdef UPSTREAM_SUPPORT
 const char *proxy_type_name(proxy_type type)
@@ -87,7 +86,7 @@ static struct upstream *upstream_build(const char *host, int port, const char *d
     {
       char b[BASE64ENC_BYTES((256 + 2) - 1) + 1];
       ssize_t ret;
-      ret = basicauth_string(user, pass, b, sizeof b);
+      ret = make_auth_string(b, sizeof b, user, pass);
       if (ret == 0)
       {
         TRACE_RETURN_X(NULL, "%s", "User / pass in upstream config too long");

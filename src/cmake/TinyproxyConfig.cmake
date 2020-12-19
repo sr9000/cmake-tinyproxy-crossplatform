@@ -6,6 +6,7 @@ set(PREFIX ${CMAKE_CURRENT_LIST_DIR}/../../..)
 set(Tinyproxy_INCLUDE_DIRS ${PREFIX}/include)
 set(Tinyproxy_LIBRARIES
         ${PREFIX}/lib/libtinyproxy_lib.a
+        ${PREFIX}/lib/libtinyproxy_auth.a
         ${PREFIX}/lib/libtinyproxy_acl.a
         ${PREFIX}/lib/libtinyproxy_anon.a
         ${PREFIX}/lib/libtinyproxy_net.a
