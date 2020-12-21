@@ -19,20 +19,23 @@
 #ifndef TINYPROXY_FILTER_H
 #define TINYPROXY_FILTER_H
 
-#include "tinyproxy.h"
+#include <stdbool.h>
 
-typedef enum
-{
-  FILTER_DEFAULT_ALLOW,
-  FILTER_DEFAULT_DENY
-} filter_policy_t;
+#include "config/conf_filt.h"
+#include "self_contained/object.h"
+#include "subservice/log.h"
 
-extern void filter_init(void);
-extern void filter_destroy(void);
-extern void filter_reload(pproxy_t proxy);
-extern int filter_domain(const char *host);
-extern int filter_url(const char *url);
+typedef struct filter_s *pfilter_t;
 
-extern void filter_set_default_policy(filter_policy_t policy);
+CREATE_DECL(pfilter_t);
+DELETE_DECL(pfilter_t);
+
+extern pfilter_t create_configured_filter(pconf_filt_t filt_config);
+
+extern bool is_enabled(pfilter_t filter);
+extern int activate_filtering(plog_t log, pfilter_t filter);
+
+// return true to allow, false to block
+extern bool does_pass_filter(plog_t log, pfilter_t filter, const char *host, const char *url);
 
 #endif // TINYPROXY_FILTER_H

@@ -24,7 +24,7 @@ char *acl_access_t2char(acl_access_t t)
 int init_acl_rule_t(conf_acl_rule_t *rule, const char *location, acl_access_t access)
 {
   TRACE_CALL(init_acl_rule_t);
-  TRACE_SAFE_X(NULL == rule, -1, "%s", "there is no rule to init");
+  TRACE_SAFE_X(NULL == rule, -1, "%s", "there is no prule to init");
   TRACE_SAFE(NULL == (rule->location = safestrdup(location)));
   rule->access = access;
   TRACE_SUCCESS;
@@ -33,7 +33,7 @@ int init_acl_rule_t(conf_acl_rule_t *rule, const char *location, acl_access_t ac
 int clean_acl_rule_t(conf_acl_rule_t *rule)
 {
   TRACE_CALL(clean_acl_rule_t);
-  TRACE_SAFE_X(NULL == rule, -1, "%s", "there is no rule to init");
+  TRACE_SAFE_X(NULL == rule, -1, "%s", "there is no prule to init");
   safefree(rule->location);
   TRACE_SUCCESS;
 }
@@ -41,8 +41,8 @@ int clean_acl_rule_t(conf_acl_rule_t *rule)
 int assign_acl_rule_t(conf_acl_rule_t *dst, conf_acl_rule_t *src)
 {
   TRACE_CALL(assign_acl_rule_t);
-  TRACE_SAFE_X(NULL == dst, -1, "%s", "there is no rule to init");
-  TRACE_SAFE_X(NULL == src, -1, "%s", "there is no rule to assign");
+  TRACE_SAFE_X(NULL == dst, -1, "%s", "there is no prule to init");
+  TRACE_SAFE_X(NULL == src, -1, "%s", "there is no prule to assign");
   TRACE_SAFE(init_acl_rule_t(dst, src->location, src->access));
   TRACE_SUCCESS;
 }
@@ -64,7 +64,7 @@ CLONE_IMPL(pconf_acl_t, {
     if (assign_acl_rule_t(dst->rules + i, src->rules + i))
     {
       // (1 + i) cause 1-based value in message
-      TRACE_MSG("failed at copying %zu(-th) rule of %zu", 1 + i, src->count);
+      TRACE_MSG("failed at copying %zu(-th) prule of %zu", 1 + i, src->count);
       break;
     }
   }

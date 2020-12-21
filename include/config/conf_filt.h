@@ -13,13 +13,14 @@
 typedef struct
 {
   // file with filter rules
-  char *file_name;
+  char *file_path;
+  bool enabled; // is filtering process active
 
-  filter_policy_t default_policy;
+  filter_policy_t policy;
 
-  bool enabled_url_filter;
-  bool is_extended;       // extended regexp in filter list
-  bool is_case_sensitive; // case sensitive regexp in filter list
+  bool does_full_url_filtering; // full url filtering if true, else by host
+  bool is_extended;             // extended regexp in filter list
+  bool is_case_sensitive;       // case sensitive regexp in filter list
 } *pconf_filt_t;
 
 CREATE_DECL(pconf_filt_t);

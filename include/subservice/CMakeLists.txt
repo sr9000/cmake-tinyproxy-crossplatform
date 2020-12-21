@@ -14,3 +14,7 @@ proxy_global_header_absolute_paths(TINYPROXY_NET_HEADERS
 
 proxy_global_header_absolute_paths(TINYPROXY_AUTH_HEADERS
         basicauth.h)
+
+proxy_global_header_absolute_paths(TINYPROXY_FILT_HEADERS
+        filter.h
+        filter_policy.h)

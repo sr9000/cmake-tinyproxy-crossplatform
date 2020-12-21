@@ -41,18 +41,18 @@ int reversepath_add(const char *path, const char *url, struct reversepath **reve
 
   if (url == NULL)
   {
-    TRACE_RETURN_X(-1, "%s", "Illegal reverse proxy rule: missing url");
+    TRACE_RETURN_X(-1, "%s", "Illegal reverse proxy prule: missing url");
   }
 
   if (!strstr(url, "://"))
   {
-    TRACE_RETURN_X(-1, "Skipping reverse proxy rule: '%s' is not a valid url", url);
+    TRACE_RETURN_X(-1, "Skipping reverse proxy prule: '%s' is not a valid url", url);
   }
 
   if (path && *path != '/')
   {
     TRACE_RETURN_X(-1,
-                  "Skipping reverse proxy rule: path '%s' "
+                  "Skipping reverse proxy prule: path '%s' "
                   "doesn't start with a /",
                   path);
   }

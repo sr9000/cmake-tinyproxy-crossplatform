@@ -27,10 +27,18 @@ target_link_libraries(tinyproxy_auth
         tinyproxy_heap
         tinyproxy_base64)
 
+add_library(tinyproxy_filt filter.c "${TINYPROXY_FILT_HEADERS}")
+target_link_libraries(tinyproxy_filt
+        tinyproxy_log
+        tinyproxy_conf_help
+        tinyproxy_list
+        tinyproxy_heap)
+
 install(TARGETS
         tinyproxy_log
         tinyproxy_anon
         tinyproxy_net
         tinyproxy_acl
         tinyproxy_auth
+        tinyproxy_filt
         EXPORT Tinyproxy)

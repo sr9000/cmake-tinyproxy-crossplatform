@@ -7,8 +7,8 @@
 
 typedef enum
 {
-  FILTER_ALLOW,
-  FILTER_DENY
+  FILTER_WHITE_LIST,
+  FILTER_BLACK_LIST
 } filter_policy_t;
 
 #endif // CMAKE_TINYPROXY_FILTER_POLICY_H

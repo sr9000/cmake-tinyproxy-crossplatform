@@ -56,7 +56,7 @@
 #include <wchar.h>     // mingw +
 #include <wctype.h>    // mingw +
 
-#include <regex.h>  // mingw +libsystre
+
 #include <signal.h> // mingw +ifdefs +winapi
 
 #ifdef MINGW

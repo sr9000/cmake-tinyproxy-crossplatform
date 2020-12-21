@@ -105,20 +105,20 @@ static struct upstream *upstream_build(const char *host, int port, const char *d
     if (!host || host[0] == '\0' || port < 1)
     {
       free_upstream(up);
-      TRACE_RETURN_X(NULL, "%s", "Nonsense upstream rule: invalid host or port");
+      TRACE_RETURN_X(NULL, "%s", "Nonsense upstream prule: invalid host or port");
     }
 
     up->host = safestrdup(host);
     up->port = port;
 
-    // "Added upstream %s %s:%d for [default]", proxy_type_name(type), host, port
+    // "Added upstream %s %s:%d for [default]", proxy_type_name(policy), host, port
   }
   else if (host == NULL || type == PT_NONE)
   {
     if (!domain || domain[0] == '\0')
     {
       free_upstream(up);
-      TRACE_RETURN_X(NULL, "%s", "Nonsense no-upstream rule: empty domain");
+      TRACE_RETURN_X(NULL, "%s", "Nonsense no-upstream prule: empty domain");
     }
 
     ptr = strchr(domain, '/');
@@ -154,14 +154,14 @@ static struct upstream *upstream_build(const char *host, int port, const char *d
     if (!host || host[0] == '\0' || port < 1 || !domain || domain[0] == '\0')
     {
       free_upstream(up);
-      TRACE_RETURN_X(NULL, "%s", "Nonsense upstream rule: invalid parameters");
+      TRACE_RETURN_X(NULL, "%s", "Nonsense upstream prule: invalid parameters");
     }
 
     up->host = safestrdup(host);
     up->port = port;
     up->domain = safestrdup(domain);
 
-    // "Added upstream %s %s:%d for %s", proxy_type_name(type), host, port, domain
+    // "Added upstream %s %s:%d for %s", proxy_type_name(policy), host, port, domain
   }
 
   return up;

@@ -36,7 +36,6 @@
 #include "config/conf.h"
 #include "config/conf_log.h"
 #include "daemon.h"
-#include "filter.h"
 #include "misc/file_api.h"
 #include "misc/heap.h"
 #include "reqs.h"
@@ -44,6 +43,7 @@
 #include "sock.h"
 #include "stats.h"
 #include "subservice/anonymous.h"
+#include "subservice/filter.h"
 #include "subservice/log.h"
 #include "subservice/network.h"
 #include "tinyproxy.h"
@@ -113,10 +113,8 @@ static void display_usage(void)
   features++;
 #endif /* XTINYPROXY */
 
-#ifdef FILTER_ENABLE
   printf("    Filtering\n");
   features++;
-#endif /* FILTER_ENABLE */
 
 #ifndef NDEBUG
   printf("    Debugging code\n");
@@ -245,9 +243,7 @@ static int initialize_config_defaults(struct config_s *conf)
   conf->anon = create_pconf_anon_t();
   conf->acl = create_pconf_acl_t();
   conf->auth = create_pconf_auth_t();
-#ifdef FILTER_ENABLE
   conf->filt = create_pconf_filt_t();
-#endif // FILTER_ENABLE
 
   TRACE_SUCCESS;
 }
@@ -256,7 +252,8 @@ int init_proxy_log(pproxy_t proxy, struct config_s *config)
 {
   TRACE_CALL_X(init_proxy_log, "proxy = %p, config = %p", (void *)proxy, (void *)config);
 
-  TRACE_SAFE(configure_proxy(proxy, config->log, config->anon, config->acl, config->auth));
+  TRACE_SAFE(
+      configure_proxy(proxy, config->log, config->anon, config->acl, config->auth, config->filt));
   TRACE_SAFE(activate_logging(proxy->log));
 
   TRACE_SUCCESS;
@@ -313,11 +310,7 @@ int main(int argc, char **argv)
   }
 
   init_stats();
-
-#ifdef FILTER_ENABLE
-  if (config.filter)
-    filter_init();
-#endif /* FILTER_ENABLE */
+  activate_filtering(proxy->log, proxy->filter);
 
   /* Start listening on the selected port. */
   if (child_listening_sockets(proxy, config.listen_addrs, config.port) < 0)
@@ -388,13 +381,6 @@ int main(int argc, char **argv)
     log_message(proxy->log, LOG_WARNING, "Could not remove PID file \"%s\": %s.", config.pidpath,
                 strerror(errno));
   }
-
-#ifdef FILTER_ENABLE
-  if (config.filter)
-  {
-    filter_destroy();
-  }
-#endif /* FILTER_ENABLE */
 
   delete_pproxy_t(&proxy);
 
@@ -457,11 +443,6 @@ int run_proxy(void *nothing)
 
   init_stats();
 
-#ifdef FILTER_ENABLE
-  if (config.filter)
-    filter_init();
-#endif /* FILTER_ENABLE */
-
   /* Start listening on the selected port. */
   if (child_listening_sockets(proxy, config.listen_addrs, config.port) < 0)
   {
@@ -531,13 +512,6 @@ int run_proxy(void *nothing)
     log_message(proxy->log, LOG_WARNING, "Could not remove PID file \"%s\": %s.", config.pidpath,
                 strerror(errno));
   }
-
-#ifdef FILTER_ENABLE
-  if (config.filter)
-  {
-    filter_destroy();
-  }
-#endif /* FILTER_ENABLE */
 
   delete_pproxy_t(&proxy);
 

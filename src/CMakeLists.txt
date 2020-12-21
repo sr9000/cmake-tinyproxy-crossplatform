@@ -33,10 +33,6 @@ set(TINYPROXY_SOURCES
         utils.c
         tinyproxy.c)
 
-if (OPT_FILTER_ENABLE)
-    list(APPEND TINYPROXY_SOURCES filter.c)
-endif (OPT_FILTER_ENABLE)
-
 if (OPT_REVERSE_SUPPORT)
     list(APPEND TINYPROXY_SOURCES reverse-proxy.c)
 endif (OPT_REVERSE_SUPPORT)
@@ -65,6 +61,7 @@ target_link_libraries(tinyproxy
         tinyproxy_net
         tinyproxy_acl
         tinyproxy_auth
+        tinyproxy_filt
         ${PROXY_LIBRARIES}
         )
 

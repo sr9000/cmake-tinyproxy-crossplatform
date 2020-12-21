@@ -21,7 +21,7 @@ set(HEADERS
         conns.h
         buffer.h
         connect-ports.h
-        filter.h
+        subservice/filter.h
         reqs.h
         utils.h
         subservice/basicauth.h)

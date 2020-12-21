@@ -53,7 +53,7 @@ extern int list_prepend(plist_t list, void *data, size_t len);
 //
 // The pointer points to the actual data in the list, so you have the power to modify the data,
 // but do it responsibly since the library doesn't take any steps to prevent you from messing up the
-// list.  (A better rule is, don't modify the data since you'll likely mess up the "length"
+// list.  (A better prule is, don't modify the data since you'll likely mess up the "length"
 // parameter of the data.)  However, DON'T try to realloc or free the data; doing so will break the
 // list.
 //

@@ -63,8 +63,9 @@ plog_t create_configured_log(pconf_log_t conf_log)
   TRACE_SAFE_X(NULL == (log = create_plog_t()), NULL, "%s",
                "Error when creating default struct log_s");
 
-  TRACE_SAFE_R(delete_pconf_log_t(&log->config), NULL);
-  TRACE_SAFE_R(NULL == (log->config = clone_pconf_log_t(conf_log)), NULL);
+  TRACE_SAFE_FIN(delete_pconf_log_t(&log->config), NULL, { delete_plog_t(&log); });
+  TRACE_SAFE_FIN(NULL == (log->config = clone_pconf_log_t(conf_log)), NULL,
+                 { delete_plog_t(&log); });
 
   TRACE_RETURN(log);
 }

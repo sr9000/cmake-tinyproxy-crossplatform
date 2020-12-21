@@ -50,14 +50,8 @@ struct config_s
   // basicauth
   pconf_auth_t auth;
 
-#ifdef FILTER_ENABLE
+  // filtering
   pconf_filt_t filt;
-
-  char *filter;
-  unsigned int filter_url;           // boolean
-  unsigned int filter_extended;      // boolean
-  unsigned int filter_casesensitive; // boolean
-#endif                               // FILTER_ENABLE
 
   unsigned int port;
   char *stathost;

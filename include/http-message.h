@@ -32,7 +32,7 @@
  *   http_message_send()
  *   http_message_destroy()
  *
- * NOTE: No user data is stored in the http_message_t type; therefore,
+ * NOTE: No user data is stored in the http_message_t policy; therefore,
  * do not delete strings referenced by the http_message_t object
  * before you call http_message_destroy().  By not copying data, the
  * API functions are faster, but you must take greater care.

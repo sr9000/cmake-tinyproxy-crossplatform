@@ -29,7 +29,6 @@
 
 #include "child.h"
 #include "connect-ports.h"
-#include "filter.h"
 #include "html-error.h"
 #include "misc/heap.h"
 #include "misc/list.h"
@@ -39,6 +38,7 @@
 #include "subservice/acl.h"
 #include "subservice/anonymous.h"
 #include "subservice/basicauth.h"
+#include "subservice/filter.h"
 #include "subservice/log.h"
 #include "upstream.h"
 
@@ -158,13 +158,13 @@ static HANDLE_FUNC(handle_defaulterrorfile);
 static HANDLE_FUNC(handle_deny);
 static HANDLE_FUNC(handle_errorfile);
 static HANDLE_FUNC(handle_addheader);
-#ifdef FILTER_ENABLE
+
 static HANDLE_FUNC(handle_filter);
 static HANDLE_FUNC(handle_filtercasesensitive);
-static HANDLE_FUNC(handle_filterdefaultdeny);
+static HANDLE_FUNC(handle_filterwithwhitelist);
 static HANDLE_FUNC(handle_filterextended);
 static HANDLE_FUNC(handle_filterurls);
-#endif
+
 static HANDLE_FUNC(handle_group);
 static HANDLE_FUNC(handle_listen);
 static HANDLE_FUNC(handle_logfile);
@@ -296,14 +296,13 @@ struct
     STDCONF("errorfile", INT WS STR, handle_errorfile),
     STDCONF("addheader", STR WS STR, handle_addheader),
 
-#ifdef FILTER_ENABLE
     /* filtering */
     STDCONF("filter", STR, handle_filter),
     STDCONF("filterurls", BOOL, handle_filterurls),
     STDCONF("filterextended", BOOL, handle_filterextended),
-    STDCONF("filterdefaultdeny", BOOL, handle_filterdefaultdeny),
+    STDCONF("filterwithwhitelist", BOOL, handle_filterwithwhitelist),
     STDCONF("filtercasesensitive", BOOL, handle_filtercasesensitive),
-#endif
+
 #ifdef REVERSE_SUPPORT
     /* Reverse proxy arguments */
     STDCONF("reversebaseurl", STR, handle_reversebaseurl),
@@ -352,9 +351,7 @@ static void free_config(struct config_s *conf)
   delete_pconf_anon_t(&conf->anon);
   delete_pconf_acl_t(&conf->acl);
   delete_pconf_auth_t(&conf->auth);
-#ifdef FILTER_ENABLE
   delete_pconf_filt_t(&conf->filt);
-#endif /* FILTER_ENABLE */
 
   safefree(conf->stathost);
   safefree(conf->user);
@@ -538,9 +535,7 @@ static int initialize_with_defaults(struct config_s *conf, struct config_s *defa
   conf->anon = clone_pconf_anon_t(defaults->anon);
   conf->acl = clone_pconf_acl_t(defaults->acl);
   conf->auth = clone_pconf_auth_t(defaults->auth);
-#ifdef FILTER_ENABLE
   conf->filt = clone_pconf_filt_t(defaults->filt);
-#endif // FILTER_ENABLE
 
   INIT_STRFLD_WITH_DEFAULT(config_file);
   INIT_STRFLD_WITH_DEFAULT(stathost);
@@ -1061,15 +1056,19 @@ static HANDLE_FUNC(handle_basicauth)
   TRACE_SUCCESS;
 }
 
-#ifdef FILTER_ENABLE
 static HANDLE_FUNC(handle_filter)
 {
-  return set_string_arg(&conf->filt->file_name, line, &match[2]);
+  if (!set_string_arg(&conf->filt->file_path, line, &match[2]))
+  {
+    conf->filt->enabled = true;
+    return 0;
+  }
+  return -1;
 }
 
 static HANDLE_FUNC(handle_filterurls)
 {
-  return set_bool_arg(&conf->filt->enabled_url_filter, line, &match[2]);
+  return set_bool_arg(&conf->filt->does_full_url_filtering, line, &match[2]);
 }
 
 static HANDLE_FUNC(handle_filterextended)
@@ -1077,13 +1076,17 @@ static HANDLE_FUNC(handle_filterextended)
   return set_bool_arg(&conf->filt->is_extended, line, &match[2]);
 }
 
-static HANDLE_FUNC(handle_filterdefaultdeny)
+static HANDLE_FUNC(handle_filterwithwhitelist)
 {
   assert(match[2].rm_so != -1);
 
   if (get_bool_arg(line, &match[2]))
   {
-    conf->filt->default_policy = FILTER_DENY;
+    conf->filt->policy = FILTER_WHITE_LIST;
+  }
+  else
+  {
+    conf->filt->policy = FILTER_BLACK_LIST;
   }
   return 0;
 }
@@ -1092,7 +1095,6 @@ static HANDLE_FUNC(handle_filtercasesensitive)
 {
   return set_bool_arg(&conf->filt->is_case_sensitive, line, &match[2]);
 }
-#endif
 
 #ifdef REVERSE_SUPPORT
 static HANDLE_FUNC(handle_reverseonly)

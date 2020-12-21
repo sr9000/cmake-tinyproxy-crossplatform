@@ -35,7 +35,6 @@
 #include "config/conf.h"
 #include "connect-ports.h"
 #include "conns.h"
-#include "filter.h"
 #include "html-error.h"
 #include "misc/hashmap.h"
 #include "misc/heap.h"
@@ -48,6 +47,7 @@
 #include "subservice/acl.h"
 #include "subservice/anonymous.h"
 #include "subservice/basicauth.h"
+#include "subservice/filter.h"
 #include "subservice/log.h"
 #include "subservice/network.h"
 #include "transparent-proxy.h"
@@ -473,33 +473,21 @@ static struct request_s *process_request(pproxy_t proxy, struct conn_s *connptr,
 #endif
   }
 
-#ifdef FILTER_ENABLE
-  /*
-   * Filter restricted domains/urls
-   */
-  if (config.filter)
+  // filter restricted domains/urls
+  if (is_enabled(proxy->filter))
   {
-    if (config.filter_url)
-      ret = filter_url(url);
-    else
-      ret = filter_domain(request->host);
-
-    if (ret)
+    if (!does_pass_filter(proxy->log, proxy->filter, request->host, url))
     {
       update_stats(STAT_DENIED);
 
-      if (config.filter_url)
-        log_message(proxy->log, LOG_NOTICE, "Proxying refused on filtered url \"%s\"", url);
-      else
-        log_message(proxy->log, LOG_NOTICE, "Proxying refused on filtered domain \"%s\"",
-                    request->host);
+      log_message(proxy->log, LOG_NOTICE, "Proxying refused on filtered url/domain \"%s\"/\"%s\"",
+                  url, request->host);
 
       indicate_http_error(connptr, 403, "Filtered", "detail",
                           "The request you made has been filtered", "url", url, NULL);
       goto fail;
     }
   }
-#endif
 
   /*
    * Check to see if they're requesting the stat host
@@ -1452,7 +1440,6 @@ static void relay_websocket_connection(pproxy_t proxy, struct conn_s *connptr)
         break;
       }
     }
-
 
     //    FD_ZERO(&wset);
 

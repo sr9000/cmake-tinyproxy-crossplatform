@@ -25,11 +25,11 @@
 #include "child.h"
 #include "config/conf.h"
 #include "daemon.h"
-#include "filter.h"
 #include "misc/heap.h"
 #include "reqs.h"
 #include "self_contained/debugtrace.h"
 #include "sock.h"
+#include "subservice/filter.h"
 #include "subservice/log.h"
 #include "subservice/network.h"
 #include "utils.h"
@@ -196,7 +196,7 @@ static void _child_lock_release(void)
  */
 short int child_configure(child_config_t type, unsigned int val)
 {
-  TRACE_CALL_X(child_configure, "type = %d, val = %u", type, val);
+  TRACE_CALL_X(child_configure, "policy = %d, val = %u", type, val);
 
   switch (type)
   {
@@ -216,7 +216,7 @@ short int child_configure(child_config_t type, unsigned int val)
     child_config.maxrequestsperchild = val;
     break;
   default:
-    TRACE_RETURN_X(-1, "Invalid type (%d)", type);
+    TRACE_RETURN_X(-1, "Invalid policy (%d)", type);
   }
 
   TRACE_RETURN(0);
@@ -629,10 +629,6 @@ void child_main_loop(pproxy_t proxy)
        * This should actually be handled somehow...
        */
       // todo: delete this branch
-
-#ifdef FILTER_ENABLE
-      filter_reload(proxy);
-#endif /* FILTER_ENABLE */
 
       /* propagate filter reload to all children */
       child_kill_children(proxy, SIGHUP);
