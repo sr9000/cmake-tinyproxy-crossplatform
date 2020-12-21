@@ -3,6 +3,7 @@ add_library(tinyproxy_conf_help
         conf_log.c
         conf_acl.c
         conf_auth.c
+        conf_filt.c
         "${TINYPROXY_CONF_ANON_HEADERS}")
 target_link_libraries(tinyproxy_conf_help tinyproxy_heap)
 

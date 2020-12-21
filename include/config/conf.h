@@ -23,6 +23,7 @@
 #include "conf_acl.h"
 #include "conf_anon.h"
 #include "conf_auth.h"
+#include "conf_filt.h"
 #include "conf_log.h"
 #include "misc/hashmap.h"
 #include "misc/list.h"
@@ -49,18 +50,22 @@ struct config_s
   // basicauth
   pconf_auth_t auth;
 
+#ifdef FILTER_ENABLE
+  pconf_filt_t filt;
+
+  char *filter;
+  unsigned int filter_url;           // boolean
+  unsigned int filter_extended;      // boolean
+  unsigned int filter_casesensitive; // boolean
+#endif                               // FILTER_ENABLE
+
   unsigned int port;
   char *stathost;
   unsigned int quit; // boolean
   char *user;
   char *group;
   plist_t listen_addrs;
-#ifdef FILTER_ENABLE
-  char *filter;
-  unsigned int filter_url;           // boolean
-  unsigned int filter_extended;      // boolean
-  unsigned int filter_casesensitive; // boolean
-#endif                               // FILTER_ENABLE
+
 #ifdef XTINYPROXY_ENABLE
   unsigned int add_xtinyproxy; // boolean
 #endif

@@ -29,12 +29,11 @@
  * elsewhere.
  */
 
-
 #include "main.h"
 
-#include "config/conf.h"
-#include "child.h"
 #include "buffer.h"
+#include "child.h"
+#include "config/conf.h"
 #include "config/conf_log.h"
 #include "daemon.h"
 #include "filter.h"
@@ -246,6 +245,9 @@ static int initialize_config_defaults(struct config_s *conf)
   conf->anon = create_pconf_anon_t();
   conf->acl = create_pconf_acl_t();
   conf->auth = create_pconf_auth_t();
+#ifdef FILTER_ENABLE
+  conf->filt = create_pconf_filt_t();
+#endif // FILTER_ENABLE
 
   TRACE_SUCCESS;
 }
@@ -588,7 +590,7 @@ void start_proxy()
   spawn_proxy(NULL);
 }
 
-//int main(int argc, char*argv[])
+// int main(int argc, char*argv[])
 //{
 //  run_proxy(NULL);
 //  return 0;

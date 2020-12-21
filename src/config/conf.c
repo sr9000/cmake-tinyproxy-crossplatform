@@ -23,6 +23,8 @@
  * add new directives to.  Who knows if I'm right though.
  */
 
+#include <stdbool.h>
+
 #include "config/conf.h"
 
 #include "child.h"
@@ -350,14 +352,15 @@ static void free_config(struct config_s *conf)
   delete_pconf_anon_t(&conf->anon);
   delete_pconf_acl_t(&conf->acl);
   delete_pconf_auth_t(&conf->auth);
+#ifdef FILTER_ENABLE
+  delete_pconf_filt_t(&conf->filt);
+#endif /* FILTER_ENABLE */
 
   safefree(conf->stathost);
   safefree(conf->user);
   safefree(conf->group);
   list_delete(conf->listen_addrs);
-#ifdef FILTER_ENABLE
-  safefree(conf->filter);
-#endif /* FILTER_ENABLE */
+
 #ifdef REVERSE_SUPPORT
   free_reversepath_list(conf->reversepath_list);
   safefree(conf->reversebaseurl);
@@ -535,6 +538,10 @@ static int initialize_with_defaults(struct config_s *conf, struct config_s *defa
   conf->anon = clone_pconf_anon_t(defaults->anon);
   conf->acl = clone_pconf_acl_t(defaults->acl);
   conf->auth = clone_pconf_auth_t(defaults->auth);
+#ifdef FILTER_ENABLE
+  conf->filt = clone_pconf_filt_t(defaults->filt);
+#endif // FILTER_ENABLE
+
   INIT_STRFLD_WITH_DEFAULT(config_file);
   INIT_STRFLD_WITH_DEFAULT(stathost);
   INIT_STRFLD_WITH_DEFAULT(user);
@@ -564,14 +571,6 @@ static int initialize_with_defaults(struct config_s *conf, struct config_s *defa
       list_append(conf->listen_addrs, addr, size);
     }
   }
-
-#ifdef FILTER_ENABLE
-  INIT_STRFLD_WITH_DEFAULT(filter);
-
-  conf->filter_url = defaults->filter_url;
-  conf->filter_extended = defaults->filter_extended;
-  conf->filter_casesensitive = defaults->filter_casesensitive;
-#endif // FILTER_ENABLE
 
 #ifdef XTINYPROXY_ENABLE
   conf->add_xtinyproxy = defaults->add_xtinyproxy;
@@ -652,7 +651,35 @@ static int set_string_arg(char **var, const char *line, regmatch_t *match)
   TRACE_RETURN(0);
 }
 
-static int get_bool_arg(const char *line, regmatch_t *match)
+static bool get_bool_arg(const char *line, regmatch_t *match)
+{
+  const char *p = line + match->rm_so;
+
+  assert(line);
+  assert(match && match->rm_so != -1);
+
+  /* "y"es or o"n" map as true, otherwise it's false. */
+  if (tolower(p[0]) == 'y' || tolower(p[1]) == 'n')
+  {
+    return true;
+  }
+  else
+  {
+    return false;
+  }
+}
+
+static int set_bool_arg(bool *var, const char *line, regmatch_t *match)
+{
+  assert(var);
+  assert(line);
+  assert(match && match->rm_so != -1);
+
+  *var = get_bool_arg(line, match);
+  return 0;
+}
+
+static int get_int_bool_arg(const char *line, regmatch_t *match)
 {
   const char *p = line + match->rm_so;
 
@@ -666,13 +693,13 @@ static int get_bool_arg(const char *line, regmatch_t *match)
     return 0;
 }
 
-static int set_bool_arg(unsigned int *var, const char *line, regmatch_t *match)
+static int set_int_bool_arg(unsigned int *var, const char *line, regmatch_t *match)
 {
   assert(var);
   assert(line);
   assert(match && match->rm_so != -1);
 
-  *var = get_bool_arg(line, match);
+  *var = get_int_bool_arg(line, match);
   return 0;
 }
 
@@ -756,7 +783,7 @@ static HANDLE_FUNC(handle_disableviaheader)
 {
   TRACE_CALL(handle_disableviaheader);
 
-  int r = set_bool_arg(&conf->disable_viaheader, line, &match[2]);
+  int r = set_int_bool_arg(&conf->disable_viaheader, line, &match[2]);
   if (r)
   {
     TRACE_RETURN_X(r, "ret code: %d", r);
@@ -793,7 +820,7 @@ static HANDLE_FUNC(handle_xtinyproxy)
   TRACE_CALL(handle_xtinyproxy);
 
 #ifdef XTINYPROXY_ENABLE
-  int r = set_bool_arg(&conf->add_xtinyproxy, line, &match[2]);
+  int r = set_int_bool_arg(&conf->add_xtinyproxy, line, &match[2]);
   TRACE_RETURN_X(r, "ret code: %d", r);
 #else
   TRACE_RETURN_X(1, "%s", "XTinyproxy NOT Enabled! Recompile with --enable-xtinyproxy");
@@ -804,7 +831,7 @@ static HANDLE_FUNC(handle_bindsame)
 {
   TRACE_CALL(handle_bindsame);
 
-  int r = set_bool_arg(&conf->bindsame, line, &match[2]);
+  int r = set_int_bool_arg(&conf->bindsame, line, &match[2]);
   if (r)
   {
     TRACE_RETURN_X(r, "ret code: %d", r);
@@ -1037,17 +1064,17 @@ static HANDLE_FUNC(handle_basicauth)
 #ifdef FILTER_ENABLE
 static HANDLE_FUNC(handle_filter)
 {
-  return set_string_arg(&conf->filter, line, &match[2]);
+  return set_string_arg(&conf->filt->file_name, line, &match[2]);
 }
 
 static HANDLE_FUNC(handle_filterurls)
 {
-  return set_bool_arg(&conf->filter_url, line, &match[2]);
+  return set_bool_arg(&conf->filt->enabled_url_filter, line, &match[2]);
 }
 
 static HANDLE_FUNC(handle_filterextended)
 {
-  return set_bool_arg(&conf->filter_extended, line, &match[2]);
+  return set_bool_arg(&conf->filt->is_extended, line, &match[2]);
 }
 
 static HANDLE_FUNC(handle_filterdefaultdeny)
@@ -1055,25 +1082,27 @@ static HANDLE_FUNC(handle_filterdefaultdeny)
   assert(match[2].rm_so != -1);
 
   if (get_bool_arg(line, &match[2]))
-    filter_set_default_policy(FILTER_DEFAULT_DENY);
+  {
+    conf->filt->default_policy = FILTER_DENY;
+  }
   return 0;
 }
 
 static HANDLE_FUNC(handle_filtercasesensitive)
 {
-  return set_bool_arg(&conf->filter_casesensitive, line, &match[2]);
+  return set_bool_arg(&conf->filt->is_case_sensitive, line, &match[2]);
 }
 #endif
 
 #ifdef REVERSE_SUPPORT
 static HANDLE_FUNC(handle_reverseonly)
 {
-  return set_bool_arg(&conf->reverseonly, line, &match[2]);
+  return set_int_bool_arg(&conf->reverseonly, line, &match[2]);
 }
 
 static HANDLE_FUNC(handle_reversemagic)
 {
-  return set_bool_arg(&conf->reversemagic, line, &match[2]);
+  return set_int_bool_arg(&conf->reversemagic, line, &match[2]);
 }
 
 static HANDLE_FUNC(handle_reversebaseurl)
