@@ -15,7 +15,7 @@ CREATE_IMPL(pconf_log_t, {
 DELETE_IMPL(pconf_log_t, { safefree(obj->logf_name); })
 
 CLONE_IMPL(pconf_log_t, {
-  if (src->logf_name != NULL)
+  if (NULL != src->logf_name)
   {
     dst->logf_name = safestrdup(src->logf_name);
     if (NULL == dst->logf_name)

@@ -23,6 +23,7 @@
  * add new directives to.  Who knows if I'm right though.
  */
 
+#include <regex.h> // mingw +libsystre
 #include <stdbool.h>
 
 #include "config/conf.h"

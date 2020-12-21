@@ -19,8 +19,11 @@ DELETE_IMPL(pconf_filt_t, { safefree(obj->file_path); })
 
 CLONE_IMPL(pconf_filt_t, {
   dst->file_path = NULL;
-  TRACE_SAFE_FIN(NULL == (dst->file_path = safestrdup(src->file_path)), NULL,
-                 { delete_pconf_filt_t(&dst); });
+  if (NULL != src->file_path)
+  {
+    TRACE_SAFE_FIN(NULL == (dst->file_path = safestrdup(src->file_path)), NULL,
+                   { delete_pconf_filt_t(&dst); });
+  }
   dst->enabled = src->enabled;
   dst->does_full_url_filtering = src->does_full_url_filtering;
   dst->is_extended = src->is_extended;

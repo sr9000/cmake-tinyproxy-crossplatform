@@ -62,14 +62,14 @@ CREATE_IMPL(pfilter_t, {
 
 DELETE_IMPL(pfilter_t, {
   ssize_t l = list_length(obj->rules);
-  TRACE_SAFE(l >= 0);
+  TRACE_SAFE_X(l < 0, -1, "%s", "assert l >= 0");
   for (size_t i = 0; i < ((size_t)(l)); ++i)
   {
     filter_rule_t *prule = list_getentry(obj->rules, i, NULL);
     clean_filter_rule_t(prule);
   }
-  list_delete(obj->rules);
-  TRACE_SAFE(delete_pconf_filt_t(&obj->config));
+  TRACE_SAFE_X(list_delete(obj->rules), -1, "%s", "list_delete");
+  TRACE_SAFE_X(delete_pconf_filt_t(&obj->config), -1, "%s", "delete_pconf_filt_t");
 })
 
 bool is_enabled(pfilter_t filter)
